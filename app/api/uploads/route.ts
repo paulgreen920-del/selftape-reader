@@ -1,5 +1,9 @@
 // app/api/uploads/route.ts
 
+
+// Max upload size in bytes (10MB)
+const MAX_UPLOAD_SIZE = 10 * 1024 * 1024;
+
 import { put } from "@vercel/blob";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -14,6 +18,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { ok: false, error: "No file provided" },
         { status: 400 }
+      );
+    }
+
+    // Check file size (File.size is in bytes)
+    if (file.size > MAX_UPLOAD_SIZE) {
+      return NextResponse.json(
+        { ok: false, error: `File too large. Please upload an image no larger than 10MB.` },
+        { status: 413 }
       );
     }
 

@@ -108,6 +108,12 @@ export default function EditReaderProfile() {
   async function handleHeadshotChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+    // 10MB limit (must match backend)
+    const MAX_SIZE = 10 * 1024 * 1024;
+    if (file.size > MAX_SIZE) {
+      alert("Please upload an image no larger than 10MB.");
+      return;
+    }
     setUploading(true);
     try {
       const fd = new FormData();
@@ -117,7 +123,12 @@ export default function EditReaderProfile() {
       if (!res.ok || !data?.absoluteUrl) throw new Error(data?.error || "Upload failed");
       setHeadshotUrl(data.absoluteUrl);
     } catch (err: any) {
-      alert(err.message || "Upload failed");
+      // Show a user-friendly error if file is too large
+      if (err.message && err.message.includes("no larger than 10MB")) {
+        alert("Please upload an image no larger than 10MB.");
+      } else {
+        alert(err.message || "Upload failed");
+      }
       setHeadshotUrl("");
     } finally {
       setUploading(false);
@@ -224,13 +235,14 @@ export default function EditReaderProfile() {
         <form onSubmit={handleSubmit} className="space-y-6 bg-white rounded-lg shadow p-6">
           {/* Headshot */}
           <div>
-            <label className="block text-sm font-medium mb-2">Headshot</label>
+            <label className="block text-sm font-medium mb-2">Headshot <span className="text-xs text-gray-500">(max 10MB)</span></label>
             <input
               type="file"
               accept="image/*"
               className="block w-full text-sm"
               onChange={handleHeadshotChange}
             />
+            <p className="text-xs text-gray-500 mt-1">Please upload a clear image. Maximum file size: 10MB.</p>
             {uploading && <p className="text-xs mt-1">Uploading…</p>}
             {headshotUrl && (
               <div className="mt-2">
