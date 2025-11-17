@@ -108,10 +108,10 @@ export default function EditReaderProfile() {
   async function handleHeadshotChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    // 10MB limit (must match backend)
+    // 4MB limit (must match backend)
     const MAX_SIZE = 10 * 1024 * 1024;
     if (file.size > MAX_SIZE) {
-      alert("Please upload an image no larger than 10MB.");
+      alert("Please upload an image no larger than 4MB.");
       return;
     }
     setUploading(true);
@@ -125,7 +125,7 @@ export default function EditReaderProfile() {
     } catch (err: any) {
       // Show a user-friendly error if file is too large
       if (err.message && err.message.includes("no larger than 10MB")) {
-        alert("Please upload an image no larger than 10MB.");
+        alert("Please upload an image no larger than 4MB.");
       } else {
         alert(err.message || "Upload failed");
       }
