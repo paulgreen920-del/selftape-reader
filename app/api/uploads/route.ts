@@ -7,7 +7,15 @@ const MAX_UPLOAD_SIZE = 10 * 1024 * 1024;
 import { put } from "@vercel/blob";
 import { NextRequest, NextResponse } from "next/server";
 
-export const runtime = "edge"; // fine to keep edge here
+
+// Switch to Node.js runtime to support custom body size limit
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: '10mb',
+    },
+  },
+};
 
 export async function POST(req: NextRequest) {
   try {
