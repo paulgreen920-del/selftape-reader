@@ -1,23 +1,17 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-export async function GET(req: Request) {
+async function handleGet(req: Request) {
   try {
     const url = new URL(req.url);
     const id = url.searchParams.get("id");
-
     if (!id) {
       return NextResponse.json({ ok: false, error: "Missing user ID" }, { status: 400 });
     }
-
-    const user = await prisma.user.findUnique({
-      where: { id },
-    });
-
+    const user = await prisma.user.findUnique({ where: { id } });
     if (!user) {
       return NextResponse.json({ ok: false, error: "User not found" }, { status: 404 });
     }
-
     return NextResponse.json({ ok: true, reader: user });
   } catch (err: any) {
     console.error("[GET /api/readers/profile] error:", err);
@@ -25,7 +19,7 @@ export async function GET(req: Request) {
   }
 }
 
-export async function PUT(req: Request) {
+async function handlePut(req: Request) {
   try {
     let body;
     try {
@@ -52,19 +46,15 @@ export async function PUT(req: Request) {
       specialties,
       links,
     } = body;
-
     if (!readerId) {
       return NextResponse.json({ ok: false, error: "Missing user ID" }, { status: 400 });
     }
-
     // Convert dollars to cents
     const rate15Cents = Math.max(0, Math.round(Number(rate15Usd || 0) * 100));
     const rate30Cents = Math.max(0, Math.round(Number(rateUsd || 0) * 100));
     const rate60Cents = Math.max(0, Math.round(Number(rate60Usd || 0) * 100));
-
     const ageMin = playableAgeMin === null || playableAgeMin === "" ? null : Number(playableAgeMin);
     const ageMax = playableAgeMax === null || playableAgeMax === "" ? null : Number(playableAgeMax);
-
     // Update user
     const updated = await prisma.user.update({
       where: { id: readerId },
@@ -87,11 +77,28 @@ export async function PUT(req: Request) {
         links: links || [],
       },
     });
-
     return NextResponse.json({ ok: true, reader: updated });
   } catch (err: any) {
     console.error("[PUT /api/readers/profile] error:", err);
     return NextResponse.json({ ok: false, error: err?.message || "Failed to update profile" }, { status: 500 });
+  }
+}
+
+export async function GET(req: Request) {
+  try {
+    return await handleGet(req);
+  } catch (err: any) {
+    console.error("[GET /api/readers/profile] top-level error:", err);
+    return NextResponse.json({ ok: false, error: "Internal server error" }, { status: 500 });
+  }
+}
+
+export async function PUT(req: Request) {
+  try {
+    return await handlePut(req);
+  } catch (err: any) {
+    console.error("[PUT /api/readers/profile] top-level error:", err);
+    return NextResponse.json({ ok: false, error: "Internal server error" }, { status: 500 });
   }
 }
 
