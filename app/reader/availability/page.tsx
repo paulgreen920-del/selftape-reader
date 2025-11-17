@@ -25,8 +25,7 @@
     } finally {
       setDisconnecting(false);
     }
-  }
-"use client";
+  "use client";
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
