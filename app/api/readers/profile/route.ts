@@ -25,9 +25,13 @@ export async function GET(req: Request) {
   }
 }
 
-export async function PUT(req: Request) {
   try {
-    const body = await req.json();
+    let body;
+    try {
+      body = await req.json();
+    } catch (err) {
+      return NextResponse.json({ ok: false, error: "Invalid JSON body" }, { status: 400 });
+    }
     const {
       readerId,
       displayName,
@@ -86,6 +90,14 @@ export async function PUT(req: Request) {
     return NextResponse.json({ ok: true, reader: updated });
   } catch (err: any) {
     console.error("[PUT /api/readers/profile] error:", err);
-    return NextResponse.json({ ok: false, error: "Failed to update profile" }, { status: 500 });
+    return NextResponse.json({ ok: false, error: err?.message || "Failed to update profile" }, { status: 500 });
   }
+
+// Fallback for unsupported methods
+export async function POST() {
+  return NextResponse.json({ ok: false, error: "Method not allowed" }, { status: 405 });
+}
+export async function DELETE() {
+  return NextResponse.json({ ok: false, error: "Method not allowed" }, { status: 405 });
+}
 }
