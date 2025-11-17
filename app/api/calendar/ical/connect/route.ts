@@ -1,0 +1,129 @@
+// app/api/calendar/ical/connect/route.ts
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import ICAL from "ical.js";
+
+export async function POST(req: Request) {
+  try {
+    const { readerId, icalUrl } = await req.json();
+
+    if (!readerId || !icalUrl) {
+      return NextResponse.json(
+        { ok: false, error: "Missing readerId or icalUrl" },
+        { status: 400 }
+      );
+    }
+
+    // Validate URL format
+    const urlPattern = /^(https?|webcal):\/\/.+/i;
+    if (!urlPattern.test(icalUrl)) {
+      return NextResponse.json(
+        { ok: false, error: "Invalid URL format. Must start with http://, https://, or webcal://" },
+        { status: 400 }
+      );
+    }
+
+    // Convert webcal:// to https://
+    const fetchUrl = icalUrl.replace(/^webcal:\/\//i, "https://");
+
+    // Test the iCal URL by fetching and parsing it
+    console.log('[iCal] Testing iCal URL:', fetchUrl);
+    
+    let icalData: string;
+    try {
+      const response = await fetch(fetchUrl, {
+        headers: {
+          'User-Agent': 'Self-Tape-Reader/1.0',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch iCal feed (HTTP ${response.status})`);
+      }
+
+      icalData = await response.text();
+      
+      if (!icalData || icalData.trim().length === 0) {
+        throw new Error('iCal feed returned empty data');
+      }
+
+      // Validate it's actually iCal format
+      if (!icalData.includes('BEGIN:VCALENDAR')) {
+        throw new Error('Invalid iCal format - missing VCALENDAR');
+      }
+
+    } catch (fetchError: any) {
+      console.error('[iCal] Failed to fetch iCal URL:', fetchError);
+      return NextResponse.json(
+        { 
+          ok: false, 
+          error: `Could not access iCal feed: ${fetchError.message}. Make sure the URL is public and accessible.` 
+        },
+        { status: 400 }
+      );
+    }
+
+    // Try to parse the iCal data
+    try {
+      const jcalData = ICAL.parse(icalData);
+      const comp = new ICAL.Component(jcalData);
+      const vevents = comp.getAllSubcomponents('vevent');
+      
+      console.log(`[iCal] Successfully parsed iCal feed with ${vevents.length} events`);
+    } catch (parseError: any) {
+      console.error('[iCal] Failed to parse iCal data:', parseError);
+      return NextResponse.json(
+        { 
+          ok: false, 
+          error: `Invalid iCal format: ${parseError.message}` 
+        },
+        { status: 400 }
+      );
+    }
+
+    // Verify reader exists
+    const reader = await prisma.user.findUnique({
+      where: { id: readerId },
+      select: { id: true, email: true }
+    });
+
+    if (!reader) {
+      return NextResponse.json(
+        { ok: false, error: "Reader not found" },
+        { status: 404 }
+      );
+    }
+
+    // Delete any existing calendar connections for this user
+    await prisma.calendarConnection.deleteMany({
+      where: { userId: readerId }
+    });
+
+    // Create new iCal connection
+    await prisma.calendarConnection.create({
+      data: {
+        id: `ical_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`,
+        userId: readerId,
+        provider: "ICAL",
+        accessToken: fetchUrl, // Store the processed URL in accessToken field
+        refreshToken: "",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }
+    });
+
+    console.log(`[iCal] Successfully connected iCal calendar for reader ${readerId}`);
+
+    return NextResponse.json({ 
+      ok: true, 
+      message: "iCal calendar connected successfully" 
+    });
+
+  } catch (error: any) {
+    console.error('[iCal] Error connecting iCal calendar:', error);
+    return NextResponse.json(
+      { ok: false, error: error.message || "Failed to connect iCal calendar" },
+      { status: 500 }
+    );
+  }
+}

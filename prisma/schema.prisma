@@ -1,0 +1,214 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model AvailabilitySlot {
+  id        String   @id
+  createdAt DateTime @default(now())
+  updatedAt DateTime
+  bookingId String?
+  endTime   DateTime
+  isBooked  Boolean  @default(false)
+  startTime DateTime
+  userId    String
+  User      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([isBooked])
+  @@index([startTime])
+  @@index([userId])
+}
+
+model AvailabilityTemplate {
+  id        String   @id
+  createdAt DateTime @default(now())
+  updatedAt DateTime
+  userId    String
+  dayOfWeek Int
+  startTime String
+  endTime   String
+  isActive  Boolean  @default(true)
+  User      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([dayOfWeek])
+  @@index([userId])
+}
+
+model Booking {
+  id                          String        @id
+  createdAt                   DateTime      @default(now())
+  updatedAt                   DateTime
+  readerId                    String
+  startTime                   DateTime
+  endTime                     DateTime
+  status                      BookingStatus @default(PENDING)
+  meetingUrl                  String?
+  notes                       String?
+  actorId                     String
+  cancelReason                String?
+  canceledAt                  DateTime?
+  durationMinutes             Int
+  platformFeeCents            Int?
+  readerEarningsCents         Int?
+  stripePaymentIntentId       String?
+  stripeTransferId            String?
+  totalCents                  Int
+  sidesFileName               String?
+  sidesLink                   String?
+  sidesUrl                    String?
+  actorJoinedAt               DateTime?
+  canceledBy                  String?
+  hasIssue                    Boolean       @default(false)
+  issueDescription            String?
+  issueReportedBy             String?
+  issueResolution             String?
+  issueResolvedAt             DateTime?
+  issueType                   String?
+  platformCreditCents         Int?
+  processingFeeCents          Int?
+  readerJoinedAt              DateTime?
+  refundCents                 Int?
+  refundIssuedAt              DateTime?
+  refundStatus                RefundStatus?
+  sessionDuration             Int?
+  sessionEndedAt              DateTime?
+  sessionStartedAt            DateTime?
+  stripeRefundId              String?
+  User_Booking_actorIdToUser  User          @relation("Booking_actorIdToUser", fields: [actorId], references: [id], onDelete: Cascade)
+  User_Booking_readerIdToUser User          @relation("Booking_readerIdToUser", fields: [readerId], references: [id], onDelete: Cascade)
+
+  @@index([actorId])
+  @@index([readerId])
+  @@index([startTime])
+  @@index([status])
+}
+
+model CalendarConnection {
+  id           String    @id
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime
+  userId       String    @unique
+  provider     String
+  accessToken  String
+  refreshToken String
+  expiresAt    DateTime?
+  email        String?
+  calendarId   String?
+  User         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model User {
+  id                             String                  @id
+  createdAt                      DateTime                @default(now())
+  updatedAt                      DateTime
+  email                          String                  @unique
+  emailVerified                  Boolean                 @default(false)
+  emailVerifiedAt                DateTime?
+  password                       String
+  name                           String
+  role                           Role                    @default(ACTOR)
+  displayName                    String?
+  phone                          String?
+  timezone                       String?                 @default("America/New_York")
+  city                           String?
+  bio                            String?
+  playableAgeMin                 Int?
+  playableAgeMax                 Int?
+  gender                         String?
+  headshotUrl                    String?
+  ratePer15Min                   Int?                    @default(1500)
+  ratePer30Min                   Int?                    @default(2500)
+  ratePer60Min                   Int?                    @default(6000)
+  unions                         Json?                   @default("[]")
+  languages                      Json?                   @default("[]")
+  specialties                    Json?                   @default("[]")
+  links                          Json?                   @default("[]")
+  subscriptionId                 String?
+  subscriptionStatus             String?                 @default("inactive")
+  stripeAccountId                String?
+  stripeCustomerId               String?
+  isActive                       Boolean                 @default(true)
+  acceptsTerms                   Boolean                 @default(false)
+  marketingOptIn                 Boolean                 @default(false)
+  onboardingStep                 String?
+  bookingBuffer                  Int?                    @default(15)
+  maxAdvanceBooking              Int?                    @default(360)
+  minAdvanceHours                Int?                    @default(2)
+  canceledSessions               Int                     @default(0)
+  completedSessions              Int                     @default(0)
+  lastWarningAt                  DateTime?
+  lateArrivals                   Int                     @default(0)
+  noShowSessions                 Int                     @default(0)
+  reliabilityScore               Float?
+  suspendedUntil                 DateTime?
+  suspensionReason               String?
+  totalSessions                  Int                     @default(0)
+  AvailabilitySlot               AvailabilitySlot[]
+  AvailabilityTemplate           AvailabilityTemplate[]
+  Booking_Booking_actorIdToUser  Booking[]               @relation("Booking_actorIdToUser")
+  Booking_Booking_readerIdToUser Booking[]               @relation("Booking_readerIdToUser")
+  CalendarConnection             CalendarConnection?
+  email_change_requests          email_change_requests[]
+
+  @@index([email])
+  @@index([isActive])
+  @@index([role])
+}
+
+model email_change_requests {
+  id        String   @id
+  createdAt DateTime @default(now())
+  updatedAt DateTime
+  userId    String
+  oldEmail  String
+  newEmail  String
+  token     String   @unique
+  expiresAt DateTime
+  User      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([userId])
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELED
+  NO_SHOW
+  RESCHEDULED
+}
+
+enum RefundStatus {
+  NONE
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  PARTIAL
+}
+
+enum Role {
+  ACTOR
+  READER
+  ADMIN
+}
+
+model EmailVerification {
+  id         String    @id
+  createdAt  DateTime  @default(now())
+  email      String
+  token      String    @unique
+  expiresAt  DateTime
+  verified   Boolean   @default(false)
+  verifiedAt DateTime?
+
+  @@index([email])
+  @@index([token])
+}

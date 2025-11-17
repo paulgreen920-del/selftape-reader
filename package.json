@@ -1,0 +1,46 @@
+{
+    "name": "readers-market-v2",
+    "version": "0.1.0",
+    "private": true,
+    "scripts": {
+        "dev": "next dev",
+        "build": "prisma generate && next build",
+        "start": "next start",
+        "lint": "eslint"
+    },
+    "dependencies": {
+        "@prisma/client": "6.19.0",
+        "@prisma/engines": "^6.19.0",
+        "bcryptjs": "^3.0.3",
+        "dotenv": "^17.2.3",
+        "ical.js": "^2.2.1",
+        "next": "16.0.2",
+        "react": "19.2.0",
+        "react-dom": "19.2.0",
+        "resend": "^6.3.0",
+        "stripe": "^19.3.1"
+    },
+    "devDependencies": {
+        "@types/bcryptjs": "^3.0.0",
+        "@types/node": "^24.10.1",
+        "@types/react": "^19.2.4",
+        "@types/react-dom": "^19.2.3",
+        "autoprefixer": "^10.4.21",
+        "babel-plugin-react-compiler": "1.0.0",
+        "eslint": "^9",
+        "eslint-config-next": "16.0.0",
+        "postcss": "^8.5.6",
+        "prisma": "^6.18.0",
+        "tailwindcss": "^3.4.18",
+        "typescript": "^5"
+    },
+    "pnpm": {
+        "trustedDependencies": [
+            "@prisma/client",
+            "prisma",
+            "@prisma/engines",
+            "sharp",
+            "unrs-resolver"
+        ]
+    }
+}
