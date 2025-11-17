@@ -1,36 +1,38 @@
 // app/api/uploads/route.ts
+
+import { put } from "@vercel/blob";
 import { NextResponse } from "next/server";
-import { promises as fs } from "fs";
-import path from "path";
 
-export const runtime = "nodejs"; // required for filesystem access
+export const runtime = "edge"; // Vercel Blob requires edge runtime
 
-export async function POST(req: Request) {
   try {
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
-
     if (!file) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
-    const bytes = Buffer.from(await file.arrayBuffer());
+    // Generate a unique filename
     const safeName = file.name.replace(/\s+/g, "_").replace(/[^\w.\-]/g, "");
     const filename = `${Date.now()}-${safeName}`;
 
-    const uploadDir = path.join(process.cwd(), "public", "uploads");
-    await fs.mkdir(uploadDir, { recursive: true });
+    // Use standard Vercel Blob env var
+    const blobToken = process.env.selftapeblob_READ_WRITE_TOKEN;
+    if (!blobToken) {
+      return NextResponse.json({ error: "Blob token not set in environment" }, { status: 500 });
+    }
 
-    const filepath = path.join(uploadDir, filename);
-    await fs.writeFile(filepath, bytes);
+    // Upload to Vercel Blob
+    const arrayBuffer = await file.arrayBuffer();
+    const { url } = await put(filename, arrayBuffer, {
+      access: "public", // Change to "private" if you want restricted access
+      contentType: file.type || undefined,
+      token: blobToken,
+    });
 
-    const url = `/uploads/${filename}`;
-    const origin = new URL(req.url).origin; // e.g. http://localhost:3000
-    const absoluteUrl = `${origin}${url}`;
-
-    return NextResponse.json({ ok: true, url, absoluteUrl });
-  } catch (err) {
+    return NextResponse.json({ ok: true, url, absoluteUrl: url });
+  } catch (err: any) {
     console.error(err);
-    return NextResponse.json({ error: "Upload failed" }, { status: 500 });
+    return NextResponse.json({ error: err.message || "Upload failed" }, { status: 500 });
   }
 }
