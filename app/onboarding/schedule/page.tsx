@@ -2,10 +2,15 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-  // Modal state for disconnect prompt
+import { useSearchParams, useRouter } from "next/navigation";
+
+type ReaderLite = { id: string; displayName: string | null; email: string | null };
+
+export default function OnboardingSchedulePage() {
   const [showDisconnectModal, setShowDisconnectModal] = useState(false);
   const [pendingProvider, setPendingProvider] = useState<"GOOGLE" | "MICROSOFT" | null>(null);
   const [disconnecting, setDisconnecting] = useState(false);
+
   // Disconnect current calendar connection
   async function disconnectCalendarAndContinue() {
     setDisconnecting(true);
@@ -32,11 +37,6 @@ import { useEffect, useMemo, useState } from "react";
       setDisconnecting(false);
     }
   }
-import { useSearchParams, useRouter } from "next/navigation";
-
-type ReaderLite = { id: string; displayName: string | null; email: string | null };
-
-export default function OnboardingSchedulePage() {
   const searchParams = useSearchParams();
   const router = useRouter();
 

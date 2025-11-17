@@ -1,8 +1,42 @@
+
+"use client";
+import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+
+interface CalendarConnection {
+  id: string;
+  provider: 'GOOGLE' | 'MICROSOFT';
+  email: string;
+  createdAt: string;
+  isActive: boolean;
+}
+
+interface AvailabilityTemplate {
+  id: string;
+  dayOfWeek: number; // 0-6 (Sunday-Saturday)
+  startTime: string; // "09:00"
+  endTime: string;   // "17:00"
+  isActive?: boolean;
+}
+
+export default function ManageAvailabilityPage() {
+
+  const router = useRouter();
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const [calendarConnection, setCalendarConnection] = useState<CalendarConnection | null>(null);
+  const [availabilityTemplates, setAvailabilityTemplates] = useState<AvailabilityTemplate[]>([]);
+  const [connectingGoogle, setConnectingGoogle] = useState(false);
+  const lastTemplateRef = useRef<HTMLDivElement>(null);
+
   // Modal state for disconnect prompt
   const [showDisconnectModal, setShowDisconnectModal] = useState(false);
   const [pendingProvider, setPendingProvider] = useState<"GOOGLE" | "MICROSOFT" | null>(null);
   const [disconnecting, setDisconnecting] = useState(false);
-  // Disconnect current calendar connection
+
+  // Disconnect current calendar connection and continue with new provider
   async function disconnectCalendarAndContinue() {
     setDisconnecting(true);
     try {
@@ -25,37 +59,8 @@
     } finally {
       setDisconnecting(false);
     }
-  "use client";
-import { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
+  }
 
-interface CalendarConnection {
-  id: string;
-  provider: 'GOOGLE' | 'MICROSOFT';
-  email: string;
-  createdAt: string;
-  isActive: boolean;
-}
-
-interface AvailabilityTemplate {
-  id: string;
-  dayOfWeek: number; // 0-6 (Sunday-Saturday)
-  startTime: string; // "09:00"
-  endTime: string;   // "17:00"
-  isActive?: boolean;
-}
-
-export default function ManageAvailabilityPage() {
-  const router = useRouter();
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [user, setUser] = useState<any>(null);
-  const [calendarConnection, setCalendarConnection] = useState<CalendarConnection | null>(null);
-  const [availabilityTemplates, setAvailabilityTemplates] = useState<AvailabilityTemplate[]>([]);
-  const [connectingGoogle, setConnectingGoogle] = useState(false);
-  const lastTemplateRef = useRef<HTMLDivElement>(null);
-  
   // Availability settings
   const [maxAdvanceBooking, setMaxAdvanceBooking] = useState(360); // hours
   const [minAdvanceHours, setMinAdvanceHours] = useState(2);
