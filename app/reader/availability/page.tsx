@@ -1,3 +1,31 @@
+  // Modal state for disconnect prompt
+  const [showDisconnectModal, setShowDisconnectModal] = useState(false);
+  const [pendingProvider, setPendingProvider] = useState<"GOOGLE" | "MICROSOFT" | null>(null);
+  const [disconnecting, setDisconnecting] = useState(false);
+  // Disconnect current calendar connection
+  async function disconnectCalendarAndContinue() {
+    setDisconnecting(true);
+    try {
+      const response = await fetch('/api/calendar/disconnect', { method: 'POST' });
+      if (response.ok) {
+        setCalendarConnection(null);
+        setShowDisconnectModal(false);
+        // Continue with pending provider
+        if (pendingProvider === "GOOGLE") {
+          connectGoogleCalendar();
+        } else if (pendingProvider === "MICROSOFT") {
+          connectMicrosoftCalendar();
+        }
+        setPendingProvider(null);
+      } else {
+        alert('Failed to disconnect calendar');
+      }
+    } catch (error) {
+      alert('Failed to disconnect calendar');
+    } finally {
+      setDisconnecting(false);
+    }
+  }
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -143,18 +171,20 @@ export default function ManageAvailabilityPage() {
   };
 
   const connectGoogleCalendar = async () => {
+    if (calendarConnection) {
+      setPendingProvider("GOOGLE");
+      setShowDisconnectModal(true);
+      return;
+    }
     if (!user?.id) {
       alert('User not loaded yet. Please try again.');
       return;
     }
-    
     setConnectingGoogle(true);
     try {
       const response = await fetch(`/api/calendar/google/start?readerId=${user.id}`);
       const data = await response.json();
-      
       if (data.ok && data.authUrl) {
-        // Redirect to Google OAuth
         window.location.href = data.authUrl;
       } else {
         alert(data.error || 'Failed to initiate Google Calendar connection');
@@ -168,18 +198,20 @@ export default function ManageAvailabilityPage() {
   };
 
   const connectMicrosoftCalendar = async () => {
+    if (calendarConnection) {
+      setPendingProvider("MICROSOFT");
+      setShowDisconnectModal(true);
+      return;
+    }
     if (!user?.id) {
       alert('User not loaded yet. Please try again.');
       return;
     }
-    
-    setConnectingGoogle(true); // Reuse same loading state
+    setConnectingGoogle(true);
     try {
       const response = await fetch(`/api/calendar/microsoft/start?readerId=${user.id}`);
       const data = await response.json();
-      
       if (data.ok && data.authUrl) {
-        // Redirect to Microsoft OAuth
         window.location.href = data.authUrl;
       } else {
         alert(data.error || 'Failed to initiate Microsoft Calendar connection');
@@ -191,6 +223,33 @@ export default function ManageAvailabilityPage() {
       setConnectingGoogle(false);
     }
   };
+  // Modal component
+  function DisconnectModal() {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+        <div className="bg-white rounded-lg shadow-lg p-6 max-w-sm w-full">
+          <h2 className="text-lg font-semibold mb-2">Only one calendar can be connected</h2>
+          <p className="mb-4 text-gray-700">Would you like to disconnect your current calendar to connect a new one?</p>
+          <div className="flex justify-end gap-3">
+            <button
+              className="px-4 py-2 rounded border text-gray-700 hover:bg-gray-100"
+              onClick={() => { setShowDisconnectModal(false); setPendingProvider(null); }}
+              disabled={disconnecting}
+            >
+              Cancel
+            </button>
+            <button
+              className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
+              onClick={disconnectCalendarAndContinue}
+              disabled={disconnecting}
+            >
+              {disconnecting ? "Disconnecting..." : "Disconnect"}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const disconnectCalendar = async () => {
     if (!confirm('⚠️ Disconnecting your calendar will remove you from available bookings and disable conflict checking. Are you sure you want to continue?')) {
@@ -471,6 +530,7 @@ export default function ManageAvailabilityPage() {
       </header>
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {showDisconnectModal && <DisconnectModal />}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Manage Availability</h1>
           <p className="text-gray-600">Set up your calendar sync and availability preferences</p>

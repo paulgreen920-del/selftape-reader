@@ -2,6 +2,36 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+  // Modal state for disconnect prompt
+  const [showDisconnectModal, setShowDisconnectModal] = useState(false);
+  const [pendingProvider, setPendingProvider] = useState<"GOOGLE" | "MICROSOFT" | null>(null);
+  const [disconnecting, setDisconnecting] = useState(false);
+  // Disconnect current calendar connection
+  async function disconnectCalendarAndContinue() {
+    setDisconnecting(true);
+    try {
+      const res = await fetch("/api/calendar/disconnect", { method: "POST" });
+      if (res.ok) {
+        setGoogleConnected(false);
+        setMicrosoftConnected(false);
+        setIcalConnected(false);
+        setShowDisconnectModal(false);
+        // Continue with pending provider
+        if (pendingProvider === "GOOGLE") {
+          goGoogle();
+        } else if (pendingProvider === "MICROSOFT") {
+          goMicrosoft();
+        }
+        setPendingProvider(null);
+      } else {
+        alert("Failed to disconnect calendar");
+      }
+    } catch (e) {
+      alert("Failed to disconnect calendar");
+    } finally {
+      setDisconnecting(false);
+    }
+  }
 import { useSearchParams, useRouter } from "next/navigation";
 
 type ReaderLite = { id: string; displayName: string | null; email: string | null };
@@ -189,6 +219,11 @@ export default function OnboardingSchedulePage() {
 
   // ---- Start Google OAuth via our API
   async function goGoogle() {
+    if (googleConnected || microsoftConnected || icalConnected) {
+      setPendingProvider("GOOGLE");
+      setShowDisconnectModal(true);
+      return;
+    }
     try {
       const id = effectiveReaderId || readerId;
       if (!id) {
@@ -212,6 +247,11 @@ export default function OnboardingSchedulePage() {
 
   // ---- Start Microsoft OAuth via our API
   async function goMicrosoft() {
+    if (googleConnected || microsoftConnected || icalConnected) {
+      setPendingProvider("MICROSOFT");
+      setShowDisconnectModal(true);
+      return;
+    }
     try {
       const id = effectiveReaderId || readerId;
       if (!id) {
@@ -232,9 +272,37 @@ export default function OnboardingSchedulePage() {
       alert(e?.message || "Could not start Microsoft connection.");
     }
   }
+  // Modal component
+  function DisconnectModal() {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+        <div className="bg-white rounded-lg shadow-lg p-6 max-w-sm w-full">
+          <h2 className="text-lg font-semibold mb-2">Only one calendar can be connected</h2>
+          <p className="mb-4 text-gray-700">Would you like to disconnect your current calendar to connect a new one?</p>
+          <div className="flex justify-end gap-3">
+            <button
+              className="px-4 py-2 rounded border text-gray-700 hover:bg-gray-100"
+              onClick={() => { setShowDisconnectModal(false); setPendingProvider(null); }}
+              disabled={disconnecting}
+            >
+              Cancel
+            </button>
+            <button
+              className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
+              onClick={disconnectCalendarAndContinue}
+              disabled={disconnecting}
+            >
+              {disconnecting ? "Disconnecting..." : "Disconnect"}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-10">
+      {showDisconnectModal && <DisconnectModal />}
       {/* Friendly header */}
       <h1 className="text-2xl sm:text-3xl font-bold">
         {loading
