@@ -20,6 +20,7 @@ interface AvailabilityTemplate {
   isActive?: boolean;
 }
 
+
 export default function ManageAvailabilityPage() {
 
   const router = useRouter();
@@ -102,8 +103,26 @@ export default function ManageAvailabilityPage() {
     });
   };
 
+
   useEffect(() => {
-    fetchData();
+    // Check onboarding status first
+    async function checkOnboardingAndFetch() {
+      try {
+        const onboardingRes = await fetch('/api/onboarding/status');
+        if (onboardingRes.ok) {
+          const onboardingData = await onboardingRes.json();
+          if (onboardingData.status?.isComplete || onboardingData.status?.canAccessDashboard) {
+            // If onboarding is complete, route to dashboard
+            window.location.href = '/dashboard';
+            return;
+          }
+        }
+      } catch (err) {
+        // Ignore and continue to fetchData
+      }
+      fetchData();
+    }
+    checkOnboardingAndFetch();
   }, []);
 
   const fetchData = async () => {
