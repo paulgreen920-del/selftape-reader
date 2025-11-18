@@ -348,6 +348,19 @@ export default function DashboardPage() {
                   View your session history and payments
                 </p>
               </Link>
+
+              {/* Manage Stripe Account tile */}
+              <Link
+                href="/reader/stripe"
+                className="bg-white rounded-lg shadow p-6 hover:shadow-md transition md:col-span-2"
+              >
+                <h3 className="text-lg font-semibold mb-2 text-emerald-700">
+                  🏦 Manage Stripe Account
+                </h3>
+                <p className="text-sm text-gray-600">
+                  Update your payout details, view Stripe dashboard, or manage your connected account.
+                </p>
+              </Link>
             </div>
           </div>
         )}
