@@ -235,14 +235,14 @@ export default function EditReaderProfile() {
         <form onSubmit={handleSubmit} className="space-y-6 bg-white rounded-lg shadow p-6">
           {/* Headshot */}
           <div>
-            <label className="block text-sm font-medium mb-2">Headshot <span className="text-xs text-gray-500">(max 10MB)</span></label>
+            <label className="block text-sm font-medium mb-2">Headshot <span className="text-xs text-gray-500">(max 4MB)</span></label>
             <input
               type="file"
               accept="image/*"
               className="block w-full text-sm"
               onChange={handleHeadshotChange}
             />
-            <p className="text-xs text-gray-500 mt-1">Please upload a clear image. Maximum file size: 10MB.</p>
+            <p className="text-xs text-gray-500 mt-1">Please upload a clear image. Maximum file size: 4MB.</p>
             {uploading && <p className="text-xs mt-1">Uploading…</p>}
             {headshotUrl && (
               <div className="mt-2">

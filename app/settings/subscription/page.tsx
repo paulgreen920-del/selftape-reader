@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 type SubscriptionData = {
   status: string;
@@ -122,6 +123,9 @@ export default function SubscriptionSettingsPage() {
 
   return (
     <div className="max-w-2xl mx-auto p-6">
+      <div className="mb-4">
+        <Link href="/dashboard" className="text-emerald-700 hover:underline font-medium">← Back to Dashboard</Link>
+      </div>
       <h1 className="text-2xl font-bold mb-6">Subscription Management</h1>
 
       <div className="bg-white border rounded-lg p-6 mb-6">
