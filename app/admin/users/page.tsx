@@ -295,15 +295,47 @@ export default function AdminUsersPage() {
                 </div>
               </div>
 
+
               <div>
                 <label className="block text-sm font-medium mb-1">Headshot URL</label>
-                <input
-                  type="url"
-                  className="w-full border rounded px-3 py-2"
-                  defaultValue={editingUser.headshotUrl || ''}
-                  onChange={(e) => editingUser.headshotUrl = e.target.value}
-                  placeholder="https://example.com/headshot.jpg"
-                />
+                <div className="flex gap-2 items-center">
+                  <input
+                    type="url"
+                    className="w-full border rounded px-3 py-2"
+                    defaultValue={editingUser.headshotUrl || ''}
+                    onChange={(e) => editingUser.headshotUrl = e.target.value}
+                    placeholder="https://example.com/headshot.jpg"
+                  />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    title="Upload headshot"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      if (file.size > 4 * 1024 * 1024) {
+                        alert('Please upload an image no larger than 4MB.');
+                        return;
+                      }
+                      const fd = new FormData();
+                      fd.append('file', file);
+                      try {
+                        const res = await fetch('/api/uploads', { method: 'POST', body: fd });
+                        const data = await res.json();
+                        if (!res.ok || !data?.absoluteUrl) throw new Error(data?.error || 'Upload failed');
+                        editingUser.headshotUrl = data.absoluteUrl;
+                        // Optionally, update the input value visually (if using refs or state)
+                        alert('Headshot uploaded! URL set.');
+                      } catch (err) {
+                        alert('Upload failed.');
+                      }
+                    }}
+                  />
+                </div>
+                <p className="text-xs text-gray-500 mt-1">Paste a URL or upload an image (max 4MB).</p>
+                {editingUser.headshotUrl && (
+                  <div className="mt-2"><img src={editingUser.headshotUrl} alt="Headshot preview" className="h-20 w-20 object-cover rounded" /></div>
+                )}
               </div>
 
               <div>
