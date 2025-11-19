@@ -155,6 +155,7 @@ model User {
   Booking_Booking_readerIdToUser Booking[]               @relation("Booking_readerIdToUser")
   CalendarConnection             CalendarConnection?
   email_change_requests          email_change_requests[]
+  skippedOnboardingSteps         String[]                @default([])
 
   @@index([email])
   @@index([isActive])
