@@ -28,12 +28,11 @@ export default function DashboardPage() {
         setUser(data.user);
         
         // Check onboarding status for readers
-        if (data.user.role === 'READER') {
+        if (data.user.role === 'READER' || data.user.role === 'ADMIN') {
           const onboardingRes = await fetch('/api/onboarding/status');
           if (onboardingRes.ok) {
             const onboardingData = await onboardingRes.json();
             setOnboardingStatus(onboardingData.status);
-            
             // If onboarding not complete and can't access dashboard, redirect
             if (!onboardingData.status.canAccessDashboard && onboardingData.status.nextStepUrl) {
               console.log('⚠️ Onboarding incomplete, redirecting to:', onboardingData.status.nextStepUrl);
@@ -82,109 +81,16 @@ export default function DashboardPage() {
     return null;
   }
 
-  const isReader = user.role === 'READER' || user.role === 'ADMIN';
+  const isReaderOrAdmin = user.role === 'READER' || user.role === 'ADMIN';
   const isActive = user.isActive !== false;
-  const hasIncompleteOnboarding = user.onboardingStep !== null && user.onboardingStep !== undefined;
 
-  // Modal for incomplete onboarding
-  function OnboardingModal() {
-    const getStepMessage = () => {
-      if (user.onboardingStep === 'schedule') {
-        return {
-          title: 'Complete Your Profile Setup',
-          message: 'You need to connect your calendar to continue. This ensures actors can see your real-time availability.',
-          buttonText: 'Connect Calendar',
-        };
-      } else if (user.onboardingStep === 'availability') {
-        return {
-          title: 'Set Your Availability',
-          message: 'Configure your weekly availability schedule so actors can book sessions with you.',
-          buttonText: 'Set Availability',
-        };
-      } else if (user.onboardingStep === 'payment') {
-        return {
-          title: 'Connect Stripe Account',
-          message: 'Connect your Stripe account to receive payments from actors who book sessions.',
-          buttonText: 'Connect Stripe',
-        };
-      } else if (user.onboardingStep === 'subscribe') {
-        return {
-          title: 'Activate Your Reader Account',
-          message: 'Subscribe to activate your profile and start receiving bookings from actors.',
-          buttonText: 'Subscribe Now',
-        };
-      }
-      return {
-        title: 'Complete Onboarding',
-        message: 'Please complete your reader onboarding to access the dashboard.',
-        buttonText: 'Continue',
-      };
-    };
-
-    const { title, message, buttonText } = getStepMessage();
-
-    const handleContinue = () => {
-      const step = user.onboardingStep;
-      const userId = user.id;
-      
-      console.log('Continuing onboarding:', { step, userId, fullUser: user });
-      
-      if (!userId) {
-        console.error('No userId available! User object:', user);
-        alert('Error: User ID not found. Please try logging out and back in.');
-        return;
-      }
-      
-      const targetUrl = step === 'schedule' 
-        ? `/onboarding/schedule?readerId=${encodeURIComponent(userId)}`
-        : step === 'availability'
-        ? `/onboarding/availability?readerId=${encodeURIComponent(userId)}`
-        : step === 'payment'
-        ? `/onboarding/payment?readerId=${encodeURIComponent(userId)}`
-        : step === 'subscribe'
-        ? `/onboarding/subscribe?readerId=${encodeURIComponent(userId)}`
-        : '/dashboard';
-      
-      console.log('Navigating to:', targetUrl);
-      router.push(targetUrl);
-    };
-
-    return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
-          <div className="flex items-center justify-center w-12 h-12 bg-orange-100 rounded-full mx-auto mb-4">
-            <svg className="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
-          </div>
-          
-          <h2 className="text-xl font-bold text-center mb-2">{title}</h2>
-          <p className="text-gray-600 text-center mb-6">{message}</p>
-          
-          <button
-            onClick={handleContinue}
-            className="w-full bg-emerald-600 text-white rounded-lg px-4 py-3 font-semibold hover:bg-emerald-700 transition"
-          >
-            {buttonText}
-          </button>
-          
-          <button
-            onClick={handleLogout}
-            className="w-full text-sm text-gray-500 hover:text-gray-700 mt-3"
-          >
-            Sign out instead
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {hasIncompleteOnboarding && <OnboardingModal />}
+      {/* Onboarding modal removed. Users now use the checklist below to complete onboarding steps. */}
       
       {/* Show incomplete onboarding banner for readers */}
-      {isReader && onboardingStatus && !onboardingStatus.isComplete && (
+      {isReaderOrAdmin && onboardingStatus && !onboardingStatus.isComplete && (
         <div className="bg-yellow-50 border-b-2 border-yellow-400">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
             <div className="flex items-center justify-between">
@@ -227,14 +133,14 @@ export default function DashboardPage() {
             Welcome back, {user.name}! 👋
           </h2>
           <p className="text-gray-600">
-            {isReader 
+            {isReaderOrAdmin 
               ? "You're signed in as a Reader. Manage your profile and view your bookings below."
               : "You're signed in as an Actor. Browse readers and book your next session!"
             }
           </p>
         </div>
 
-        {!isReader && (
+        {!(user.role === 'READER' || user.role === 'ADMIN') && (
           <div className="bg-gradient-to-r from-orange-50 to-orange-100 border-2 border-orange-200 rounded-lg p-6 mb-8">
             <div className="flex items-start justify-between">
               <div className="flex-1">
@@ -262,7 +168,8 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {isReader && (
+
+        {isReaderOrAdmin && (
           <div className={`border rounded-lg p-6 mb-8 ${
             isActive 
               ? 'bg-gray-100 border-gray-300' 
@@ -294,10 +201,42 @@ export default function DashboardPage() {
                 Manage Subscription
               </Link>
             </div>
+            {/* Onboarding Checklist */}
+            {onboardingStatus && (
+              <div className="mt-8">
+                <h4 className="text-lg font-semibold mb-3">Onboarding Checklist</h4>
+                <ul className="divide-y divide-gray-200">
+                  {[
+                    { key: 'account-created', label: '1. Email & Password', url: '/signup' },
+                    { key: 'profile-completed', label: '2. Profile Information', url: '/onboarding/reader' },
+                    { key: 'calendar-connected', label: '3. Connect Calendar', url: `/onboarding/schedule?readerId=${user.id}` },
+                    { key: 'availability-set', label: '4. Availability', url: `/onboarding/availability?readerId=${user.id}` },
+                    { key: 'stripe-connected', label: '5. Create Stripe Account', url: `/onboarding/payment?readerId=${user.id}` },
+                    { key: 'subscription-active', label: '6. Pay Subscription', url: `/onboarding/subscribe?readerId=${user.id}` },
+                  ].map((step) => {
+                    const isDone = onboardingStatus.completedSteps?.includes(step.key);
+                    return (
+                      <li key={step.key} className="flex items-center justify-between py-2">
+                        <span className="flex items-center gap-2">
+                          <span className={`inline-block w-3 h-3 rounded-full ${isDone ? 'bg-emerald-500' : 'bg-gray-300'}`}></span>
+                          <span className={isDone ? 'text-emerald-700 font-medium' : 'text-gray-700'}>{step.label}</span>
+                        </span>
+                        <span className="flex items-center gap-2">
+                          <span className={`text-xs ${isDone ? 'text-emerald-600' : 'text-red-500'}`}>{isDone ? 'Completed' : 'Incomplete'}</span>
+                          {!isDone && (
+                            <Link href={step.url} className="text-blue-600 hover:underline text-xs">Click to complete</Link>
+                          )}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
           </div>
         )}
 
-        {isReader && (
+        {isReaderOrAdmin && (
           <div className="mb-8">
             <h2 className="text-xl font-semibold text-gray-900 mb-4">Reader Dashboard</h2>
             <div className="grid md:grid-cols-2 gap-6">
@@ -366,7 +305,7 @@ export default function DashboardPage() {
         )}
 
         <div className="grid md:grid-cols-2 gap-6 mb-8">
-          {isReader ? (
+          {isReaderOrAdmin ? (
             <>
               <div className="mb-4 col-span-full">
                 <h2 className="text-xl font-semibold text-gray-900 mb-4">Actor Dashboard</h2>
@@ -467,7 +406,7 @@ export default function DashboardPage() {
             <div className="flex justify-between">
               <dt className="text-gray-600">Account Type:</dt>
               <dd className="font-medium">
-                {isReader ? '📖 Reader' : '🎬 Actor'}
+                {(user.role === 'READER' || user.role === 'ADMIN') ? '📖 Reader' : '🎬 Actor'}
               </dd>
             </div>
             <div className="flex justify-between">
@@ -478,7 +417,7 @@ export default function DashboardPage() {
                 {isActive ? '🟢 Active' : '🔴 Inactive'}
               </dd>
             </div>
-            {isReader && (
+            {(user.role === 'READER' || user.role === 'ADMIN') && (
               <div className="flex justify-between">
                 <dt className="text-gray-600">Member Since:</dt>
                 <dd className="font-medium">November 2025</dd>

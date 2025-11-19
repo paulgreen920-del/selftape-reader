@@ -18,46 +18,34 @@ export default function PaymentPage() {
   useEffect(() => {
     async function checkStripeStatus() {
       if (!readerId) {
-        console.log('No readerId, skipping check');
         setCheckingStatus(false);
         return;
       }
-
-      console.log('Checking Stripe status for readerId:', readerId);
-      
       try {
-        const res = await fetch(`/api/readers?id=${readerId}`, {
-          cache: 'no-store' // Force fresh data
-        });
+        const res = await fetch(`/api/readers?id=${readerId}`, { cache: 'no-store' });
         const data = await res.json();
-        
-        console.log('Reader data from API:', {
-          ok: data.ok,
-          hasReader: !!data.reader,
-          stripeAccountId: data.reader?.stripeAccountId || 'none'
-        });
-        
-        if (data.ok && data.reader?.stripeAccountId) {
-          console.log('✓ Stripe account detected:', data.reader.stripeAccountId);
-          setStripeConnected(true);
-          setCheckingStatus(false);
-          
-          // Auto-advance to subscription if coming back from Stripe
-          // Give user 2 seconds to see the success message
-          console.log('Auto-advancing to subscription in 2 seconds...');
-          setTimeout(() => {
-            continueToSubscribe();
-          }, 2000);
-        } else {
-          console.log('No Stripe account found, showing connect button');
-          setCheckingStatus(false);
+        const accountId = data.reader?.stripeAccountId;
+        if (data.ok && accountId) {
+          // Now check onboarding status with Stripe
+          const statusRes = await fetch(`/api/stripe/account-status?accountId=${accountId}`);
+          const status = await statusRes.json();
+          if (status.ok && status.details_submitted) {
+            setStripeConnected(true);
+            setCheckingStatus(false);
+            // Auto-advance to subscription if coming back from Stripe
+            setTimeout(() => {
+              continueToSubscribe();
+            }, 2000);
+            return;
+          }
         }
+        setStripeConnected(false);
+        setCheckingStatus(false);
       } catch (err) {
-        console.error('Failed to check Stripe status:', err);
+        setStripeConnected(false);
         setCheckingStatus(false);
       }
     }
-
     checkStripeStatus();
   }, [readerId]);
 

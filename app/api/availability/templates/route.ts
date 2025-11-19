@@ -20,7 +20,7 @@ export async function GET(req: Request) {
       where: { id: sessionData.userId },
     });
 
-    if (!user || user.role !== 'READER') {
+    if (!user || (user.role !== 'READER' && user.role !== 'ADMIN')) {
       return NextResponse.json(
         { error: "Not authorized" },
         { status: 403 }
@@ -99,7 +99,7 @@ export async function POST(req: Request) {
       where: { id: sessionData.userId },
     });
 
-    if (!user || user.role !== 'READER') {
+    if (!user || (user.role !== 'READER' && user.role !== 'ADMIN')) {
       return NextResponse.json(
         { error: "Not authorized" },
         { status: 403 }
@@ -166,7 +166,7 @@ export async function PUT(req: Request) {
       where: { id: sessionData.userId },
     });
 
-    if (!user || user.role !== 'READER') {
+    if (!user || (user.role !== 'READER' && user.role !== 'ADMIN')) {
       return NextResponse.json(
         { error: "Not authorized" },
         { status: 403 }

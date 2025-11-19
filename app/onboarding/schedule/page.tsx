@@ -529,6 +529,22 @@ export default function OnboardingSchedulePage() {
           >
             {updatingStep ? "Saving..." : checkingConnection ? "Checking..." : "Continue"}
           </button>
+          <button
+            type="button"
+            className="rounded-lg px-4 py-2 bg-gray-200 text-gray-700 hover:bg-gray-300"
+            onClick={async () => {
+              // Skip this step and go to next
+              await fetch('/api/onboarding/skip-step', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ step: 'calendar-connected' }),
+              });
+              const id = effectiveReaderId || readerId;
+              router.push(`/onboarding/availability?readerId=${id}`);
+            }}
+          >
+            Skip for now
+          </button>
         </div>
       </div>
     </main>

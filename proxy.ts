@@ -1,13 +1,13 @@
-// This middleware increases the body size limit for the /api/uploads route to 10MB.
+// This proxy increases the body size limit for the /api/uploads route to 10MB.
 import { NextRequest, NextResponse } from 'next/server';
 
 export const config = {
   matcher: ['/api/uploads'],
 };
 
-export function middleware(req: NextRequest) {
+export function proxy(req: NextRequest) {
   // Set the body size limit to 10MB for this route
-  // (Next.js 13+ only supports this via custom config in middleware)
+  // (Next.js 14+ only supports this via custom config in proxy)
   // This is a placeholder; actual body size limit must be set in the API handler.
   return NextResponse.next();
 }

@@ -20,7 +20,7 @@ export async function GET() {
       where: { id: sessionData.userId },
     });
 
-    if (!user || user.role !== 'READER') {
+      if (!user || (user.role !== 'READER' && user.role !== 'ADMIN')) {
       return NextResponse.json(
         { error: "Not authorized" },
         { status: 403 }

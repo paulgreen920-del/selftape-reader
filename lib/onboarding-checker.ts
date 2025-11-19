@@ -13,7 +13,8 @@ export type OnboardingStep =
 export interface OnboardingStatus {
   currentStep: OnboardingStep;
   completedSteps: OnboardingStep[];
-  isComplete: boolean;
+  isComplete: boolean; // All steps complete
+  isFullyOnboarded: boolean; // True only if all steps are done and none skipped
   nextStepUrl: string | null;
   canAccessDashboard: boolean;
 }
@@ -27,36 +28,34 @@ export async function checkReaderOnboardingStatus(userId: string): Promise<Onboa
     }
   });
 
-  if (!user || user.role !== 'READER') {
+  // Treat ADMINs exactly as READERs for onboarding logic
+  if (!user || (user.role !== 'READER' && user.role !== 'ADMIN')) {
     return {
       currentStep: 'account-created',
       completedSteps: [],
       isComplete: false,
+      isFullyOnboarded: false,
       nextStepUrl: null,
       canAccessDashboard: false,
     };
   }
 
+  // --- INDEPENDENT ONBOARDING STEPS LOGIC ---
+  // Each step is independent: once completed, always completed
+  // Steps: account-created, email-verified, profile-completed, calendar-connected, availability-set, stripe-connected, subscription-active
   const completedSteps: OnboardingStep[] = ['account-created'];
-  let currentStep: OnboardingStep = 'email-verified';
-  let nextStepUrl: string | null = '/verify-email';
+  let currentStep: OnboardingStep = 'account-created';
+  let nextStepUrl: string | null = null;
 
   // Step 2: Email verified
   if (user.emailVerified) {
     completedSteps.push('email-verified');
-    currentStep = 'profile-completed';
-    nextStepUrl = '/onboarding/reader';
   } else {
-    return {
-      currentStep: 'email-verified',
-      completedSteps,
-      isComplete: false,
-      nextStepUrl: '/verify-email',
-      canAccessDashboard: false,
-    };
+    if (!nextStepUrl) nextStepUrl = '/verify-email';
+    if (currentStep === 'account-created') currentStep = 'email-verified';
   }
 
-  // Step 3: Profile completed (headshot, phone, bio, age, gender, rates, etc.)
+  // Step 3: Profile completed
   const hasProfileInfo = !!(
     user.headshotUrl &&
     user.phone &&
@@ -68,97 +67,68 @@ export async function checkReaderOnboardingStatus(userId: string): Promise<Onboa
     user.ratePer30Min &&
     user.ratePer60Min
   );
-
   if (hasProfileInfo) {
     completedSteps.push('profile-completed');
-    currentStep = 'calendar-connected';
-    nextStepUrl = `/onboarding/schedule?readerId=${userId}`;
   } else {
-    return {
-      currentStep: 'profile-completed',
-      completedSteps,
-      isComplete: false,
-      nextStepUrl: '/onboarding/reader',
-      canAccessDashboard: false,
-    };
+    if (!nextStepUrl) nextStepUrl = '/onboarding/reader';
+    if (currentStep === 'account-created' || currentStep === 'email-verified') currentStep = 'profile-completed';
   }
 
   // Step 4: Calendar connected
   if (user.CalendarConnection) {
     completedSteps.push('calendar-connected');
-    currentStep = 'availability-set';
-    nextStepUrl = `/onboarding/availability?readerId=${userId}`;
   } else {
-    return {
-      currentStep: 'calendar-connected',
-      completedSteps,
-      isComplete: false,
-      nextStepUrl: `/onboarding/schedule?readerId=${userId}`,
-      canAccessDashboard: false,
-    };
+    if (!nextStepUrl) nextStepUrl = `/onboarding/schedule?readerId=${userId}`;
+    if (['account-created','email-verified','profile-completed'].includes(currentStep)) currentStep = 'calendar-connected';
   }
 
   // Step 5: Availability templates set
   const hasAvailability = user.AvailabilityTemplate && user.AvailabilityTemplate.length > 0;
   if (hasAvailability) {
     completedSteps.push('availability-set');
-    currentStep = 'stripe-connected';
-    nextStepUrl = `/onboarding/payment?readerId=${userId}`;
   } else {
-    // If they've already paid, let them access dashboard but mark availability as incomplete
-    if (user.stripeAccountId || user.subscriptionStatus === 'active') {
-      currentStep = 'availability-set';
-      nextStepUrl = `/onboarding/availability?readerId=${userId}`;
-      // Continue to next checks instead of returning
-    } else {
-      return {
-        currentStep: 'availability-set',
-        completedSteps,
-        isComplete: false,
-        nextStepUrl: `/onboarding/availability?readerId=${userId}`,
-        canAccessDashboard: false,
-      };
-    }
+    if (!nextStepUrl) nextStepUrl = `/onboarding/availability?readerId=${userId}`;
+    if (['account-created','email-verified','profile-completed','calendar-connected'].includes(currentStep)) currentStep = 'availability-set';
   }
 
   // Step 6: Stripe Connected
   if (user.stripeAccountId) {
     completedSteps.push('stripe-connected');
-    currentStep = 'subscription-active';
-    nextStepUrl = `/onboarding/subscribe?readerId=${userId}`;
   } else {
-    return {
-      currentStep: 'stripe-connected',
-      completedSteps,
-      isComplete: false,
-      nextStepUrl: `/onboarding/payment?readerId=${userId}`,
-      canAccessDashboard: false,
-    };
+    if (!nextStepUrl) nextStepUrl = `/onboarding/payment?readerId=${userId}`;
+    if (['account-created','email-verified','profile-completed','calendar-connected','availability-set'].includes(currentStep)) currentStep = 'stripe-connected';
   }
 
   // Step 7: Subscription active
   const hasActiveSubscription = user.subscriptionStatus === 'active';
   if (hasActiveSubscription) {
     completedSteps.push('subscription-active');
-    
-    // If subscription is active, allow dashboard access even if some steps incomplete
-    const allStepsComplete = hasAvailability;
-    
-    return {
-      currentStep: allStepsComplete ? 'completed' : currentStep,
-      completedSteps: allStepsComplete ? [...completedSteps, 'completed'] : completedSteps,
-      isComplete: allStepsComplete,
-      nextStepUrl: allStepsComplete ? null : nextStepUrl,
-      canAccessDashboard: true, // Always allow if subscription active
-    };
+  } else {
+    if (!nextStepUrl) nextStepUrl = `/onboarding/subscribe?readerId=${userId}`;
+    if (['account-created','email-verified','profile-completed','calendar-connected','availability-set','stripe-connected'].includes(currentStep)) currentStep = 'subscription-active';
+  }
+
+  // All steps complete?
+  const allStepsComplete = completedSteps.length === 7;
+  if (allStepsComplete) {
+    currentStep = 'completed';
+    nextStepUrl = null;
+  }
+
+  // Allow dashboard access if at least one step is complete (after account creation)
+  // Block only if user hasn't verified email or completed profile
+  let canAccessDashboard = true;
+  if (!user.emailVerified || !hasProfileInfo) {
+    canAccessDashboard = false;
   }
 
   return {
-    currentStep: 'subscription-active',
-    completedSteps,
-    isComplete: false,
-    nextStepUrl: `/onboarding/subscribe?readerId=${userId}`,
-    canAccessDashboard: false,
+    currentStep,
+    completedSteps: allStepsComplete ? [...completedSteps, 'completed'] : completedSteps,
+    isComplete: allStepsComplete,
+    isFullyOnboarded: allStepsComplete,
+    nextStepUrl,
+    canAccessDashboard,
   };
 }
 

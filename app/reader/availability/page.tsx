@@ -21,8 +21,8 @@ interface AvailabilityTemplate {
 }
 
 
-export default function ManageAvailabilityPage() {
 
+export default function ManageAvailabilityPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -32,10 +32,37 @@ export default function ManageAvailabilityPage() {
   const [connectingGoogle, setConnectingGoogle] = useState(false);
   const lastTemplateRef = useRef<HTMLDivElement>(null);
 
+
   // Modal state for disconnect prompt
   const [showDisconnectModal, setShowDisconnectModal] = useState(false);
   const [pendingProvider, setPendingProvider] = useState<"GOOGLE" | "MICROSOFT" | null>(null);
   const [disconnecting, setDisconnecting] = useState(false);
+
+  // Profile dropdown state and handlers
+  // Profile dropdown state
+  const [showProfileDropdown, setShowProfileDropdown] = useState(false);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (!(e.target as HTMLElement).closest('.group')) {
+        setShowProfileDropdown(false);
+      }
+    }
+    if (showProfileDropdown) {
+      document.addEventListener('mousedown', handleClick);
+    }
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [showProfileDropdown]);
+
+  // Logout handler
+  const handleLogout = async () => {
+    setShowProfileDropdown(false);
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch {}
+    window.location.href = '/login';
+  };
 
   // Disconnect current calendar connection and continue with new provider
   async function disconnectCalendarAndContinue() {
@@ -105,21 +132,8 @@ export default function ManageAvailabilityPage() {
 
 
   useEffect(() => {
-    // Check onboarding status first
+    // Always allow access to manage availability, regardless of onboarding status
     async function checkOnboardingAndFetch() {
-      try {
-        const onboardingRes = await fetch('/api/onboarding/status');
-        if (onboardingRes.ok) {
-          const onboardingData = await onboardingRes.json();
-          if (onboardingData.status?.isComplete || onboardingData.status?.canAccessDashboard) {
-            // If onboarding is complete, route to dashboard
-            window.location.href = '/dashboard';
-            return;
-          }
-        }
-      } catch (err) {
-        // Ignore and continue to fetchData
-      }
       fetchData();
     }
     checkOnboardingAndFetch();
@@ -136,11 +150,12 @@ export default function ManageAvailabilityPage() {
       const userData = await userRes.json();
       setUser(userData.user);
 
-      if (userData.user.role !== 'READER') {
-        alert('You must be a reader to access this page');
+      if (userData.user.role !== 'READER' && userData.user.role !== 'ADMIN') {
+        alert('You must be a reader or admin to access this page');
         router.push('/dashboard');
         return;
       }
+      // Set isReaderOrAdmin after user is set (already handled by useState above)
 
       // Fetch calendar connection
       const calendarRes = await fetch(`/api/calendar/connection?userId=${userData.user.id}`);
@@ -218,8 +233,14 @@ export default function ManageAvailabilityPage() {
       setConnectingGoogle(false);
     }
   };
+  // iCal connection handler (stub)
+  const connectICal = async () => {
+    alert('iCal connection is not yet implemented. Please contact support if you need this feature.');
+    // TODO: Implement iCal connection logic (upload .ics or provide URL)
+  };
 
   const connectMicrosoftCalendar = async () => {
+
     if (calendarConnection) {
       setPendingProvider("MICROSOFT");
       setShowDisconnectModal(true);
@@ -429,75 +450,71 @@ export default function ManageAvailabilityPage() {
         endTime: template.endTime
       }));
 
-      console.log('Saving templates:', templatesToSave);
-      console.log('Original templates state:', availabilityTemplates);
-
-      // First save the templates
+      // Save templates
       const templatesResponse = await fetch('/api/availability/templates', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          templates: templatesToSave
-        })
+        body: JSON.stringify({ templates: templatesToSave })
       });
-
       if (!templatesResponse.ok) {
         const templatesError = await templatesResponse.json();
         throw new Error(templatesError.error || 'Failed to save availability templates');
       }
 
-      // Then save the settings
+      // Save settings
       const settingsResponse = await fetch('/api/readers/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          maxAdvanceBooking,
-          minAdvanceHours,
-          bookingBuffer
-        })
+        body: JSON.stringify({ maxAdvanceBooking, minAdvanceHours, bookingBuffer })
       });
-
       if (!settingsResponse.ok) {
         const settingsError = await settingsResponse.json();
         throw new Error(settingsError.error || 'Failed to save settings');
       }
 
       // Force template-to-slot synchronization after successful save
-      console.log('Templates saved, forcing template-slot synchronization...');
       try {
         const syncResponse = await fetch('/api/availability/sync', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' }
         });
-        
         if (syncResponse.ok) {
           const syncResult = await syncResponse.json();
-          console.log('Template-slot sync completed:', syncResult);
-        } else {
-          console.warn('Template-slot sync failed, but templates were saved');
+          // ...existing code...
         }
       } catch (syncError) {
-        console.warn('Could not force template-slot sync:', syncError);
-        // Fallback to old method
+        // ...existing code...
         try {
           const regenerateResponse = await fetch('/api/dev/generate-availability', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              readerId: user.id,
-              daysAhead: 30,
-              regenerate: true
-            })
+            body: JSON.stringify({ readerId: user.id, daysAhead: 30, regenerate: true })
           });
-          
-          if (regenerateResponse.ok) {
-            console.log('Fallback slot regeneration completed');
-          }
+          // ...existing code...
         } catch (fallbackError) {
-          console.warn('Fallback regeneration also failed:', fallbackError);
+          // ...existing code...
         }
       }
-      
+
+      // After saving, check onboarding status
+      try {
+        const onboardingRes = await fetch('/api/onboarding/status');
+        if (onboardingRes.ok) {
+          const onboardingData = await onboardingRes.json();
+          if (onboardingData.status?.isComplete) {
+            // All steps complete, route to dashboard
+            router.push('/dashboard');
+            return;
+          } else if (onboardingData.status?.nextStepUrl) {
+            // Route to the next incomplete step only
+            router.push(onboardingData.status.nextStepUrl);
+            return;
+          }
+        }
+      } catch (e) {
+        // If onboarding check fails, just continue as before
+      }
+
       alert('Settings and availability saved successfully!');
       fetchData(); // Refresh data
     } catch (error) {
@@ -538,6 +555,14 @@ export default function ManageAvailabilityPage() {
     );
   }
 
+  if (!user || !(user.role === 'READER' || user.role === 'ADMIN')) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p>You must be a reader or admin to access this page.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow">
@@ -545,12 +570,38 @@ export default function ManageAvailabilityPage() {
           <Link href="/dashboard" className="text-2xl font-bold text-gray-900 hover:text-emerald-600 transition">
             ← Back to Dashboard
           </Link>
-          <Link href="/reader/profile" className="text-sm text-gray-600 hover:text-gray-900">
-            Edit Profile →
-          </Link>
+          {/* Profile dropdown */}
+          <div className="relative">
+            <button
+              className="flex items-center space-x-2 focus:outline-none group"
+              onClick={() => setShowProfileDropdown((v) => !v)}
+            >
+              <span className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 text-lg">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.5 20.25a8.25 8.25 0 1115 0v.75a.75.75 0 01-.75.75h-13.5a.75.75 0 01-.75-.75v-.75z" />
+                </svg>
+              </span>
+            </button>
+            {showProfileDropdown && (
+              <div className="absolute right-0 mt-2 w-44 bg-white border border-gray-200 rounded shadow-lg z-50">
+                <Link
+                  href="/reader/profile"
+                  className="block px-4 py-2 text-gray-700 hover:bg-gray-100"
+                  onClick={() => setShowProfileDropdown(false)}
+                >
+                  Edit Profile
+                </Link>
+                <button
+                  className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100"
+                  onClick={handleLogout}
+                >
+                  Logout
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </header>
-
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {showDisconnectModal && <DisconnectModal />}
         <div className="mb-8">
@@ -562,13 +613,18 @@ export default function ManageAvailabilityPage() {
           {/* Calendar Connection */}
           <div className="bg-white rounded-lg shadow p-6">
             <h2 className="text-xl font-semibold mb-4">Calendar Integration</h2>
-            
             {calendarConnection ? (
               <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                 <div className="flex items-start justify-between">
                   <div>
                     <h3 className="font-medium text-green-900">
-                      ✅ {calendarConnection.provider} Calendar Connected
+                      <span className="inline-block align-middle mr-1" title="Connected">
+                        <svg className="h-5 w-5 text-green-600 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" fill="none" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12l3 3 5-5" />
+                        </svg>
+                      </span>
+                      {calendarConnection.provider} Calendar Connected
                     </h3>
                     <p className="text-sm text-green-700 mt-1">
                       Connected to: {calendarConnection.email}
@@ -591,27 +647,56 @@ export default function ManageAvailabilityPage() {
                 <p className="text-sm text-blue-700 mb-4">
                   Sync your calendar to be available for bookings and avoid double-bookings.
                 </p>
-                <div className="space-y-3">
+                <div className="grid sm:grid-cols-3 gap-3">
                   <button
-                    onClick={connectGoogleCalendar}
+                    type="button"
+                    className={`rounded-xl border px-4 py-3 bg-white text-left ${connectingGoogle ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50'}`}
+                    onClick={connectingGoogle ? undefined : connectGoogleCalendar}
                     disabled={connectingGoogle}
-                    className="flex items-center px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 transition w-full"
+                    title={connectingGoogle ? 'Connecting...' : ''}
                   >
-                    <span className="mr-2">📅</span>
-                    {connectingGoogle ? 'Connecting...' : 'Connect Google Calendar'}
+                    <div className="font-medium flex items-center gap-2">
+                      <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="16" rx="2" fill="#fff"/><path d="M16 2v4M8 2v4M3 10h18" stroke="#2563eb" strokeWidth="2" strokeLinecap="round"/><rect x="3" y="4" width="18" height="16" rx="2" stroke="#2563eb" strokeWidth="2"/></svg>
+                      Google Calendar
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {connectingGoogle ? 'Connecting...' : 'Use your Google account'}
+                    </div>
                   </button>
                   <button
-                    onClick={connectMicrosoftCalendar}
+                    type="button"
+                    className={`rounded-xl border px-4 py-3 bg-white text-left ${connectingGoogle ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50'}`}
+                    onClick={connectingGoogle ? undefined : connectMicrosoftCalendar}
                     disabled={connectingGoogle}
-                    className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:opacity-50 transition w-full"
+                    title={connectingGoogle ? 'Connecting...' : ''}
                   >
-                    <span className="mr-2">📅</span>
-                    Connect Microsoft Outlook
+                    <div className="font-medium flex items-center gap-2">
+                      <svg className="w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="16" rx="2" fill="#fff"/><path d="M16 2v4M8 2v4M3 10h18" stroke="#6366f1" strokeWidth="2" strokeLinecap="round"/><rect x="3" y="4" width="18" height="16" rx="2" stroke="#6366f1" strokeWidth="2"/></svg>
+                      Microsoft Outlook
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      Connect with Microsoft account
+                    </div>
                   </button>
-                  <p className="text-xs text-blue-600">
-                    We'll redirect you to authorize calendar access.
-                  </p>
+                  <button
+                    type="button"
+                    className={`rounded-xl border px-4 py-3 bg-white text-left ${connectingGoogle ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50'}`}
+                    onClick={connectingGoogle ? undefined : connectICal}
+                    disabled={connectingGoogle}
+                    title={connectingGoogle ? 'Connecting...' : ''}
+                  >
+                    <div className="font-medium flex items-center gap-2">
+                      <svg className="w-5 h-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="16" rx="2" fill="#fff"/><path d="M16 2v4M8 2v4M3 10h18" stroke="#4b5563" strokeWidth="2" strokeLinecap="round"/><rect x="3" y="4" width="18" height="16" rx="2" stroke="#4b5563" strokeWidth="2"/></svg>
+                      iCal (.ics)
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      Connect with iCal/webcal URL
+                    </div>
+                  </button>
                 </div>
+                <p className="text-xs text-blue-600 mt-3">
+                  We'll redirect you to authorize calendar access, or you can upload an iCal (.ics) file.
+                </p>
               </div>
             )}
           </div>
@@ -784,8 +869,6 @@ export default function ManageAvailabilityPage() {
               )}
             </div>
           </div>
-
-
 
           {/* Save Settings */}
           <div className="flex justify-end space-x-4 pt-6 border-t">

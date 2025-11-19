@@ -93,7 +93,13 @@ export default function VerifyEmailPage() {
       <div className="max-w-md w-full space-y-8 text-center">
         {isVerified ? (
           <div>
-            <div className="text-6xl mb-6">✅</div>
+            <div className="flex flex-col items-center mb-6">
+              {/* Success SVG icon */}
+              <svg className="h-16 w-16 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" fill="none" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12l3 3 5-5" />
+              </svg>
+            </div>
             <h2 className="mt-6 text-3xl font-extrabold text-green-600">
               Email Verified!
             </h2>
@@ -142,10 +148,12 @@ export default function VerifyEmailPage() {
 
         {error && (
           <div className="rounded-md bg-red-50 p-4">
-            <div className="flex">
-              <div className="ml-3">
-                <p className="text-sm text-red-700">{error}</p>
-              </div>
+            <div className="flex items-center">
+              {/* Error SVG icon */}
+              <svg className="h-5 w-5 text-red-400 mr-2 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm-1-5a1 1 0 112 0 1 1 0 01-2 0zm.293-7.707a1 1 0 011.414 0l2 2a1 1 0 01-1.414 1.414L11 8.414V13a1 1 0 11-2 0V8.414l-.293.293a1 1 0 01-1.414-1.414l2-2z" clipRule="evenodd" />
+              </svg>
+              <p className="text-sm text-red-700">{error}</p>
             </div>
           </div>
         )}

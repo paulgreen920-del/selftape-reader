@@ -77,8 +77,13 @@ export default function SubscribePage() {
     }
   }
 
-  function skipForNow() {
-    // Allow skipping for testing, but reader won't be live
+  async function skipForNow() {
+    // Mark this step as skipped, then route to the next step
+    await fetch('/api/onboarding/skip-step', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ step: 'subscription-active' }),
+    });
     router.push(`/onboarding/complete?readerId=${readerId}`);
   }
 
