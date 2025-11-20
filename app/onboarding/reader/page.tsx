@@ -4,6 +4,7 @@
 export const dynamic = "force-dynamic";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 const UNION_OPTIONS = ["SAG-AFTRA", "AEA", "AGVA", "Non-Union"];
 const LANGUAGE_OPTIONS = ["English", "Spanish", "French", "Italian", "German", "Mandarin"];
@@ -12,6 +13,7 @@ const SPECIALTY_OPTIONS = ["Comedy", "Drama", "Shakespeare", "Musical Theatre", 
 type LinkItem = { label: string; url: string };
 
 export default function ReaderOnboardingMini() {
+  const router = useRouter();
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(true);
@@ -20,13 +22,9 @@ export default function ReaderOnboardingMini() {
 
   // Format phone number as user types
   const formatPhoneNumber = (value: string) => {
-    // Remove all non-numeric characters
     const numbers = value.replace(/\D/g, '');
-    
-    // Limit to 10 digits
     const limited = numbers.slice(0, 10);
     
-    // Format based on length
     if (limited.length === 0) return '';
     if (limited.length <= 3) return `(${limited}`;
     if (limited.length <= 6) return `(${limited.slice(0, 3)}) ${limited.slice(3)}`;
@@ -37,36 +35,24 @@ export default function ReaderOnboardingMini() {
     const formatted = formatPhoneNumber(e.target.value);
     setPhone(formatted);
   };
+  
   const [city, setCity] = useState("");
   const [bio, setBio] = useState("");
-
-  // Playable age (numeric min/max) + gender
   const [playableAgeMin, setPlayableAgeMin] = useState<number | "">("");
   const [playableAgeMax, setPlayableAgeMax] = useState<number | "">("");
   const [gender, setGender] = useState("");
-
-  // Rates in dollars (UI)
   const [rate15Usd, setRate15Usd] = useState<number | "">(15);
-  const [rateUsd, setRateUsd] = useState<number | "">(25); // 30-min
+  const [rateUsd, setRateUsd] = useState<number | "">(25);
   const [rate60Usd, setRate60Usd] = useState<number | "">(60);
-
   const [unions, setUnions] = useState<string[]>([]);
   const [languages, setLanguages] = useState<string[]>([]);
   const [specialties, setSpecialties] = useState<string[]>([]);
-
-  // Headshot
   const [headshotUrl, setHeadshotUrl] = useState<string>("");
   const [uploading, setUploading] = useState(false);
-
-  // Links
   const [links, setLinks] = useState<LinkItem[]>([{ label: "", url: "" }]);
-
   const [busy, setBusy] = useState(false);
-  
-  // Terms acceptance
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   
-  // All fields are now required
   const canSubmit = 
     displayName.trim().length > 0 && 
     /\S+@\S+\.\S+/.test(email) &&
@@ -85,7 +71,6 @@ export default function ReaderOnboardingMini() {
     rate60Usd !== "" && rate60Usd > 0 &&
     acceptedTerms;
 
-  // Fetch current user data on mount and check email verification
   useEffect(() => {
     async function fetchUser() {
       try {
@@ -93,7 +78,6 @@ export default function ReaderOnboardingMini() {
         if (res.ok) {
           const data = await res.json();
           if (data.user) {
-            // Redirect to verification page if email not verified
             if (!data.user.emailVerified) {
               window.location.href = '/verify-email';
               return;
@@ -115,7 +99,6 @@ export default function ReaderOnboardingMini() {
     setFn((prev) => (prev.includes(value) ? prev.filter((x) => x !== value) : [...prev, value]));
   }
 
-  // Upload headshot — uses absolute URL returned by API
   async function handleHeadshotChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -153,7 +136,7 @@ export default function ReaderOnboardingMini() {
       return;
     }
 
-    // Validate all required fields
+    // Validation
     if (!headshotUrl) {
       alert("Please upload a headshot.");
       return;
@@ -218,13 +201,13 @@ export default function ReaderOnboardingMini() {
         timezone,
         city,
         bio,
-        playableAgeMin: Number(playableAgeMin), // Required field, guaranteed to be a number
-        playableAgeMax: Number(playableAgeMax), // Required field, guaranteed to be a number
+        playableAgeMin: Number(playableAgeMin),
+        playableAgeMax: Number(playableAgeMax),
         gender,
         headshotUrl,
-        rate15Usd: Number(rate15Usd), // Required field, guaranteed to be a number
-        rateUsd: Number(rateUsd), // Required field, guaranteed to be a number
-        rate60Usd: Number(rate60Usd), // Required field, guaranteed to be a number
+        rate15Usd: Number(rate15Usd),
+        rateUsd: Number(rateUsd),
+        rate60Usd: Number(rate60Usd),
         unions,
         languages,
         specialties,
@@ -239,7 +222,6 @@ export default function ReaderOnboardingMini() {
         body: JSON.stringify(payload),
       });
 
-      // Read as text first, then safely try JSON (prevents crashes on HTML/stack traces)
       const raw = await res.text().catch(() => "");
       let data: any = null;
       try {
@@ -252,9 +234,7 @@ export default function ReaderOnboardingMini() {
         if (res.status === 409) {
           alert("That email is already registered as a reader. Try a different email.");
         } else {
-          const msg =
-            data?.error ||
-            `Failed to save (HTTP ${res.status}). ${raw ? raw.slice(0, 200) : ""}`;
+          const msg = data?.error || `Failed to save (HTTP ${res.status}). ${raw ? raw.slice(0, 200) : ""}`;
           alert(msg);
         }
         return;
@@ -266,7 +246,6 @@ export default function ReaderOnboardingMini() {
         return;
       }
 
-      // Use hard redirect to avoid any router quirks
       window.location.href = `/onboarding/schedule?readerId=${encodeURIComponent(readerId)}`;
       return;
     } catch (err: any) {
@@ -591,7 +570,7 @@ export default function ReaderOnboardingMini() {
           </div>
         </div>
 
-        {/* Terms and Policies Agreement */}
+        {/* Terms */}
         <div className="border-t pt-6 mt-6">
           <label className="flex items-start gap-3 cursor-pointer">
             <input
@@ -615,14 +594,24 @@ export default function ReaderOnboardingMini() {
           </label>
         </div>
 
-        <button
-          className="border rounded px-4 py-2 disabled:opacity-50"
-          type="submit"
-          disabled={!canSubmit || busy || uploading}
-          title={uploading ? "Please wait for the headshot to finish uploading" : !acceptedTerms ? "Please accept the Terms of Service and Privacy Policy" : ""}
-        >
-          {busy ? "Saving..." : uploading ? "Uploading…" : "Save"}
-        </button>
+        {/* Skip and Submit buttons */}
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={() => router.push('/dashboard')}
+            className="border border-gray-300 rounded px-4 py-2 text-gray-700 hover:bg-gray-50"
+          >
+            Skip for now
+          </button>
+          <button
+            className="bg-emerald-600 text-white rounded px-4 py-2 hover:bg-emerald-700 disabled:opacity-50 flex-1"
+            type="submit"
+            disabled={!canSubmit || busy || uploading}
+            title={uploading ? "Please wait for the headshot to finish uploading" : !acceptedTerms ? "Please accept the Terms of Service and Privacy Policy" : ""}
+          >
+            {busy ? "Saving..." : uploading ? "Uploading…" : "Save & Continue"}
+          </button>
+        </div>
       </form>
     </div>
   );

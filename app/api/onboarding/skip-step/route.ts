@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { cookies } from "next/headers";
 
 /**
  * POST /api/onboarding/skip-step
@@ -10,26 +8,31 @@ import { authOptions } from "@/lib/auth";
  */
 export async function POST(req: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    const cookieStore = await cookies();
+    const sessionCookie = cookieStore.get('session');
+    
+    if (!sessionCookie) {
       return NextResponse.json({ ok: false, error: "Not authenticated" }, { status: 401 });
     }
-    const userId = session.user.id;
+
+    const session = JSON.parse(sessionCookie.value);
+    const userId = session.userId;
+
+    if (!userId) {
+      return NextResponse.json({ ok: false, error: "Invalid session" }, { status: 401 });
+    }
+
     const { step } = await req.json();
+    
     if (!step) {
       return NextResponse.json({ ok: false, error: "Missing step" }, { status: 400 });
     }
-    // Add the skipped step to the user's skippedOnboardingSteps array
-    const user = await prisma.user.update({
-      where: { id: userId },
-      data: {
-        skippedOnboardingSteps: {
-          push: step,
-        },
-      },
-      select: { id: true, skippedOnboardingSteps: true },
-    });
-    return NextResponse.json({ ok: true, skipped: user.skippedOnboardingSteps }, { status: 200 });
+
+    // Just return success - skipping is handled by allowing dashboard access
+    // The checklist will show incomplete steps regardless
+    console.log(`[skip-step] User ${userId} skipped step: ${step}`);
+    
+    return NextResponse.json({ ok: true, skipped: step }, { status: 200 });
   } catch (err: any) {
     console.error("[POST /api/onboarding/skip-step] error:", err);
     return NextResponse.json({ ok: false, error: err?.message || "Server error" }, { status: 500 });

@@ -349,11 +349,6 @@ export default function CalendarBooking({
           }
         }
 
-        // Refresh availability after booking
-        setRefreshKey(prev => prev + 1);
-        setSelectedDate(null);
-        setSlots([]);
-
         window.location.href = data.checkoutUrl;
       }
     } catch (err: any) {

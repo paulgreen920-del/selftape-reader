@@ -123,6 +123,9 @@ export async function GET(req: Request) {
     }
 
     // Get existing bookings for this date to filter out conflicts
+    // Auto-expire PENDING bookings after 15 minutes
+    const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
+    
     const existingBookings = await prisma.booking.findMany({
       where: {
         readerId,
@@ -130,13 +133,23 @@ export async function GET(req: Request) {
           gte: new Date(`${date}T00:00:00.000Z`),
           lt: new Date(`${date}T23:59:59.999Z`)
         },
-        status: { in: ["PENDING", "CONFIRMED"] },
+        OR: [
+          { status: "CONFIRMED" }, // Always block confirmed bookings
+          { 
+            status: "PENDING",
+            createdAt: { gte: fifteenMinutesAgo } // Only block recent PENDING bookings
+          }
+        ]
       },
       select: {
         startTime: true,
         endTime: true,
+        status: true,
+        createdAt: true,
       },
     });
+
+    console.log(`[available-slots] Found ${existingBookings.length} active bookings for ${date}`);
 
     // Get calendar events for conflict checking
     const readerWithCalendar = await prisma.user.findUnique({
@@ -311,7 +324,7 @@ async function getGoogleCalendarEvents(user: any, dateStr: string): Promise<any[
       return busyEvents;
     } else {
       const errorText = await calendarResponse.text();
-      console.error('[available-slots] Failed to fetch Google Calendar events (status: ${calendarResponse.status}):', errorText);
+      console.error(`[available-slots] Failed to fetch Google Calendar events (status: ${calendarResponse.status}):`, errorText);
       
       // If unauthorized (401), the token might be permanently invalid
       if (calendarResponse.status === 401) {
@@ -428,7 +441,7 @@ async function getMicrosoftCalendarEvents(user: any, dateStr: string): Promise<a
       return normalizedEvents;
     } else {
       const errorText = await calendarResponse.text();
-      console.error('[available-slots] Failed to fetch Microsoft Calendar events (status: ${calendarResponse.status}):', errorText);
+      console.error(`[available-slots] Failed to fetch Microsoft Calendar events (status: ${calendarResponse.status}):`, errorText);
       
       // If unauthorized (401), the token might be permanently invalid
       if (calendarResponse.status === 401) {

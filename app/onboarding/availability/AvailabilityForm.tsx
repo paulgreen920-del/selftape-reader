@@ -20,7 +20,6 @@ type BookingSettings = {
 export default function AvailabilityForm() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const readerId = (searchParams.get("readerId") ?? searchParams.get("id") ?? "").trim();
 
   // Default M-F 9am-5pm
   const defaultSlots: TimeSlot[] = [
@@ -68,18 +67,13 @@ export default function AvailabilityForm() {
   }
 
   async function saveAvailability() {
-    if (!readerId) {
-      alert("Missing readerId");
-      return;
-    }
-
     setSaving(true);
     try {
       // Save availability slots
       const resSlots = await fetch("/api/availability", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ readerId, slots }),
+        body: JSON.stringify({ slots }),
       });
 
       const dataSlots = await resSlots.json();
@@ -92,7 +86,6 @@ export default function AvailabilityForm() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          readerId,
           maxAdvanceBooking: settings.maxAdvanceBookingDays * 24, // convert days to hours
           minAdvanceHours: settings.minAdvanceHours,
           bookingBuffer: settings.bookingBufferMin,
@@ -104,14 +97,7 @@ export default function AvailabilityForm() {
         throw new Error(dataSettings.error || "Failed to save settings");
       }
 
-      // Update onboarding step to payment
-      await fetch('/api/readers/update-step', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ readerId, step: 'payment' }),
-      });
-
-      router.push(`/onboarding/payment?readerId=${readerId}`);
+      router.push('/onboarding/payment');
     } catch (err: any) {
       alert(err.message || "Failed to save");
     } finally {
@@ -281,13 +267,20 @@ export default function AvailabilityForm() {
         <button
           type="button"
           className="border rounded px-4 py-2"
-          onClick={() => router.push(`/onboarding/schedule?readerId=${readerId}`)}
+          onClick={() => router.push('/onboarding/schedule')}
         >
           Back
         </button>
         <button
           type="button"
-          className="bg-emerald-600 text-white rounded px-4 py-2 hover:bg-emerald-700 disabled:opacity-50"
+          onClick={() => router.push('/dashboard')}
+          className="border border-gray-300 rounded px-4 py-2 text-gray-700 hover:bg-gray-50"
+        >
+          Skip for now
+        </button>
+        <button
+          type="button"
+          className="bg-emerald-600 text-white rounded px-4 py-2 hover:bg-emerald-700 disabled:opacity-50 flex-1"
           onClick={saveAvailability}
           disabled={saving || slots.length === 0}
         >

@@ -69,6 +69,7 @@ export async function POST(req: Request) {
         },
       ],
       mode: "payment",
+      allow_promotion_codes: true, // Enables promo code field for beta testers
       success_url: `${process.env.NEXT_PUBLIC_URL}/checkout/success?bookingId=${booking.id}`,
       cancel_url: `${process.env.NEXT_PUBLIC_URL}/sessions`,
       customer_email: booking.User_Booking_actorIdToUser.email,

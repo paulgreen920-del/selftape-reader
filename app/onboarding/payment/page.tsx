@@ -2,14 +2,11 @@
 
 export const dynamic = "force-dynamic";
 
-import { useSearchParams, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 
 export default function PaymentPage() {
-  const searchParams = useSearchParams();
   const router = useRouter();
-  const readerId = (searchParams.get("readerId") ?? searchParams.get("id") ?? "").trim();
-
   const [loading, setLoading] = useState(false);
   const [stripeConnected, setStripeConnected] = useState(false);
   const [checkingStatus, setCheckingStatus] = useState(true);
@@ -17,18 +14,23 @@ export default function PaymentPage() {
   // Check if user already has Stripe connected
   useEffect(() => {
     async function checkStripeStatus() {
-      if (!readerId) {
-        setCheckingStatus(false);
-        return;
-      }
       try {
-        const res = await fetch(`/api/readers?id=${readerId}`, { cache: 'no-store' });
+        const userRes = await fetch('/api/auth/me', { cache: 'no-store' });
+        const userData = await userRes.json();
+        
+        if (!userData.user) {
+          setCheckingStatus(false);
+          return;
+        }
+
+        const res = await fetch(`/api/readers?email=${userData.user.email}`, { cache: 'no-store' });
         const data = await res.json();
         const accountId = data.reader?.stripeAccountId;
+        
         if (data.ok && accountId) {
-          // Now check onboarding status with Stripe
           const statusRes = await fetch(`/api/stripe/account-status?accountId=${accountId}`);
           const status = await statusRes.json();
+          
           if (status.ok && status.details_submitted) {
             setStripeConnected(true);
             setCheckingStatus(false);
@@ -47,20 +49,15 @@ export default function PaymentPage() {
       }
     }
     checkStripeStatus();
-  }, [readerId]);
+  }, []);
 
   async function connectStripe() {
-    if (!readerId) {
-      alert("Missing readerId");
-      return;
-    }
-
     setLoading(true);
     try {
       const res = await fetch("/api/stripe/onboard", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ readerId }),
+        body: JSON.stringify({}),
       });
 
       const data = await res.json();
@@ -77,29 +74,7 @@ export default function PaymentPage() {
   }
 
   async function continueToSubscribe() {
-    // Update onboarding step before continuing
-    console.log('Updating onboarding step to subscribe for:', readerId);
-    try {
-      const res = await fetch('/api/readers/update-step', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ readerId, step: 'subscribe' }),
-      });
-      const data = await res.json();
-      console.log('Update step response:', data);
-      
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to update step');
-      }
-    } catch (err) {
-      console.error('Failed to update onboarding step:', err);
-      alert('Error updating progress. Please try again.');
-      return;
-    }
-    
-    console.log('Navigating to subscribe page with full page load');
-    // Use window.location to force full page load and bypass dashboard redirect
-    window.location.href = `/onboarding/subscribe?readerId=${readerId}`;
+    window.location.href = '/onboarding/subscribe';
   }
 
   if (checkingStatus) {
@@ -163,9 +138,16 @@ export default function PaymentPage() {
         <button
           type="button"
           className="border rounded px-4 py-2"
-          onClick={() => router.push(`/onboarding/availability?readerId=${readerId}`)}
+          onClick={() => router.push('/onboarding/availability')}
         >
           Back
+        </button>
+        <button
+          type="button"
+          onClick={() => router.push('/dashboard')}
+          className="border border-gray-300 rounded px-4 py-2 text-gray-700 hover:bg-gray-50"
+        >
+          Skip for now
         </button>
       </div>
     </div>
