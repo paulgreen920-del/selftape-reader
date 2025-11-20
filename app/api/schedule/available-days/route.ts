@@ -18,7 +18,10 @@ export async function GET(req: Request) {
         id: userId || "",
         role: { in: ["READER", "ADMIN"] }
       },
-      include: { AvailabilitySlot: true },
+      include: { 
+        AvailabilitySlot: true,
+        CalendarConnection: true  // Include calendar connection
+      },
     });
 
     if (!user) {
@@ -73,7 +76,7 @@ export async function GET(req: Request) {
               }
             ]
           },
-          select: { startTime: true, endTime: true, status: true },
+          select: { startTime: true, endTime: true, status: true, createdAt: true },
         });
 
         console.log(`[available-days] ${dateStr} has ${bookings.length} active bookings`);
@@ -128,6 +131,16 @@ export async function GET(req: Request) {
           console.log(`[available-days] ✅ ${dateStr} has available slots`);
         } else {
           console.log(`[available-days] ❌ ${dateStr} has no available slots (all blocked)`);
+          console.log(`[available-days] Debug info for ${dateStr}:`);
+          console.log(`  - Total availability slots: ${dayAvailability.length}`);
+          console.log(`  - Active bookings: ${bookings.length}`, bookings.map((b: any) => ({
+            start: b.startTime,
+            end: b.endTime,
+            status: b.status,
+            createdAt: b.createdAt
+          })));
+          console.log(`  - Calendar events: ${calendarEvents.length}`);
+          console.log(`  - Min booking time: ${minBookingTime}`);
         }
       }
       
@@ -146,16 +159,13 @@ export async function GET(req: Request) {
 // Get calendar events for a specific date to check for conflicts (supports Google, Microsoft, and iCal)
 async function getCalendarEvents(user: any, dateStr: string): Promise<any[]> {
   try {
-    // Check if user has a calendar connection
-    const calendarConnection = await prisma.calendarConnection.findUnique({
-      where: { userId: user.id }
-    });
-
-    if (!calendarConnection) {
+    // Use the calendar connection already included in user object
+    if (!user.CalendarConnection) {
       console.log(`[available-days] No calendar connection for user ${user.id}`);
       return [];
     }
 
+    const calendarConnection = user.CalendarConnection;
     const provider = calendarConnection.provider;
     
     if (provider === 'GOOGLE') {
