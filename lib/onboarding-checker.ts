@@ -1,20 +1,20 @@
 import { prisma } from './prisma';
 
-export type OnboardingStep = 
-  | 'account-created'      // Step 1: Account created with name, email, password
-  | 'email-verified'       // Step 2: Email verified
-  | 'profile-completed'    // Step 3: Profile info, headshot, phone, age, etc.
-  | 'calendar-connected'   // Step 4: Calendar connected
-  | 'availability-set'     // Step 5: Availability templates set
-  | 'stripe-connected'     // Step 6: Stripe Connect account
-  | 'subscription-active'  // Step 7: Subscription purchase completed
+export type OnboardingStep =
+  | 'account-created'
+  | 'email-verified'
+  | 'profile-completed'
+  | 'calendar-connected'
+  | 'availability-set'
+  | 'stripe-connected'
+  | 'subscription-active'
   | 'completed';
 
 export interface OnboardingStatus {
   currentStep: OnboardingStep;
   completedSteps: OnboardingStep[];
-  isComplete: boolean; // All steps complete
-  isFullyOnboarded: boolean; // True only if all steps are done and none skipped
+  isComplete: boolean;
+  isFullyOnboarded: boolean;
   nextStepUrl: string | null;
   canAccessDashboard: boolean;
 }
@@ -28,7 +28,6 @@ export async function checkReaderOnboardingStatus(userId: string): Promise<Onboa
     }
   });
 
-  // Treat ADMINs exactly as READERs for onboarding logic
   if (!user || (user.role !== 'READER' && user.role !== 'ADMIN')) {
     return {
       currentStep: 'account-created',
@@ -40,9 +39,6 @@ export async function checkReaderOnboardingStatus(userId: string): Promise<Onboa
     };
   }
 
-  // --- INDEPENDENT ONBOARDING STEPS LOGIC ---
-  // Each step is independent: once completed, always completed
-  // Steps: account-created, email-verified, profile-completed, calendar-connected, availability-set, stripe-connected, subscription-active
   const completedSteps: OnboardingStep[] = ['account-created'];
   let currentStep: OnboardingStep = 'account-created';
   let nextStepUrl: string | null = null;
@@ -78,7 +74,7 @@ export async function checkReaderOnboardingStatus(userId: string): Promise<Onboa
   if (user.CalendarConnection) {
     completedSteps.push('calendar-connected');
   } else {
-    if (!nextStepUrl) nextStepUrl = `/onboarding/schedule?readerId=${userId}`;
+    if (!nextStepUrl) nextStepUrl = '/onboarding/schedule';
     if (['account-created','email-verified','profile-completed'].includes(currentStep)) currentStep = 'calendar-connected';
   }
 
@@ -87,7 +83,7 @@ export async function checkReaderOnboardingStatus(userId: string): Promise<Onboa
   if (hasAvailability) {
     completedSteps.push('availability-set');
   } else {
-    if (!nextStepUrl) nextStepUrl = `/onboarding/availability?readerId=${userId}`;
+    if (!nextStepUrl) nextStepUrl = '/onboarding/availability';
     if (['account-created','email-verified','profile-completed','calendar-connected'].includes(currentStep)) currentStep = 'availability-set';
   }
 
@@ -95,7 +91,7 @@ export async function checkReaderOnboardingStatus(userId: string): Promise<Onboa
   if (user.stripeAccountId) {
     completedSteps.push('stripe-connected');
   } else {
-    if (!nextStepUrl) nextStepUrl = `/onboarding/payment?readerId=${userId}`;
+    if (!nextStepUrl) nextStepUrl = '/onboarding/payment';
     if (['account-created','email-verified','profile-completed','calendar-connected','availability-set'].includes(currentStep)) currentStep = 'stripe-connected';
   }
 
@@ -104,7 +100,7 @@ export async function checkReaderOnboardingStatus(userId: string): Promise<Onboa
   if (hasActiveSubscription) {
     completedSteps.push('subscription-active');
   } else {
-    if (!nextStepUrl) nextStepUrl = `/onboarding/subscribe?readerId=${userId}`;
+    if (!nextStepUrl) nextStepUrl = '/onboarding/subscribe';
     if (['account-created','email-verified','profile-completed','calendar-connected','availability-set','stripe-connected'].includes(currentStep)) currentStep = 'subscription-active';
   }
 
@@ -115,12 +111,8 @@ export async function checkReaderOnboardingStatus(userId: string): Promise<Onboa
     nextStepUrl = null;
   }
 
-  // Allow dashboard access if at least one step is complete (after account creation)
-  // Block only if user hasn't verified email or completed profile
-  let canAccessDashboard = true;
-  if (!user.emailVerified || !hasProfileInfo) {
-    canAccessDashboard = false;
-  }
+  // Always allow dashboard access - show warnings via banner instead
+  const canAccessDashboard = true;
 
   return {
     currentStep,

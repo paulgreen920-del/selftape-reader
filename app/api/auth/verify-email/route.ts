@@ -78,12 +78,20 @@ export async function GET(request: NextRequest) {
 
     // Determine redirect URL
     const redirectUrl =
-      result.user?.role === 'READER'
-        ? `/onboarding/${result.user.onboardingStep || 'reader'}`
+      result.user?.role === 'READER' || result.user?.role === 'ADMIN'
+        ? '/onboarding/reader'
         : '/dashboard';
 
+    // Create session for verified user
+    const sessionData = {
+      userId: result.user.id,
+      email: result.user.email,
+      name: result.user.name,
+      role: result.user.role,
+    };
+
     // Show success message and redirect
-    return new NextResponse(
+    const response = new NextResponse(
       `
       <!DOCTYPE html>
       <html>
@@ -155,6 +163,17 @@ export async function GET(request: NextRequest) {
       `,
       { status: 200, headers: { 'Content-Type': 'text/html' } }
     );
+
+    // Set session cookie (logs them in as the verified user)
+    response.cookies.set("session", JSON.stringify(sessionData), {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 60 * 60 * 24 * 7, // 7 days
+      path: "/",
+    });
+
+    return response;
   } catch (error) {
     console.error('Email verification error:', error);
     return NextResponse.json(
