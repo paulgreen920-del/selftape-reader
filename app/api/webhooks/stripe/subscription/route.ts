@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import Stripe from "stripe";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2025-10-29.clover",
+  apiVersion: "2025-11-17.clover",
 });
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
