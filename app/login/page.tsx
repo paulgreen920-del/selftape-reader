@@ -71,6 +71,7 @@ function LoginForm() {
             </div>
           )}
 
+
           <div className="rounded-md shadow-sm -space-y-px">
             <div>
               <label htmlFor="email" className="sr-only">
@@ -104,6 +105,12 @@ function LoginForm() {
                 placeholder="Password"
               />
             </div>
+          </div>
+
+          <div className="flex justify-end mt-2">
+            <Link href="/forgot-password" className="text-sm text-blue-600 hover:underline">
+              Forgot password?
+            </Link>
           </div>
 
           <div>

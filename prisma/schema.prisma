@@ -103,6 +103,19 @@ model CalendarConnection {
   @@index([userId])
 }
 
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([token])
+  @@index([userId])
+}
+
 model User {
   id                             String                  @id
   createdAt                      DateTime                @default(now())
@@ -155,6 +168,7 @@ model User {
   Booking_Booking_readerIdToUser Booking[]               @relation("Booking_readerIdToUser")
   CalendarConnection             CalendarConnection?
   email_change_requests          email_change_requests[]
+  passwordResetTokens            PasswordResetToken[]
   skippedOnboardingSteps         String[]                @default([])
 
   @@index([email])

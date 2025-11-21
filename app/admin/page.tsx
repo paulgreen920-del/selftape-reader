@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 export default function AdminDashboard() {
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [showUserIds, setShowUserIds] = useState(false);
 
   useEffect(() => {
     async function loadStats() {
@@ -102,7 +103,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Recent Bookings */}
-      <div className="bg-white rounded-lg shadow">
+      <div className="bg-white rounded-lg shadow mb-8">
         <div className="px-6 py-4 border-b border-gray-200">
           <h2 className="text-xl font-semibold">Recent Bookings</h2>
         </div>
@@ -151,6 +152,87 @@ export default function AdminDashboard() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     ${((booking.totalPriceCents || 0) / 100).toFixed(2)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* All Users List with IDs */}
+      <div className="bg-white rounded-lg shadow">
+        <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+          <h2 className="text-xl font-semibold">All Users</h2>
+          <button
+            onClick={() => setShowUserIds(!showUserIds)}
+            className="px-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
+          >
+            {showUserIds ? 'Hide' : 'Show'} User IDs
+          </button>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Name
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Email
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Role
+                </th>
+                {showUserIds && (
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    User ID
+                  </th>
+                )}
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Status
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {stats.allUsers?.map((user: any) => (
+                <tr key={user.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {user.displayName || user.name}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                    {user.email}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                      user.role === 'READER' ? 'bg-emerald-100 text-emerald-800' :
+                      user.role === 'ADMIN' ? 'bg-purple-100 text-purple-800' :
+                      'bg-blue-100 text-blue-800'
+                    }`}>
+                      {user.role}
+                    </span>
+                  </td>
+                  {showUserIds && (
+                    <td className="px-6 py-4 text-xs text-gray-600 font-mono">
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(user.id);
+                          alert('User ID copied!');
+                        }}
+                        className="hover:bg-gray-100 px-2 py-1 rounded"
+                        title="Click to copy"
+                      >
+                        {user.id}
+                      </button>
+                    </td>
+                  )}
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                      user.subscriptionStatus === 'active' ? 'bg-emerald-100 text-emerald-800' :
+                      'bg-gray-100 text-gray-800'
+                    }`}>
+                      {user.subscriptionStatus || 'N/A'}
+                    </span>
                   </td>
                 </tr>
               ))}

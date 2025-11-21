@@ -21,6 +21,7 @@ export async function GET(req: Request) {
       canceledBookings,
       totalRevenue,
       recentBookings,
+      allUsers,
     ] = await Promise.all([
       // User counts
       prisma.user.count(),
@@ -53,6 +54,20 @@ export async function GET(req: Request) {
           },
         },
       }),
+      
+      // All users with IDs
+      prisma.user.findMany({
+        orderBy: { createdAt: "desc" },
+        select: {
+          id: true,
+          name: true,
+          displayName: true,
+          email: true,
+          role: true,
+          subscriptionStatus: true,
+          createdAt: true,
+        },
+      }),
     ]);
 
     return NextResponse.json({
@@ -75,6 +90,7 @@ export async function GET(req: Request) {
           totalUsd: ((totalRevenue._sum.platformFeeCents || 0) / 100).toFixed(2),
         },
         recentBookings,
+        allUsers,
       },
     });
   } catch (err: any) {

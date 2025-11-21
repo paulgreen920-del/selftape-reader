@@ -18,7 +18,7 @@ export async function GET() {
     });
 
     // Inline onboarding logic as per requirements
-    const fullyOnboarded = users.filter(user => {
+    const fullyOnboarded = users.filter((user: any) => {
       return (
         user.emailVerified === true &&
         (user.role === "READER" || user.role === "ADMIN") &&
@@ -38,7 +38,15 @@ export async function GET() {
     });
 
     // Remove relations from output if not needed
-    const output = fullyOnboarded.map(({ CalendarConnection, AvailabilitySlot, ...rest }) => ({
+    const output = fullyOnboarded.map(({
+      CalendarConnection,
+      AvailabilitySlot,
+      ...rest
+    }: {
+      CalendarConnection: any;
+      AvailabilitySlot: any[];
+      [key: string]: any;
+    }) => ({
       ...rest,
       calendarConnection: CalendarConnection,
       availabilitySlotCount: AvailabilitySlot.length,

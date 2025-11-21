@@ -1,6 +1,13 @@
 
 "use client";
 import { useState, useEffect, useRef } from "react";
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: 'READER' | 'ADMIN' | 'USER';
+  // Add other relevant fields as needed
+}
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
@@ -26,7 +33,7 @@ export default function ManageAvailabilityPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [calendarConnection, setCalendarConnection] = useState<CalendarConnection | null>(null);
   const [availabilityTemplates, setAvailabilityTemplates] = useState<AvailabilityTemplate[]>([]);
   const [connectingGoogle, setConnectingGoogle] = useState(false);
@@ -347,7 +354,7 @@ export default function ManageAvailabilityPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          readerId: user.id,
+          readerId: user ? user.id : undefined,
           daysAhead: 15,
           regenerate: false
         })
@@ -488,7 +495,7 @@ export default function ManageAvailabilityPage() {
           const regenerateResponse = await fetch('/api/dev/generate-availability', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ readerId: user.id, daysAhead: 30, regenerate: true })
+            body: JSON.stringify({ readerId: user ? user.id : undefined, daysAhead: 30, regenerate: true })
           });
           // ...existing code...
         } catch (fallbackError) {
@@ -555,7 +562,7 @@ export default function ManageAvailabilityPage() {
     );
   }
 
-  if (!user || !(user.role === 'READER' || user.role === 'ADMIN')) {
+  if (!user || !('role' in user) || !(user.role === 'READER' || user.role === 'ADMIN')) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <p>You must be a reader or admin to access this page.</p>
