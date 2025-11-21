@@ -16,8 +16,9 @@ export default function RootLayout({
         {/* NAVBAR */}
         <header className="sticky top-0 z-40 bg-white/80 backdrop-blur border-b">
           <nav className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
-            <Link href="/" className="text-xl font-extrabold tracking-tight">
-              🎬 Self Tape Reader
+            <Link href="/" className="text-xl font-extrabold tracking-tight flex items-center gap-2">
+              <img src="/uploads/stripiconsmartphone.png" alt="Logo" className="h-6 w-6" />
+              Self Tape Reader
             </Link>
             <div className="hidden sm:flex items-center gap-6 text-sm">
               <Link href="/" className="hover:text-emerald-700">Home</Link>

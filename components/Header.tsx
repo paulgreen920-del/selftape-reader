@@ -11,7 +11,7 @@ export default function Header() {
       <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <Link href="/" className="flex items-center space-x-2">
-            <div className="text-2xl">🎬</div>
+            <img src="/logo.png" alt="Self-Tape Logo" className="h-8 w-8 object-contain" />
             <span className="font-bold text-lg text-rose-600">Self-Tape</span>
           </Link>
 
