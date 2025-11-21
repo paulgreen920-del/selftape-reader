@@ -3,7 +3,7 @@ import Stripe from 'stripe';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   // Use the latest supported version for the installed Stripe package
-  apiVersion: '2025-10-29.clover',
+  apiVersion: '2025-11-17.clover',
 });
 
 export async function GET(req: NextRequest) {
