@@ -41,6 +41,7 @@ export default function RootLayout({
               <Link href="/about" className="hover:text-emerald-700">About</Link>
               <Link href="/pricing" className="hover:text-emerald-700">Pricing</Link>
               <Link href="/terms" className="hover:text-emerald-700">Terms</Link>
+              <Link href="/privacy-policy" className="hover:text-emerald-700">Privacy Policy</Link>
             </div>
           </div>
         </footer>
