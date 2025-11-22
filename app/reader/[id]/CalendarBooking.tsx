@@ -245,6 +245,30 @@ export default function CalendarBooking({
     fetchAvailableDays();
   }, [currentMonth, refreshKey]);
 
+  // Handle cancelled checkout - user clicked back on Stripe
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const bookingId = params.get('booking');
+    const action = params.get('action');
+    
+    if (action === 'cancel' && bookingId) {
+      console.log('Detected cancelled checkout, freeing slot for booking:', bookingId);
+      
+      fetch(`/api/bookings/${bookingId}/cancel`, { 
+        method: 'POST' 
+      })
+        .then(() => {
+          // Clean up URL without page reload
+          window.history.replaceState({}, '', window.location.pathname);
+          // Refresh available days to show the freed slot
+          setRefreshKey(prev => prev + 1);
+        })
+        .catch(err => {
+          console.error('Failed to cancel booking:', err);
+        });
+    }
+  }, []);
+
   const formatTime = (min: number) => {
     const h = Math.floor(min / 60);
     const m = min % 60;

@@ -213,7 +213,8 @@ export async function POST(req: Request) {
       ],
       mode: "payment",
       success_url: `${process.env.NEXT_PUBLIC_URL}/checkout/success?bookingId=${booking.id}`,
-      cancel_url: `${process.env.NEXT_PUBLIC_URL}/reader/${readerId}`,
+      cancel_url: `${process.env.NEXT_PUBLIC_URL}/reader/${readerId}?booking=${booking.id}&action=cancel`,
+      expires_at: Math.floor(Date.now() / 1000) + (5 * 60), // 5 minute expiration
       customer_email: actor.email,
       metadata: {
         bookingId: booking.id,
@@ -288,16 +289,16 @@ export async function GET(req: Request) {
       meetingUrl: b.meetingUrl,
       notes: b.notes,
       reader: {
-        name: b.reader.name,
-        displayName: b.reader.displayName,
+        name: b.User_Booking_readerIdToUser.name,
+        displayName: b.User_Booking_readerIdToUser.displayName,
       },
       actor: {
-        name: b.actor.name,
-        email: b.actor.email,
+        name: b.User_Booking_actorIdToUser.name,
+        email: b.User_Booking_actorIdToUser.email,
       },
       // Legacy fields for backward compatibility
-      actorName: b.actor.name,
-      actorEmail: b.actor.email,
+      actorName: b.User_Booking_actorIdToUser.name,
+      actorEmail: b.User_Booking_actorIdToUser.email,
       priceCents: b.totalCents,
     }));
 
