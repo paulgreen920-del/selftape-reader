@@ -214,7 +214,7 @@ export async function POST(req: Request) {
       mode: "payment",
       success_url: `${process.env.NEXT_PUBLIC_URL}/checkout/success?bookingId=${booking.id}`,
       cancel_url: `${process.env.NEXT_PUBLIC_URL}/reader/${readerId}?booking=${booking.id}&action=cancel`,
-      expires_at: Math.floor(Date.now() / 1000) + (5 * 60), // 5 minute expiration
+      expires_at: Math.floor(Date.now() / 1000) + (30 * 60), // 30 minute expiration
       customer_email: actor.email,
       metadata: {
         bookingId: booking.id,
