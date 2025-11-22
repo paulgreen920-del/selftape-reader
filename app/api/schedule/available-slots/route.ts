@@ -1,6 +1,30 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+// Simple in-memory cache for calendar events (5-minute TTL)
+const calendarCache = new Map<string, { events: any[]; timestamp: number }>();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+function getCachedCalendarEvents(cacheKey: string): any[] | null {
+  const cached = calendarCache.get(cacheKey);
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+    console.log(`[available-slots] Using cached calendar events for ${cacheKey}`);
+    return cached.events;
+  }
+  return null;
+}
+
+function setCachedCalendarEvents(cacheKey: string, events: any[]): void {
+  calendarCache.set(cacheKey, { events, timestamp: Date.now() });
+  
+  // Clean up old cache entries (older than 10 minutes)
+  for (const [key, value] of calendarCache.entries()) {
+    if (Date.now() - value.timestamp > 10 * 60 * 1000) {
+      calendarCache.delete(key);
+    }
+  }
+}
+
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
@@ -216,18 +240,30 @@ async function getCalendarEvents(user: any, dateStr: string): Promise<any[]> {
     return [];
   }
 
+  // Check cache first
+  const cacheKey = `${user.id}-${dateStr}-${user.CalendarConnection.provider}`;
+  const cachedEvents = getCachedCalendarEvents(cacheKey);
+  if (cachedEvents !== null) {
+    return cachedEvents;
+  }
+
   const provider = user.CalendarConnection.provider;
+  let events: any[] = [];
   
   if (provider === 'GOOGLE') {
-    return getGoogleCalendarEvents(user, dateStr);
+    events = await getGoogleCalendarEvents(user, dateStr);
   } else if (provider === 'MICROSOFT') {
-    return getMicrosoftCalendarEvents(user, dateStr);
+    events = await getMicrosoftCalendarEvents(user, dateStr);
   } else if (provider === 'ICAL') {
-    return getICalCalendarEvents(user, dateStr);
+    events = await getICalCalendarEvents(user, dateStr);
+  } else {
+    console.log(`[available-slots] Unsupported calendar provider: ${provider}`);
   }
   
-  console.log(`[available-slots] Unsupported calendar provider: ${provider}`);
-  return [];
+  // Cache the results
+  setCachedCalendarEvents(cacheKey, events);
+  
+  return events;
 }
 
 // Get Google Calendar events for a specific date to check for conflicts
