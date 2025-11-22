@@ -8,7 +8,6 @@ const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 function getCachedCalendarEvents(cacheKey: string): any[] | null {
   const cached = calendarCache.get(cacheKey);
   if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-    console.log(`[available-slots] Using cached calendar events for ${cacheKey}`);
     return cached.events;
   }
   return null;
@@ -137,7 +136,6 @@ export async function GET(req: Request) {
         });
 
         // Move to next potential slot - use appropriate increments based on duration
-        // For 15-minute slots, use 15-minute increments; for longer slots, use 30-minute increments
         const increment = durationMin === 15 ? 15 : 30;
         currentMin += increment;
       }
@@ -147,7 +145,6 @@ export async function GET(req: Request) {
     }
 
     // Get existing bookings for this date to filter out conflicts
-    // Auto-expire PENDING bookings after 15 minutes
     const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
     
     const existingBookings = await prisma.booking.findMany({
@@ -158,22 +155,18 @@ export async function GET(req: Request) {
           lt: new Date(`${date}T23:59:59.999Z`)
         },
         OR: [
-          { status: "CONFIRMED" }, // Always block confirmed bookings
+          { status: "CONFIRMED" },
           { 
             status: "PENDING",
-            createdAt: { gte: fifteenMinutesAgo } // Only block recent PENDING bookings
+            createdAt: { gte: fifteenMinutesAgo }
           }
         ]
       },
       select: {
         startTime: true,
         endTime: true,
-        status: true,
-        createdAt: true,
       },
     });
-
-    console.log(`[available-slots] Found ${existingBookings.length} active bookings for ${date}`);
 
     // Get calendar events for conflict checking
     const readerWithCalendar = await prisma.user.findUnique({
@@ -181,16 +174,9 @@ export async function GET(req: Request) {
       include: { CalendarConnection: true }
     });
     
-    console.log(`[available-slots] Reader ${readerId} calendar check:`, {
-      hasConnection: !!readerWithCalendar?.CalendarConnection,
-      provider: readerWithCalendar?.CalendarConnection?.provider
-    });
-    
     const calendarEvents = await getCalendarEvents(readerWithCalendar, date);
-    console.log(`[available-slots] Found ${calendarEvents.length} calendar events for ${date}`);
 
     // Filter out slots that conflict with existing bookings or calendar events
-    let filteredCount = 0;
     const availableSlots = slots.filter((slot) => {
       const slotStart = new Date(slot.startTime);
       const slotEnd = new Date(slot.endTime);
@@ -200,31 +186,17 @@ export async function GET(req: Request) {
         return slotStart < booking.endTime && slotEnd > booking.startTime;
       });
 
-      if (hasBookingConflict) {
-        filteredCount++;
-        console.log(`[available-slots] Filtered slot ${slot.startTime} - booking conflict`);
-        return false;
-      }
+      if (hasBookingConflict) return false;
 
-      // Check Google Calendar conflicts
+      // Check calendar conflicts
       const hasCalendarConflict = calendarEvents.some((event: any) => {
         const eventStart = new Date(event.start.dateTime || event.start.date);
         const eventEnd = new Date(event.end.dateTime || event.end.date);
-        const conflicts = slotStart < eventEnd && slotEnd > eventStart;
-        if (conflicts) {
-          console.log(`[available-slots] ❌ CONFLICT: Slot ${slotStart.toISOString()} to ${slotEnd.toISOString()} conflicts with "${event.summary}" (${eventStart.toISOString()} to ${eventEnd.toISOString()})`);
-        }
-        return conflicts;
+        return slotStart < eventEnd && slotEnd > eventStart;
       });
-
-      if (hasCalendarConflict) {
-        filteredCount++;
-      }
 
       return !hasCalendarConflict;
     });
-
-    console.log(`[available-slots] Filtered ${filteredCount} slots due to conflicts, ${availableSlots.length} remain`);
 
     return NextResponse.json({ ok: true, slots: availableSlots });
   } catch (err: any) {
@@ -233,10 +205,9 @@ export async function GET(req: Request) {
   }
 }
 
-// Get calendar events for a specific date to check for conflicts (supports Google, Microsoft, and iCal)
+// Get calendar events for a specific date to check for conflicts
 async function getCalendarEvents(user: any, dateStr: string): Promise<any[]> {
   if (!user?.CalendarConnection) {
-    console.log(`[available-slots] No calendar connection for user ${user?.id}`);
     return [];
   }
 
@@ -256,8 +227,6 @@ async function getCalendarEvents(user: any, dateStr: string): Promise<any[]> {
     events = await getMicrosoftCalendarEvents(user, dateStr);
   } else if (provider === 'ICAL') {
     events = await getICalCalendarEvents(user, dateStr);
-  } else {
-    console.log(`[available-slots] Unsupported calendar provider: ${provider}`);
   }
   
   // Cache the results
@@ -266,7 +235,7 @@ async function getCalendarEvents(user: any, dateStr: string): Promise<any[]> {
   return events;
 }
 
-// Get Google Calendar events for a specific date to check for conflicts
+// Get Google Calendar events - OPTIMIZED
 async function getGoogleCalendarEvents(user: any, dateStr: string): Promise<any[]> {
   try {
     const calendarConnection = user.CalendarConnection;
@@ -290,35 +259,35 @@ async function getGoogleCalendarEvents(user: any, dateStr: string): Promise<any[
           const tokenData = await refreshResponse.json();
           accessToken = tokenData.access_token;
           
-          // Update stored access token
           await prisma.calendarConnection.update({
             where: { id: calendarConnection.id },
             data: { accessToken: tokenData.access_token }
           });
         }
       } catch (refreshError) {
-        console.error('[available-slots] Google token refresh failed:', refreshError);
+        console.error('[calendar] Token refresh failed:', refreshError);
       }
     }
 
-    // Get events for the specific date
-    // Use a wider range to account for timezone differences
-    // Fetch events from the day before to the day after in UTC to ensure we catch all events
+    // Parse target date and add small buffer for timezone safety
     const dateParts = dateStr.split('-');
     const targetDate = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
     
-    const dayBefore = new Date(targetDate);
-    dayBefore.setDate(dayBefore.getDate() - 1);
-    const dayAfter = new Date(targetDate);
-    dayAfter.setDate(dayAfter.getDate() + 2);
+    // Start of day in UTC
+    const startOfDay = new Date(targetDate);
+    startOfDay.setHours(0, 0, 0, 0);
     
-    const startOfDay = dayBefore.toISOString().split('T')[0] + 'T00:00:00Z';
-    const endOfDay = dayAfter.toISOString().split('T')[0] + 'T23:59:59Z';
+    // End of day in UTC
+    const endOfDay = new Date(targetDate);
+    endOfDay.setHours(23, 59, 59, 999);
+    
+    const timeMin = startOfDay.toISOString();
+    const timeMax = endOfDay.toISOString();
 
     const calendarResponse = await fetch(
       `https://www.googleapis.com/calendar/v3/calendars/primary/events?` +
-      `timeMin=${encodeURIComponent(startOfDay)}&` +
-      `timeMax=${encodeURIComponent(endOfDay)}&` +
+      `timeMin=${encodeURIComponent(timeMin)}&` +
+      `timeMax=${encodeURIComponent(timeMax)}&` +
       `singleEvents=true&` +
       `orderBy=startTime`,
       {
@@ -333,49 +302,32 @@ async function getGoogleCalendarEvents(user: any, dateStr: string): Promise<any[
       const data = await calendarResponse.json();
       const events = data.items || [];
       
-      console.log(`[available-slots] Found ${events.length} Google Calendar events for ${dateStr}`);
-      
-      // Filter out all-day events and events marked as "free" time
+      // Filter out all-day events and "free" time
       const busyEvents = events.filter((event: any) => {
-        // Skip all-day events (they don't have dateTime, just date)
         if (!event.start.dateTime) return false;
-        
-        // Skip events where the user is marked as "free" (transparency: 'transparent')
         if (event.transparency === 'transparent') return false;
         
-        // Skip declined events
         if (event.attendees) {
-          const userAttendee = event.attendees.find((attendee: any) => 
-            attendee.email === user.email
-          );
-          if (userAttendee && userAttendee.responseStatus === 'declined') {
-            return false;
-          }
+          const userAttendee = event.attendees.find((a: any) => a.email === user.email);
+          if (userAttendee && userAttendee.responseStatus === 'declined') return false;
         }
         
         return true;
       });
       
-      console.log(`[available-slots] ${busyEvents.length} busy events after filtering`);
       return busyEvents;
     } else {
-      const errorText = await calendarResponse.text();
-      console.error(`[available-slots] Failed to fetch Google Calendar events (status: ${calendarResponse.status}):`, errorText);
-      
-      // If unauthorized (401), the token might be permanently invalid
-      if (calendarResponse.status === 401) {
-        console.log('[available-slots] Calendar access token invalid - user should reconnect calendar');
-      }
+      console.error(`[calendar] Google fetch failed: ${calendarResponse.status}`);
       return [];
     }
 
   } catch (error) {
-    console.error('[available-slots] Error fetching Google Calendar events:', error);
+    console.error('[calendar] Google error:', error);
     return [];
   }
 }
 
-// Get Microsoft Calendar events for a specific date to check for conflicts
+// Get Microsoft Calendar events - OPTIMIZED
 async function getMicrosoftCalendarEvents(user: any, dateStr: string): Promise<any[]> {
   try {
     const calendarConnection = user.CalendarConnection;
@@ -399,33 +351,33 @@ async function getMicrosoftCalendarEvents(user: any, dateStr: string): Promise<a
           const tokenData = await refreshResponse.json();
           accessToken = tokenData.access_token;
           
-          // Update stored access token
           await prisma.calendarConnection.update({
             where: { id: calendarConnection.id },
             data: { accessToken: tokenData.access_token }
           });
         }
       } catch (refreshError) {
-        console.error('[available-slots] Microsoft token refresh failed:', refreshError);
+        console.error('[calendar] MS token refresh failed:', refreshError);
       }
     }
 
-    // Get events for the specific date with wider range for timezone handling
+    // Parse target date
     const dateParts = dateStr.split('-');
     const targetDate = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
     
-    const dayBefore = new Date(targetDate);
-    dayBefore.setDate(dayBefore.getDate() - 1);
-    const dayAfter = new Date(targetDate);
-    dayAfter.setDate(dayAfter.getDate() + 2);
+    const startOfDay = new Date(targetDate);
+    startOfDay.setHours(0, 0, 0, 0);
     
-    const startOfDay = dayBefore.toISOString();
-    const endOfDay = dayAfter.toISOString();
+    const endOfDay = new Date(targetDate);
+    endOfDay.setHours(23, 59, 59, 999);
+    
+    const startDateTime = startOfDay.toISOString();
+    const endDateTime = endOfDay.toISOString();
 
     const calendarResponse = await fetch(
       `https://graph.microsoft.com/v1.0/me/calendarview?` +
-      `startDateTime=${encodeURIComponent(startOfDay)}&` +
-      `endDateTime=${encodeURIComponent(endOfDay)}`,
+      `startDateTime=${encodeURIComponent(startDateTime)}&` +
+      `endDateTime=${encodeURIComponent(endDateTime)}`,
       {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
@@ -439,28 +391,16 @@ async function getMicrosoftCalendarEvents(user: any, dateStr: string): Promise<a
       const data = await calendarResponse.json();
       const events = data.value || [];
       
-      console.log(`[available-slots] Found ${events.length} Microsoft Calendar events for ${dateStr}`);
-      
-      // Filter out all-day events and events marked as "free" time
+      // Filter out all-day and free events
       const busyEvents = events.filter((event: any) => {
-        // Skip all-day events
         if (event.isAllDay) return false;
-        
-        // Skip events marked as "free" time
         if (event.showAs === 'free') return false;
-        
-        // Skip cancelled events
         if (event.isCancelled) return false;
-        
-        // Skip declined events
-        if (event.responseStatus && event.responseStatus.response === 'declined') {
-          return false;
-        }
-        
+        if (event.responseStatus && event.responseStatus.response === 'declined') return false;
         return true;
       });
       
-      // Convert Microsoft event format to Google-like format for consistent handling
+      // Normalize to standard format
       const normalizedEvents = busyEvents.map((event: any) => ({
         summary: event.subject,
         start: {
@@ -473,68 +413,51 @@ async function getMicrosoftCalendarEvents(user: any, dateStr: string): Promise<a
         }
       }));
       
-      console.log(`[available-slots] ${normalizedEvents.length} busy Microsoft events after filtering`);
       return normalizedEvents;
     } else {
-      const errorText = await calendarResponse.text();
-      console.error(`[available-slots] Failed to fetch Microsoft Calendar events (status: ${calendarResponse.status}):`, errorText);
-      
-      // If unauthorized (401), the token might be permanently invalid
-      if (calendarResponse.status === 401) {
-        console.log('[available-slots] Calendar access token invalid - user should reconnect calendar');
-      }
+      console.error(`[calendar] MS fetch failed: ${calendarResponse.status}`);
       return [];
     }
 
   } catch (error) {
-    console.error('[available-slots] Error fetching Microsoft Calendar events:', error);
+    console.error('[calendar] MS error:', error);
     return [];
   }
 }
 
-// Get iCal calendar events for a specific date to check for conflicts
+// Get iCal calendar events - OPTIMIZED
 async function getICalCalendarEvents(user: any, dateStr: string): Promise<any[]> {
   try {
     const ICAL = require('ical.js');
     const calendarConnection = user.CalendarConnection;
-    const icalUrl = calendarConnection.accessToken; // URL is stored in accessToken field
+    const icalUrl = calendarConnection.accessToken;
 
     if (!icalUrl) {
-      console.log('[available-slots] No iCal URL found for user');
       return [];
     }
 
-    console.log('[available-slots] Fetching iCal feed from:', icalUrl);
-
-    // Fetch the iCal feed
     const response = await fetch(icalUrl, {
-      headers: {
-        'User-Agent': 'Self-Tape-Reader/1.0',
-      },
+      headers: { 'User-Agent': 'Self-Tape-Reader/1.0' },
     });
 
     if (!response.ok) {
-      console.error(`[available-slots] Failed to fetch iCal feed (HTTP ${response.status})`);
       return [];
     }
 
     const icalData = await response.text();
-
-    // Parse the iCal data
     const jcalData = ICAL.parse(icalData);
     const comp = new ICAL.Component(jcalData);
     const vevents = comp.getAllSubcomponents('vevent');
 
-    console.log(`[available-slots] Found ${vevents.length} total events in iCal feed`);
-
-    // Filter events for the target date range (with timezone buffer)
+    // Parse target date
     const dateParts = dateStr.split('-');
     const targetDate = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
     
-    const dayBefore = new Date(targetDate);
-    dayBefore.setDate(dayBefore.getDate() - 1);
-    const dayAfter = new Date(targetDate);
-    dayAfter.setDate(dayAfter.getDate() + 2);
+    const startOfDay = new Date(targetDate);
+    startOfDay.setHours(0, 0, 0, 0);
+    
+    const endOfDay = new Date(targetDate);
+    endOfDay.setHours(23, 59, 59, 999);
 
     const events: any[] = [];
 
@@ -542,48 +465,33 @@ async function getICalCalendarEvents(user: any, dateStr: string): Promise<any[]>
       const event = new ICAL.Event(vevent);
       
       // Skip all-day events
-      if (event.startDate.isDate || event.endDate.isDate) {
-        continue;
-      }
+      if (event.startDate.isDate || event.endDate.isDate) continue;
 
       const eventStart = event.startDate.toJSDate();
       const eventEnd = event.endDate.toJSDate();
 
-      // Check if event falls within our date range
-      if (eventEnd < dayBefore || eventStart > dayAfter) {
-        continue;
-      }
+      // Check if event is on target date
+      if (eventEnd < startOfDay || eventStart > endOfDay) continue;
 
       // Get event status and transparency
       const status = vevent.getFirstPropertyValue('status');
       const transp = vevent.getFirstPropertyValue('transp');
 
-      // Skip cancelled events
-      if (status === 'CANCELLED') {
-        continue;
-      }
-
-      // Skip events marked as "free" time
-      if (transp === 'TRANSPARENT') {
-        continue;
-      }
+      // Skip cancelled or free events
+      if (status === 'CANCELLED') continue;
+      if (transp === 'TRANSPARENT') continue;
 
       events.push({
         summary: event.summary || '(No title)',
-        start: {
-          dateTime: eventStart.toISOString(),
-        },
-        end: {
-          dateTime: eventEnd.toISOString(),
-        },
+        start: { dateTime: eventStart.toISOString() },
+        end: { dateTime: eventEnd.toISOString() },
       });
     }
 
-    console.log(`[available-slots] ${events.length} busy iCal events after filtering`);
     return events;
 
   } catch (error) {
-    console.error('[available-slots] Error fetching iCal events:', error);
+    console.error('[calendar] iCal error:', error);
     return [];
   }
 }

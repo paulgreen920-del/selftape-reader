@@ -21,6 +21,7 @@ model AvailabilitySlot {
   @@index([isBooked])
   @@index([startTime])
   @@index([userId])
+  @@index([userId, startTime])
 }
 
 model AvailabilityTemplate {
