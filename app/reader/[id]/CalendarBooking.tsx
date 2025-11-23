@@ -685,14 +685,8 @@ export default function CalendarBooking({
                   {/* Board base */}
                   <div className="absolute bottom-0 w-20 h-14 bg-gray-800 rounded-b-lg shadow-lg"></div>
                   
-                  {/* Clapper top - animated */}
-                  <div 
-                    className="absolute top-0 w-20 h-8 bg-white border-2 border-gray-800 rounded-t-lg shadow-md" 
-                    style={{
-                      transformOrigin: 'bottom',
-                      animation: 'clap 1s ease-in-out infinite'
-                    }}
-                  >
+                  {/* Clapper top - animated with CSS class */}
+                  <div className="clapperboard-top absolute top-0 w-20 h-8 bg-white border-2 border-gray-800 rounded-t-lg shadow-md">
                     {/* Striped pattern on clapper */}
                     <div className="flex gap-1 mt-1 px-1">
                       <div className="flex-1 h-5 bg-gray-800"></div>

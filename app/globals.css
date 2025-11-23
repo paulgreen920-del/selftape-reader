@@ -5,6 +5,7 @@
 body {
   @apply bg-gray-100 text-gray-900 font-sans;
 }
+
 @keyframes clap {
   0%, 100% { 
     transform: rotateX(0deg); 
@@ -12,4 +13,9 @@ body {
   50% { 
     transform: rotateX(-25deg); 
   }
+}
+
+.clapperboard-top {
+  transform-origin: bottom;
+  animation: clap 1s ease-in-out infinite;
 }
