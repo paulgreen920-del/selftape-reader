@@ -20,7 +20,7 @@ type Reader = {
   maxAdvanceBooking?: number | null;
 };
 
-type AvailabilitySlot = any; // We'll accept any structure for now
+type AvailabilitySlot = any;
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -50,7 +50,6 @@ export default function CalendarBooking({
   const [sidesLink, setSidesLink] = useState<string>('');
   const [uploadingFile, setUploadingFile] = useState(false);
 
-  // Get days in current month - use local dates for calendar display
   const getDaysInMonth = () => {
     const year = currentMonth.getFullYear();
     const month = currentMonth.getMonth();
@@ -60,12 +59,10 @@ export default function CalendarBooking({
     const startingDayOfWeek = firstDay.getDay();
 
     const days: Array<Date | null> = [];
-    // Add empty slots for days before month starts
     for (let i = 0; i < startingDayOfWeek; i++) {
       days.push(null);
     }
 
-    // Add actual days - create as local dates for proper display
     for (let day = 1; day <= daysInMonth; day++) {
       days.push(new Date(year, month, day));
     }
@@ -85,10 +82,8 @@ export default function CalendarBooking({
     const compareDate = new Date(date);
     compareDate.setHours(0, 0, 0, 0);
     
-    // Must be within booking window
     if (compareDate < today || compareDate > maxDate) return false;
     
-    // Check if this specific date has available slots
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
@@ -113,7 +108,6 @@ export default function CalendarBooking({
   const selectDate = async (date: Date | null) => {
     if (!date || !isDateAvailable(date)) return;
 
-    // Create date string from local date
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
@@ -122,7 +116,6 @@ export default function CalendarBooking({
     setLoadingSlots(true);
 
     try {
-      // Add cache busting timestamp
       const timestamp = Date.now();
       const res = await fetch(
         `/api/schedule/available-slots?readerId=${reader.id}&date=${dateStr}&duration=${duration}&_t=${timestamp}`
@@ -132,12 +125,10 @@ export default function CalendarBooking({
       if (data.ok) {
         setSlots(data.slots || []);
         
-        // If no slots, unhighlight this day
         if (!data.slots || data.slots.length === 0) {
           setAvailableDays(prev => prev.filter(d => d !== dateStr));
           setSelectedDate(null);
         } else {
-          // Scroll to time slots section after date selection
           setTimeout(() => {
             const timeSlotsSection = document.getElementById('time-slots-section');
             if (timeSlotsSection) {
@@ -157,17 +148,14 @@ export default function CalendarBooking({
     }
   };
 
-  // Reload slots when duration changes
   useEffect(() => {
     if (selectedDate) {
-      // Parse as local date 
       const [year, month, day] = selectedDate.split('-').map(Number);
       const date = new Date(year, month - 1, day);
       selectDate(date);
     }
   }, [duration]);
 
-  // Also refresh available days when duration changes
   useEffect(() => {
     async function fetchAvailableDays() {
       try {
@@ -189,27 +177,22 @@ export default function CalendarBooking({
       }
     }
     fetchAvailableDays();
-  }, [duration, reader.id, refreshKey]); // Include refreshKey to force refresh after booking
+  }, [duration, reader.id, refreshKey]);
 
-  // Detect user's timezone and check authentication
   useEffect(() => {
     async function init() {
-      // Detect timezone from browser
       const detectedTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
       setActorTimezone(detectedTimezone);
       setLoadingTimezone(false);
       
-      // Check authentication and auto-populate user info
       try {
         const response = await fetch('/api/auth/me');
         if (response.ok) {
           const data = await response.json();
           if (data.ok && data.user) {
             setUser(data.user);
-            // Auto-populate form fields (always override for authenticated users)
             setActorName(data.user.name || '');
             setActorEmail(data.user.email || '');
-            // Use user's timezone if available
             if (data.user.timezone) {
               setActorTimezone(data.user.timezone);
             }
@@ -224,11 +207,9 @@ export default function CalendarBooking({
     init();
   }, []);
 
-  // Fetch available days when month changes or refresh key updates
   useEffect(() => {
     async function fetchAvailableDays() {
       try {
-        // Add timestamp to prevent caching
         const timestamp = Date.now();
         const res = await fetch(
           `/api/schedule/available-days?readerId=${reader.id}&duration=${duration}&_t=${timestamp}`
@@ -245,7 +226,6 @@ export default function CalendarBooking({
     fetchAvailableDays();
   }, [currentMonth, refreshKey]);
 
-  // Handle cancelled checkout - user clicked back on Stripe
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const bookingId = params.get('booking');
@@ -258,9 +238,7 @@ export default function CalendarBooking({
         method: 'POST' 
       })
         .then(() => {
-          // Clean up URL without page reload
           window.history.replaceState({}, '', window.location.pathname);
-          // Refresh available days to show the freed slot
           setRefreshKey(prev => prev + 1);
         })
         .catch(err => {
@@ -275,7 +253,6 @@ export default function CalendarBooking({
     const hour12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
     const ampm = h < 12 ? "AM" : "PM";
     
-    // Create a date object to show timezone-aware time
     if (selectedDate && actorTimezone) {
       const [year, month, day] = selectedDate.split('-').map(Number);
       const slotTime = new Date(year, month - 1, day, h, m);
@@ -296,7 +273,6 @@ export default function CalendarBooking({
   };
 
   const bookSlot = async (slot: TimeSlot) => {
-    // Check if user is authenticated - booking requires user ID
     if (!user || !user.id) {
       alert("Please sign in to book a session. You'll be redirected to the login page.");
       const redirectUrl = encodeURIComponent(window.location.pathname);
@@ -311,7 +287,6 @@ export default function CalendarBooking({
       let sidesUrl = '';
       let sidesFileName = '';
       
-      // Upload file if provided
       if (sidesFile) {
         setUploadingFile(true);
         const formData = new FormData();
@@ -330,9 +305,8 @@ export default function CalendarBooking({
         setUploadingFile(false);
       }
       
-      // Add timeout to the booking request
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
 
       const res = await fetch("/api/bookings", {
         method: "POST",
@@ -359,7 +333,6 @@ export default function CalendarBooking({
       }
 
       if (data.checkoutUrl) {
-        // Trigger webhook for development (if in dev mode)
         if (process.env.NODE_ENV === 'development') {
           try {
             await fetch('/api/dev/webhook-trigger', {
@@ -402,7 +375,6 @@ export default function CalendarBooking({
 
       {/* Reader Profile Header */}
       <div className="flex items-center gap-4 mb-8 pb-6 border-b">
-        {/* Actor Profile Picture */}
         <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl border bg-gray-100 grid place-items-center text-xl font-semibold">
           {reader.headshotUrl ? (
             <img
@@ -419,7 +391,6 @@ export default function CalendarBooking({
           )}
         </div>
         
-        {/* Actor Name and Title */}
         <div>
           <h1 className="text-2xl font-bold text-gray-900">{reader.displayName || reader.name}</h1>
           <p className="text-gray-600">Book a Reading Session</p>
@@ -464,18 +435,10 @@ export default function CalendarBooking({
         </div>
       )}
 
-      {/* Actor Info - Hidden but still captured */}
+      {/* Actor Info - Hidden */}
       <div className="hidden">
-        <input
-          type="text"
-          value={actorName}
-          onChange={(e) => setActorName(e.target.value)}
-        />
-        <input
-          type="email"
-          value={actorEmail}
-          onChange={(e) => setActorEmail(e.target.value)}
-        />
+        <input type="text" value={actorName} onChange={(e) => setActorName(e.target.value)} />
+        <input type="email" value={actorEmail} onChange={(e) => setActorEmail(e.target.value)} />
       </div>
 
       {/* Audition Sides Upload */}
@@ -484,7 +447,6 @@ export default function CalendarBooking({
           Audition Sides <span className="text-gray-500 font-normal">(Optional)</span>
         </label>
         <div className="space-y-3">
-          {/* File Upload */}
           <div>
             <label className="block text-xs text-gray-600 mb-2">Upload PDF or Document</label>
             <div className="relative">
@@ -500,7 +462,7 @@ export default function CalendarBooking({
                       return;
                     }
                     setSidesFile(file);
-                    setSidesLink(''); // Clear link if file is uploaded
+                    setSidesLink('');
                   }
                 }}
                 className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 cursor-pointer border border-gray-300 rounded-lg"
@@ -520,7 +482,6 @@ export default function CalendarBooking({
             </div>
           </div>
           
-          {/* Or Link */}
           <div>
             <label className="block text-xs text-gray-600 mb-2">Or provide a link to sides</label>
             <input
@@ -529,7 +490,7 @@ export default function CalendarBooking({
               value={sidesLink}
               onChange={(e) => {
                 setSidesLink(e.target.value);
-                if (e.target.value) setSidesFile(null); // Clear file if link is provided
+                if (e.target.value) setSidesFile(null);
               }}
               disabled={!!sidesFile}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
@@ -590,7 +551,6 @@ export default function CalendarBooking({
               onChange={(e) => setActorTimezone(e.target.value)}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white text-gray-900"
             >
-              {/* US Timezones */}
               <optgroup label="United States">
                 <option value="America/New_York">Eastern Time (EST/EDT)</option>
                 <option value="America/Chicago">Central Time (CST/CDT)</option>
@@ -600,7 +560,6 @@ export default function CalendarBooking({
                 <option value="Pacific/Honolulu">Hawaii Time (HST)</option>
               </optgroup>
               
-              {/* Canada */}
               <optgroup label="Canada">
                 <option value="America/Toronto">Toronto (EST/EDT)</option>
                 <option value="America/Winnipeg">Winnipeg (CST/CDT)</option>
@@ -608,7 +567,6 @@ export default function CalendarBooking({
                 <option value="America/Vancouver">Vancouver (PST/PDT)</option>
               </optgroup>
               
-              {/* Europe */}
               <optgroup label="Europe">
                 <option value="Europe/London">London (GMT/BST)</option>
                 <option value="Europe/Paris">Paris (CET/CEST)</option>
@@ -616,14 +574,12 @@ export default function CalendarBooking({
                 <option value="Europe/Rome">Rome (CET/CEST)</option>
               </optgroup>
               
-              {/* Asia Pacific */}
               <optgroup label="Asia Pacific">
                 <option value="Asia/Tokyo">Tokyo (JST)</option>
                 <option value="Asia/Shanghai">Shanghai (CST)</option>
                 <option value="Australia/Sydney">Sydney (AEST/AEDT)</option>
               </optgroup>
               
-              {/* Other */}
               <optgroup label="Other">
                 <option value="UTC">UTC (Coordinated Universal Time)</option>
               </optgroup>
@@ -722,9 +678,54 @@ export default function CalendarBooking({
             })()} ({actorTimezone ? actorTimezone.split('/')[1]?.replace('_', ' ') : 'Local Time'})
           </h3>
           {loadingSlots ? (
-            <div className="flex items-center justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div>
-              <span className="ml-2 text-sm text-gray-600">Loading available times...</span>
+            <div className="flex flex-col items-center justify-center py-12">
+              <div className="relative">
+                {/* Animated clapperboard */}
+                <div className="relative w-20 h-20">
+                  {/* Board base */}
+                  <div className="absolute bottom-0 w-20 h-14 bg-gray-800 rounded-b-lg shadow-lg"></div>
+                  
+                  {/* Clapper top - animated */}
+                  <div 
+                    className="absolute top-0 w-20 h-8 bg-white border-2 border-gray-800 rounded-t-lg shadow-md" 
+                    style={{
+                      transformOrigin: 'bottom',
+                      animation: 'clap 1s ease-in-out infinite'
+                    }}
+                  >
+                    {/* Striped pattern on clapper */}
+                    <div className="flex gap-1 mt-1 px-1">
+                      <div className="flex-1 h-5 bg-gray-800"></div>
+                      <div className="flex-1 h-5 bg-white"></div>
+                      <div className="flex-1 h-5 bg-gray-800"></div>
+                      <div className="flex-1 h-5 bg-white"></div>
+                    </div>
+                  </div>
+                  
+                  {/* Text on board */}
+                  <div className="absolute bottom-3 inset-x-0 text-center">
+                    <div className="text-white text-xs font-bold tracking-wider">SCENE</div>
+                    <div className="text-emerald-400 text-lg font-bold animate-pulse">1</div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Loading text */}
+              <div className="mt-6 text-center">
+                <p className="text-lg text-gray-800 font-semibold flex items-center justify-center">
+                  <span>🎬</span>
+                  <span className="ml-2">Action!</span>
+                </p>
+                <p className="mt-2 text-base text-gray-600">Finding available time slots</p>
+                <div className="flex items-center justify-center mt-1">
+                  <span className="text-sm text-gray-500">Checking calendar</span>
+                  <span className="ml-1 inline-flex space-x-0.5">
+                    <span className="animate-bounce text-gray-500" style={{ animationDelay: '0ms' }}>.</span>
+                    <span className="animate-bounce text-gray-500" style={{ animationDelay: '150ms' }}>.</span>
+                    <span className="animate-bounce text-gray-500" style={{ animationDelay: '300ms' }}>.</span>
+                  </span>
+                </div>
+              </div>
             </div>
           ) : slots.length === 0 ? (
             <div className="text-center py-8 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
