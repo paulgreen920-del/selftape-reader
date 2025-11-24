@@ -8,48 +8,90 @@ import { useState, useEffect } from "react";
 export default function SubscribePage() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const readerId = (searchParams.get("readerId") ?? searchParams.get("id") ?? "").trim();
+  const readerIdParam = (searchParams.get("readerId") ?? searchParams.get("id") ?? "").trim();
 
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [reader, setReader] = useState<any>(null);
+  const [readerId, setReaderId] = useState<string>(readerIdParam);
 
   useEffect(() => {
     async function loadReader() {
-      if (!readerId) return;
       try {
-        const res = await fetch(`/api/readers?id=${readerId}`, {
-          cache: 'no-store'
-        });
-        const data = await res.json();
-        if (data.ok && data.reader) {
-          setReader(data.reader);
+        // If no readerId in URL, get it from current user
+        if (!readerId) {
+          const userRes = await fetch("/api/auth/me");
+          const userData = await userRes.json();
           
-          // If subscription is already active, complete onboarding automatically
-          if (data.reader.subscriptionStatus === 'active') {
-            console.log('Active subscription detected, completing onboarding...');
-            await fetch('/api/readers/update-step', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ readerId, step: null }),
-            });
-            // Redirect to dashboard after brief delay
-            setTimeout(() => {
-              window.location.href = '/dashboard';
-            }, 1500);
+          if (!userData.ok || !userData.user) {
+            router.push("/login");
+            return;
+          }
+
+          // User ID IS the reader ID in this schema (readers are users)
+          const currentUserId = userData.user.id;
+
+          // Fetch the full user/reader profile
+          const readerRes = await fetch(`/api/readers?id=${currentUserId}`, {
+            cache: 'no-store'
+          });
+          const readerData = await readerRes.json();
+          
+          if (readerData.ok && readerData.reader) {
+            setReader(readerData.reader);
+            setReaderId(readerData.reader.id);
+            
+            // If subscription is already active, redirect to dashboard
+            if (readerData.reader.subscriptionStatus === 'active') {
+              console.log('Active subscription detected, redirecting to dashboard...');
+              setTimeout(() => {
+                window.location.href = '/dashboard';
+              }, 1500);
+            }
+          } else {
+            // No reader profile found, redirect to create one
+            router.push("/onboarding/reader");
+            return;
+          }
+        } else {
+          // readerId provided in URL, fetch that reader
+          const res = await fetch(`/api/readers?id=${readerId}`, {
+            cache: 'no-store'
+          });
+          const data = await res.json();
+          if (data.ok && data.reader) {
+            setReader(data.reader);
+            
+            // If subscription is already active, complete onboarding automatically
+            if (data.reader.subscriptionStatus === 'active') {
+              console.log('Active subscription detected, completing onboarding...');
+              await fetch('/api/readers/update-step', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ readerId, step: null }),
+              });
+              // Redirect to dashboard after brief delay
+              setTimeout(() => {
+                window.location.href = '/dashboard';
+              }, 1500);
+            }
           }
         }
       } catch (err) {
         console.error("Failed to load reader:", err);
+      } finally {
+        setInitialLoading(false);
       }
     }
     loadReader();
-  }, [readerId]);
+  }, [readerId, router]);
 
   const hasActiveSubscription = reader?.subscriptionStatus === "active";
 
   async function startSubscription() {
     if (!readerId || !reader?.email) {
-      alert("Missing reader information");
+      alert("Missing reader information. Please complete your profile first.");
+      router.push("/onboarding/reader");
       return;
     }
 
@@ -85,6 +127,31 @@ export default function SubscribePage() {
       body: JSON.stringify({ step: 'subscription-active' }),
     });
     router.push(`/onboarding/complete?readerId=${readerId}`);
+  }
+
+  if (initialLoading) {
+    return (
+      <div className="max-w-3xl mx-auto p-6">
+        <p>Loading subscription details...</p>
+      </div>
+    );
+  }
+
+  if (!reader) {
+    return (
+      <div className="max-w-3xl mx-auto p-6">
+        <h1 className="text-2xl font-bold mb-4">Reader Profile Required</h1>
+        <p className="text-gray-600 mb-4">
+          You need to complete your reader profile before subscribing.
+        </p>
+        <button
+          onClick={() => router.push("/onboarding/reader")}
+          className="bg-emerald-600 text-white px-6 py-2 rounded hover:bg-emerald-700"
+        >
+          Complete Profile
+        </button>
+      </div>
+    );
   }
 
   return (

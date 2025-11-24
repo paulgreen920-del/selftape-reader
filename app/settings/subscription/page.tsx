@@ -31,7 +31,7 @@ export default function SubscriptionSettingsPage() {
 
         setUser(userData.user);
 
-        // Get subscription details (you'll need to create this API)
+        // Get subscription details
         const subRes = await fetch("/api/subscription/status");
         const subData = await subRes.json();
         
@@ -121,6 +121,10 @@ export default function SubscriptionSettingsPage() {
     );
   }
 
+  // Check if subscription is active (has a valid status)
+  const hasActiveSubscription = subscription?.status === "active" || subscription?.status === "trialing";
+  const isInactive = !subscription || subscription.status === "inactive" || subscription.status === "canceled" || !subscription.status;
+
   return (
     <div className="max-w-2xl mx-auto p-6">
       <div className="mb-4">
@@ -135,48 +139,67 @@ export default function SubscriptionSettingsPage() {
             <p className="text-sm text-gray-600">$9.99/month</p>
           </div>
           <div className={`px-3 py-1 rounded text-sm font-medium ${
-            subscription?.status === "active" 
-              ? "bg-emerald-100 text-emerald-700"
-              : subscription?.cancelAtPeriodEnd
-              ? "bg-yellow-100 text-yellow-700"
+            hasActiveSubscription
+              ? subscription?.cancelAtPeriodEnd
+                ? "bg-yellow-100 text-yellow-700"
+                : "bg-emerald-100 text-emerald-700"
               : "bg-gray-100 text-gray-700"
           }`}>
-            {subscription?.status === "active" 
+            {hasActiveSubscription
               ? subscription?.cancelAtPeriodEnd 
                 ? "Canceling" 
                 : "Active"
-              : subscription?.status || "Inactive"}
+              : "Inactive"}
           </div>
         </div>
 
-        {subscription?.currentPeriodEnd && (
-          <p className="text-sm text-gray-600 mb-4">
-            {subscription.cancelAtPeriodEnd 
-              ? `Access ends: ${new Date(subscription.currentPeriodEnd).toLocaleDateString()}`
-              : `Renews: ${new Date(subscription.currentPeriodEnd).toLocaleDateString()}`
-            }
-          </p>
-        )}
+        {/* Show different content based on subscription status */}
+        {isInactive ? (
+          // No active subscription - show subscribe button
+          <div>
+            <p className="text-sm text-gray-600 mb-4">
+              You don't have an active subscription. Subscribe to appear in the marketplace and start accepting bookings.
+            </p>
+            <Link
+              href="/onboarding/subscribe"
+              className="inline-block bg-emerald-600 text-white px-6 py-2 rounded hover:bg-emerald-700 font-medium"
+            >
+              Subscribe Now
+            </Link>
+          </div>
+        ) : (
+          // Has active subscription - show renewal info and cancel/reactivate buttons
+          <>
+            {subscription?.currentPeriodEnd && (
+              <p className="text-sm text-gray-600 mb-4">
+                {subscription.cancelAtPeriodEnd 
+                  ? `Access ends: ${new Date(subscription.currentPeriodEnd).toLocaleDateString()}`
+                  : `Renews: ${new Date(subscription.currentPeriodEnd).toLocaleDateString()}`
+                }
+              </p>
+            )}
 
-        <div className="flex gap-3">
-          {subscription?.cancelAtPeriodEnd ? (
-            <button
-              className="border rounded px-4 py-2 hover:bg-gray-50 disabled:opacity-50"
-              onClick={handleReactivate}
-              disabled={canceling}
-            >
-              {canceling ? "Processing..." : "Reactivate Subscription"}
-            </button>
-          ) : (
-            <button
-              className="border border-red-300 text-red-600 rounded px-4 py-2 hover:bg-red-50 disabled:opacity-50"
-              onClick={handleCancelSubscription}
-              disabled={canceling}
-            >
-              {canceling ? "Processing..." : "Cancel Subscription"}
-            </button>
-          )}
-        </div>
+            <div className="flex gap-3">
+              {subscription?.cancelAtPeriodEnd ? (
+                <button
+                  className="border rounded px-4 py-2 hover:bg-gray-50 disabled:opacity-50"
+                  onClick={handleReactivate}
+                  disabled={canceling}
+                >
+                  {canceling ? "Processing..." : "Reactivate Subscription"}
+                </button>
+              ) : (
+                <button
+                  className="border border-red-300 text-red-600 rounded px-4 py-2 hover:bg-red-50 disabled:opacity-50"
+                  onClick={handleCancelSubscription}
+                  disabled={canceling}
+                >
+                  {canceling ? "Processing..." : "Cancel Subscription"}
+                </button>
+              )}
+            </div>
+          </>
+        )}
       </div>
 
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
