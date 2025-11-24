@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { randomUUID } from "crypto";
 
 export async function GET(req: Request) {
   try {
@@ -265,11 +266,13 @@ async function regenerateAvailabilitySlots(userId: string) {
             slotEndTime.setHours(Math.floor((currentMin + 30) / 60), (currentMin + 30) % 60, 0, 0);
             
             slotsToCreate.push({
-              userId,
-              startTime: slotStartTime,
-              endTime: slotEndTime,
-              isBooked: false,
-            });
+  id: randomUUID(),
+  userId,
+  startTime: slotStartTime,
+  endTime: slotEndTime,
+  isBooked: false,
+  updatedAt: new Date(),
+});
           }
         }
       });
