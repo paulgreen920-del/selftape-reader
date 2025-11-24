@@ -2,54 +2,71 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { randomUUID } from "crypto";
 
-// Helper function to convert a time in a specific timezone to UTC
-function localTimeToUTC(year: number, month: number, day: number, hour: number, minute: number, timezone: string): Date {
-  // Create an ISO string for the local time
-  const localDateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}T${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00`;
+/**
+ * Convert a local time in a specific timezone to a UTC Date object.
+ * 
+ * Example: localTimeToUTC(2025, 11, 25, 9, 0, "America/New_York")
+ * Returns: Date object representing 9am EST as UTC (which is 14:00 UTC)
+ */
+function localTimeToUTC(
+  year: number, 
+  month: number, 
+  day: number, 
+  hour: number, 
+  minute: number, 
+  timezone: string
+): Date {
+  // Create a date string in ISO format
+  const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}T${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00`;
   
-  // Use Intl.DateTimeFormat to get the UTC offset for this timezone at this date/time
-  const formatter = new Intl.DateTimeFormat('en-US', {
+  // Method: Use the fact that toLocaleString can format a UTC date into a timezone,
+  // then we can calculate the offset by comparing
+  
+  // Create a reference point: Jan 1, 2000 00:00:00 UTC
+  const referenceUTC = new Date(Date.UTC(year, month - 1, day, hour, minute, 0));
+  
+  // Format this UTC time as if it were in the target timezone
+  const inTargetTZ = new Intl.DateTimeFormat('en-US', {
     timeZone: timezone,
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
     hour: '2-digit',
     minute: '2-digit',
-    second: '2-digit',
-    hour12: false,
+    hour12: false
+  }).formatToParts(referenceUTC);
+  
+  const tzParts: Record<string, number> = {};
+  inTargetTZ.forEach(part => {
+    if (part.type !== 'literal') {
+      tzParts[part.type] = parseInt(part.value);
+    }
   });
   
-  // Create date assuming it's UTC first
-  const utcDate = new Date(localDateStr + 'Z');
+  // Calculate offset in minutes between UTC and target timezone at this point in time
+  // If UTC shows 14:00 and timezone shows 09:00, offset is -5 hours (EST)
+  const utcTotalMinutes = referenceUTC.getUTCHours() * 60 + referenceUTC.getUTCMinutes();
+  const tzTotalMinutes = tzParts.hour * 60 + tzParts.minute;
   
-  // Get what this UTC time would be in the target timezone
-  const parts = formatter.formatToParts(utcDate);
-  const getPart = (type: string) => parts.find(p => p.type === type)?.value || '0';
-  
-  const tzYear = parseInt(getPart('year'));
-  const tzMonth = parseInt(getPart('month'));
-  const tzDay = parseInt(getPart('day'));
-  const tzHour = parseInt(getPart('hour'));
-  const tzMinute = parseInt(getPart('minute'));
-  
-  // Calculate the offset in minutes
-  const utcMinutes = utcDate.getUTCHours() * 60 + utcDate.getUTCMinutes();
-  const tzMinutes = tzHour * 60 + tzMinute;
-  
-  // Handle day boundary differences
-  let offsetMinutes = tzMinutes - utcMinutes;
-  if (tzDay > utcDate.getUTCDate() || (tzMonth > utcDate.getUTCMonth() + 1)) {
-    offsetMinutes += 24 * 60;
-  } else if (tzDay < utcDate.getUTCDate() || (tzMonth < utcDate.getUTCMonth() + 1)) {
-    offsetMinutes -= 24 * 60;
+  // Handle day wraparound
+  let dayDiff = 0;
+  if (tzParts.day > referenceUTC.getUTCDate()) {
+    dayDiff = 1;
+  } else if (tzParts.day < referenceUTC.getUTCDate()) {
+    dayDiff = -1;
   }
   
-  // Now create the actual date: we want localDateStr to BE the local time,
-  // so we need to subtract the offset to get UTC
-  const targetDate = new Date(localDateStr + 'Z');
-  targetDate.setUTCMinutes(targetDate.getUTCMinutes() - offsetMinutes);
+  const offsetMinutes = (tzTotalMinutes + dayDiff * 24 * 60) - utcTotalMinutes;
   
-  return targetDate;
+  // Now: if we want "9:00 in timezone X" to be stored as UTC,
+  // and the timezone is at offset -300 (EST = UTC-5),
+  // then 9:00 EST = 9:00 + 5 hours = 14:00 UTC
+  // So we SUBTRACT the offset (which is negative for EST, so subtracting -300 = adding 300)
+  
+  const resultUTC = new Date(Date.UTC(year, month - 1, day, hour, minute, 0));
+  resultUTC.setUTCMinutes(resultUTC.getUTCMinutes() - offsetMinutes);
+  
+  return resultUTC;
 }
 
 export async function GET(req: Request) {
@@ -107,14 +124,13 @@ export async function GET(req: Request) {
 
     // Sort templates to show Monday-Sunday order (1,2,3,4,5,6,0) with earliest start times
     const sortedTemplates = templates.sort((a: any, b: any) => {
-      const dayOrderA = a.dayOfWeek === 0 ? 7 : a.dayOfWeek; // Sunday (0) becomes 7 for sorting
-      const dayOrderB = b.dayOfWeek === 0 ? 7 : b.dayOfWeek; // Sunday (0) becomes 7 for sorting
+      const dayOrderA = a.dayOfWeek === 0 ? 7 : a.dayOfWeek;
+      const dayOrderB = b.dayOfWeek === 0 ? 7 : b.dayOfWeek;
       
       if (dayOrderA !== dayOrderB) {
         return dayOrderA - dayOrderB;
       }
       
-      // If same day, sort by start time
       return a.startTime.localeCompare(b.startTime);
     });
 
@@ -133,7 +149,6 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { templates } = body;
 
-    // Get user from session
     const { cookies } = await import('next/headers');
     const cookieStore = await cookies();
     const sessionCookie = cookieStore.get("session");
@@ -200,7 +215,6 @@ export async function PUT(req: Request) {
       }, { status: 400 });
     }
 
-    // Get user from session
     const { cookies } = await import('next/headers');
     const cookieStore = await cookies();
     const sessionCookie = cookieStore.get("session");
@@ -249,13 +263,14 @@ export async function PUT(req: Request) {
     }
 
     // Regenerate availability slots from the new templates
-    console.log(`[PUT] About to regenerate slots for user ${user.id} in timezone ${user.timezone || 'America/New_York'}`);
+    const readerTimezone = user.timezone || 'America/New_York';
+    console.log(`[PUT] About to regenerate slots for user ${user.id} in timezone ${readerTimezone}`);
+    
     try {
-      await regenerateAvailabilitySlots(user.id, user.timezone || 'America/New_York');
+      await regenerateAvailabilitySlots(user.id, readerTimezone);
       console.log(`[PUT] Successfully regenerated slots for user ${user.id}`);
     } catch (regenerationError) {
       console.error(`[PUT] Failed to regenerate slots for user ${user.id}:`, regenerationError);
-      // Don't fail the template save, just log the error
     }
 
     return NextResponse.json({ ok: true, message: "Templates updated successfully" });
@@ -268,21 +283,23 @@ export async function PUT(req: Request) {
   }
 }
 
-// Helper function to regenerate availability slots from templates
-// Now accepts readerTimezone parameter to properly convert times to UTC
+/**
+ * Regenerate availability slots from templates.
+ * Templates store times in reader's local timezone (e.g., "09:00" means 9am in reader's TZ).
+ * Slots are stored as UTC in the database.
+ */
 async function regenerateAvailabilitySlots(userId: string, readerTimezone: string) {
-  console.log(`🔥🔥🔥 [REGEN] FUNCTION CALLED FOR USER ${userId} with timezone ${readerTimezone} 🔥🔥🔥`);
-  console.log(`[regenerateAvailabilitySlots] Starting regeneration for user ${userId}`);
+  console.log(`🔥 [REGEN] Starting for user ${userId} with timezone ${readerTimezone}`);
+  
   try {
-    // Delete existing NON-BOOKED slots for this user (preserve booked slots)
-    console.log(`[regenerateAvailabilitySlots] Deleting existing non-booked slots for user ${userId}`);
+    // Delete existing NON-BOOKED slots (preserve booked slots)
     const deleteResult = await prisma.availabilitySlot.deleteMany({
       where: { 
         userId,
         isBooked: false 
       }
     });
-    console.log(`[regenerateAvailabilitySlots] Deleted ${deleteResult.count} existing slots for user ${userId}`);
+    console.log(`[REGEN] Deleted ${deleteResult.count} existing slots`);
 
     // Get the user's templates
     const templates = await prisma.availabilityTemplate.findMany({
@@ -290,11 +307,13 @@ async function regenerateAvailabilitySlots(userId: string, readerTimezone: strin
     });
 
     if (templates.length === 0) {
-      console.log(`[regenerateAvailabilitySlots] No templates found for user ${userId}`);
+      console.log(`[REGEN] No templates found for user ${userId}`);
       return;
     }
 
-    // Get existing booked slots to avoid creating duplicates for those times
+    console.log(`[REGEN] Found ${templates.length} templates`);
+
+    // Get existing booked slots to avoid duplicates
     const existingBookedSlots = await prisma.availabilitySlot.findMany({
       where: { userId, isBooked: true },
       select: { startTime: true }
@@ -303,26 +322,23 @@ async function regenerateAvailabilitySlots(userId: string, readerTimezone: strin
       existingBookedSlots.map(slot => slot.startTime.getTime())
     );
 
-    // Generate slots for the next 30 days
-    // Use a Map to deduplicate slots by their start time (key = timestamp)
+    // Use Map to deduplicate slots by their UTC start time
     const slotMap = new Map<number, any>();
-    
-    // Get current time in reader's timezone to start from today
     const now = new Date();
 
+    // Generate slots for the next 30 days
     for (let daysAhead = 0; daysAhead < 30; daysAhead++) {
-      // Calculate the target date in reader's timezone
       const targetDate = new Date(now);
       targetDate.setDate(targetDate.getDate() + daysAhead);
       
-      // Get year, month, day in reader's timezone
-      const formatter = new Intl.DateTimeFormat('en-CA', { // en-CA gives YYYY-MM-DD format
+      // Get the date components in the reader's timezone
+      const dateFormatter = new Intl.DateTimeFormat('en-CA', {
         timeZone: readerTimezone,
         year: 'numeric',
         month: '2-digit',
         day: '2-digit',
       });
-      const dateStr = formatter.format(targetDate);
+      const dateStr = dateFormatter.format(targetDate);
       const [year, month, day] = dateStr.split('-').map(Number);
       
       // Get day of week in reader's timezone
@@ -336,70 +352,62 @@ async function regenerateAvailabilitySlots(userId: string, readerTimezone: strin
       };
       const targetDayOfWeek = dayOfWeekMap[dowStr];
       
-      templates.forEach((template: any) => {
-        if (targetDayOfWeek === template.dayOfWeek) {
-          // Parse time strings (e.g., "09:00" and "17:00") - these are in READER's timezone
-          const [startHour, startMin] = template.startTime.split(':').map(Number);
-          const [endHour, endMin] = template.endTime.split(':').map(Number);
+      // Check each template
+      for (const template of templates) {
+        if (targetDayOfWeek !== template.dayOfWeek) continue;
+        
+        // Parse template times (e.g., "09:00" to "17:00")
+        const [startHour, startMinute] = (template.startTime as string).split(':').map(Number);
+        const [endHour, endMinute] = (template.endTime as string).split(':').map(Number);
+        
+        const startTotalMinutes = startHour * 60 + startMinute;
+        const endTotalMinutes = endHour * 60 + endMinute;
+        
+        // Create 30-minute slots
+        for (let currentMin = startTotalMinutes; currentMin < endTotalMinutes; currentMin += 30) {
+          const slotHour = Math.floor(currentMin / 60);
+          const slotMinute = currentMin % 60;
           
-          // Create 30-minute slots between start and end time
-          const startMinutes = startHour * 60 + startMin;
-          const endMinutes = endHour * 60 + endMin;
+          // Convert reader's local time to UTC
+          const slotStartUTC = localTimeToUTC(year, month, day, slotHour, slotMinute, readerTimezone);
+          const slotEndUTC = new Date(slotStartUTC.getTime() + 30 * 60 * 1000);
           
-          for (let currentMin = startMinutes; currentMin < endMinutes; currentMin += 30) {
-            const slotHour = Math.floor(currentMin / 60);
-            const slotMinute = currentMin % 60;
-            
-            // Convert reader's local time to UTC
-            const slotStartTimeUTC = localTimeToUTC(year, month, day, slotHour, slotMinute, readerTimezone);
-            const slotEndTimeUTC = new Date(slotStartTimeUTC.getTime() + 30 * 60 * 1000);
-            
-            // Use start time timestamp as key to deduplicate
-            const slotKey = slotStartTimeUTC.getTime();
-            
-            // Skip if this slot time is already booked
-            if (bookedSlotTimes.has(slotKey)) {
-              continue;
-            }
-            
-            // Only add if we haven't already added a slot for this time
-            if (!slotMap.has(slotKey)) {
-              slotMap.set(slotKey, {
-                id: randomUUID(),
-                userId,
-                startTime: slotStartTimeUTC,
-                endTime: slotEndTimeUTC,
-                isBooked: false,
-                updatedAt: new Date(),
-              });
-            }
-          }
+          const slotKey = slotStartUTC.getTime();
+          
+          // Skip if already booked or already added
+          if (bookedSlotTimes.has(slotKey)) continue;
+          if (slotMap.has(slotKey)) continue;
+          
+          slotMap.set(slotKey, {
+            id: randomUUID(),
+            userId,
+            startTime: slotStartUTC,
+            endTime: slotEndUTC,
+            isBooked: false,
+            updatedAt: new Date(),
+          });
         }
-      });
+      }
     }
 
-    // Convert map values to array for createMany
     const slotsToCreate = Array.from(slotMap.values());
 
-    // Create new slots
     if (slotsToCreate.length > 0) {
       await prisma.availabilitySlot.createMany({
         data: slotsToCreate,
       });
-      console.log(`[regenerateAvailabilitySlots] Generated ${slotsToCreate.length} unique slots for user ${userId}`);
       
-      // Log a sample slot for debugging
-      if (slotsToCreate.length > 0) {
-        const sample = slotsToCreate[0];
-        console.log(`[regenerateAvailabilitySlots] Sample slot: ${sample.startTime.toISOString()} UTC`);
-        console.log(`[regenerateAvailabilitySlots] In reader timezone (${readerTimezone}): ${sample.startTime.toLocaleString('en-US', { timeZone: readerTimezone })}`);
-      }
+      // Log sample for debugging
+      const sample = slotsToCreate[0];
+      console.log(`[REGEN] Created ${slotsToCreate.length} slots`);
+      console.log(`[REGEN] Sample slot UTC: ${sample.startTime.toISOString()}`);
+      console.log(`[REGEN] Sample in ${readerTimezone}: ${sample.startTime.toLocaleString('en-US', { timeZone: readerTimezone })}`);
     } else {
-      console.log(`[regenerateAvailabilitySlots] No slots to create for user ${userId}`);
+      console.log(`[REGEN] No slots to create`);
     }
 
   } catch (error) {
-    console.error(`[regenerateAvailabilitySlots] Error for user ${userId}:`, error);
+    console.error(`[REGEN] Error:`, error);
     throw error;
   }
 }
