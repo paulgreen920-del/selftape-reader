@@ -27,6 +27,8 @@ export async function GET(req: Request) {
     }
 
     const readerId = parsed.readerId;
+    const returnTo = parsed.returnTo || "onboarding"; // Track where user came from
+    
     if (!readerId) {
       return NextResponse.redirect(new URL('/onboarding/schedule?error=no_reader_id', req.url));
     }
@@ -66,12 +68,9 @@ export async function GET(req: Request) {
       email = profile.mail || profile.userPrincipalName || email;
     }
 
-    // Delete existing Microsoft connection for this user
+    // Delete existing calendar connection for this user (any provider)
     await prisma.calendarConnection.deleteMany({
-      where: { 
-        userId: readerId,
-        provider: 'MICROSOFT'
-      }
+      where: { userId: readerId }
     });
 
     // Store the connection
@@ -89,10 +88,100 @@ export async function GET(req: Request) {
 
     console.log(`[MS Callback] Successfully connected Microsoft calendar for reader ${readerId}`);
 
-    // Redirect back to schedule page
-    return NextResponse.redirect(new URL('/onboarding/schedule?connected=microsoft', req.url));
+    // ⭐ REGENERATE AVAILABILITY SLOTS FROM TEMPLATES ⭐
+    console.log("[MS Callback] Regenerating availability slots for user:", readerId);
+    await regenerateAvailabilitySlots(readerId);
+
+    // Determine redirect URL based on where user came from
+    let redirectUrl: string;
+    if (returnTo === "dashboard") {
+      // User was in dashboard - return to manage availability
+      redirectUrl = `/reader/availability?connected=microsoft`;
+    } else {
+      // User was in onboarding - continue to schedule step
+      redirectUrl = `/onboarding/schedule?readerId=${encodeURIComponent(readerId)}&connected=microsoft`;
+    }
+
+    console.log("[MS Callback] Redirecting to:", redirectUrl, "(returnTo was:", returnTo, ")");
+
+    return NextResponse.redirect(new URL(redirectUrl, process.env.NEXT_PUBLIC_URL || req.url));
   } catch (e: any) {
     console.error("[MS Callback] Error:", e);
     return NextResponse.redirect(new URL('/onboarding/schedule?error=unknown', req.url));
+  }
+}
+
+// Regenerate availability slots from templates
+async function regenerateAvailabilitySlots(userId: string) {
+  console.log(`[MS Callback:regenerateSlots] Starting regeneration for user ${userId}`);
+  
+  try {
+    // Delete existing slots for this user (they were tied to old calendar)
+    const deleteResult = await prisma.availabilitySlot.deleteMany({
+      where: { userId }
+    });
+    console.log(`[MS Callback:regenerateSlots] Deleted ${deleteResult.count} existing slots`);
+
+    // Get the user's active templates
+    const templates = await prisma.availabilityTemplate.findMany({
+      where: { userId, isActive: true }
+    });
+
+    if (templates.length === 0) {
+      console.log(`[MS Callback:regenerateSlots] No templates found for user ${userId}`);
+      return;
+    }
+
+    console.log(`[MS Callback:regenerateSlots] Found ${templates.length} templates`);
+
+    // Generate slots for the next 30 days
+    const now = new Date();
+    const slotsToCreate: any[] = [];
+
+    for (let daysAhead = 0; daysAhead < 30; daysAhead++) {
+      const targetDate = new Date(now);
+      targetDate.setDate(targetDate.getDate() + daysAhead);
+      
+      templates.forEach((template: any) => {
+        if (targetDate.getDay() === template.dayOfWeek) {
+          // Parse time strings (e.g., "09:00" and "17:00")
+          const [startHour, startMin] = template.startTime.split(':').map(Number);
+          const [endHour, endMin] = template.endTime.split(':').map(Number);
+          
+          // Create 30-minute slots between start and end time
+          const startMinutes = startHour * 60 + startMin;
+          const endMinutes = endHour * 60 + endMin;
+          
+          for (let currentMin = startMinutes; currentMin < endMinutes; currentMin += 30) {
+            const slotStartTime = new Date(targetDate);
+            slotStartTime.setHours(Math.floor(currentMin / 60), currentMin % 60, 0, 0);
+            
+            const slotEndTime = new Date(targetDate);
+            slotEndTime.setHours(Math.floor((currentMin + 30) / 60), (currentMin + 30) % 60, 0, 0);
+            
+            slotsToCreate.push({
+              userId,
+              startTime: slotStartTime,
+              endTime: slotEndTime,
+              isBooked: false,
+            });
+          }
+        }
+      });
+    }
+
+    // Create new slots
+    if (slotsToCreate.length > 0) {
+      await prisma.availabilitySlot.createMany({
+        data: slotsToCreate,
+      });
+      console.log(`[MS Callback:regenerateSlots] Generated ${slotsToCreate.length} slots`);
+    } else {
+      console.log(`[MS Callback:regenerateSlots] No slots to create (check template days match upcoming dates)`);
+    }
+
+  } catch (error) {
+    console.error(`[MS Callback:regenerateSlots] Error:`, error);
+    // Don't throw - we don't want to fail the whole callback if slot generation fails
   }
 }

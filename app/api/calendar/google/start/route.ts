@@ -11,20 +11,21 @@ function b64url(input: string) {
   return Buffer.from(input).toString("base64url");
 }
 
-function makeState(readerId: string) {
-  // You can later sign/encrypt this. For now, keep it simple.
-  return b64url(JSON.stringify({ readerId, provider: "google" }));
+function makeState(readerId: string, returnTo: string) {
+  return b64url(JSON.stringify({ readerId, provider: "google", returnTo }));
 }
 
 export async function GET(req: Request) {
   const url = new URL(req.url);
   const readerId = (url.searchParams.get("readerId") || "").trim();
+  const returnTo = url.searchParams.get("returnTo") || "onboarding"; // "onboarding" or "dashboard"
+  
   if (!readerId) {
     return NextResponse.json({ ok: false, error: "Missing readerId" }, { status: 400 });
   }
 
   const clientId = process.env.GOOGLE_CLIENT_ID || "";
-  const redirectUri = process.env.GOOGLE_REDIRECT_URI || ""; // e.g., http://localhost:3000/api/calendar/google/callback
+  const redirectUri = process.env.GOOGLE_REDIRECT_URI || "";
 
   if (!clientId || !redirectUri) {
     return NextResponse.json(
@@ -44,7 +45,7 @@ export async function GET(req: Request) {
     access_type: "offline",
     include_granted_scopes: "true",
     scope: SCOPES.join(" "),
-    state: makeState(readerId),
+    state: makeState(readerId, returnTo),
     prompt: "consent",
   });
 

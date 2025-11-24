@@ -1,4 +1,3 @@
-
 "use client";
 import { useState, useEffect, useRef } from "react";
 interface User {
@@ -226,7 +225,8 @@ export default function ManageAvailabilityPage() {
     }
     setConnectingGoogle(true);
     try {
-      const response = await fetch(`/api/calendar/google/start?readerId=${user.id}`);
+      // Added returnTo=dashboard to stay in dashboard after connecting
+      const response = await fetch(`/api/calendar/google/start?readerId=${user.id}&returnTo=dashboard`);
       const data = await response.json();
       if (data.ok && data.authUrl) {
         window.location.href = data.authUrl;
@@ -259,7 +259,8 @@ export default function ManageAvailabilityPage() {
     }
     setConnectingGoogle(true);
     try {
-      const response = await fetch(`/api/calendar/microsoft/start?readerId=${user.id}`);
+      // Added returnTo=dashboard to stay in dashboard after connecting
+      const response = await fetch(`/api/calendar/microsoft/start?readerId=${user.id}&returnTo=dashboard`);
       const data = await response.json();
       if (data.ok && data.authUrl) {
         window.location.href = data.authUrl;
@@ -487,19 +488,21 @@ export default function ManageAvailabilityPage() {
         });
         if (syncResponse.ok) {
           const syncResult = await syncResponse.json();
-          // ...existing code...
+          console.log('Sync result:', syncResult);
         }
       } catch (syncError) {
-        // ...existing code...
+        console.error('Sync failed, trying fallback:', syncError);
         try {
           const regenerateResponse = await fetch('/api/dev/generate-availability', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ readerId: user ? user.id : undefined, daysAhead: 30, regenerate: true })
           });
-          // ...existing code...
+          if (regenerateResponse.ok) {
+            console.log('Fallback regeneration succeeded');
+          }
         } catch (fallbackError) {
-          // ...existing code...
+          console.error('Fallback regeneration also failed:', fallbackError);
         }
       }
 
