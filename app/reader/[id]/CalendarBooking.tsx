@@ -37,6 +37,7 @@ export default function CalendarBooking({
   const [duration, setDuration] = useState<15 | 30 | 60>(30);
   const [slots, setSlots] = useState<TimeSlot[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
+  const [loadingAvailability, setLoadingAvailability] = useState(true);
   const [actorName, setActorName] = useState("");
   const [actorEmail, setActorEmail] = useState("");
   const [bookingLoading, setBookingLoading] = useState(false);
@@ -158,6 +159,7 @@ export default function CalendarBooking({
 
   useEffect(() => {
     async function fetchAvailableDays() {
+      setLoadingAvailability(true);
       try {
         console.log('Fetching available days for reader:', reader.id, 'duration:', duration);
         const res = await fetch(
@@ -174,6 +176,8 @@ export default function CalendarBooking({
       } catch (err) {
         console.error("Failed to load available days:", err);
         setAvailableDays([]);
+      } finally {
+        setLoadingAvailability(false);
       }
     }
     fetchAvailableDays();
@@ -600,65 +604,114 @@ export default function CalendarBooking({
             ↻ Refresh Availability
           </button>
         </div>
-        <div className="flex items-center justify-between mb-4">
-          <button
-            type="button"
-            className="flex items-center justify-center w-10 h-10 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-            onClick={goToPreviousMonth}
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-          </button>
-          <h3 className="text-lg font-semibold">
-            {MONTHS[currentMonth.getMonth()]} {currentMonth.getFullYear()}
-          </h3>
-          <button
-            type="button"
-            className="flex items-center justify-center w-10 h-10 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-            onClick={goToNextMonth}
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
-        </div>
 
-        <div className="grid grid-cols-7 gap-2">
-          {DAYS.map((day) => (
-            <div key={day} className="text-center text-sm font-medium text-gray-600 py-2">
-              {day}
+        {loadingAvailability ? (
+          <div className="flex flex-col items-center justify-center py-12">
+            <div className="relative">
+              {/* Animated clapperboard */}
+              <div className="relative w-20 h-20">
+                {/* Board base */}
+                <div className="absolute bottom-0 w-20 h-14 bg-gray-800 rounded-b-lg shadow-lg"></div>
+                
+                {/* Clapper top - animated with CSS class */}
+                <div className="clapperboard-top absolute top-0 w-20 h-8 bg-white border-2 border-gray-800 rounded-t-lg shadow-md">
+                  {/* Striped pattern on clapper */}
+                  <div className="flex gap-1 mt-1 px-1">
+                    <div className="flex-1 h-5 bg-gray-800"></div>
+                    <div className="flex-1 h-5 bg-white"></div>
+                    <div className="flex-1 h-5 bg-gray-800"></div>
+                    <div className="flex-1 h-5 bg-white"></div>
+                  </div>
+                </div>
+                
+                {/* Text on board */}
+                <div className="absolute bottom-3 inset-x-0 text-center">
+                  <div className="text-white text-xs font-bold tracking-wider">SCENE</div>
+                  <div className="text-emerald-400 text-lg font-bold animate-pulse">1</div>
+                </div>
+              </div>
             </div>
-          ))}
-          {days.map((date, idx) => {
-            const available = isDateAvailable(date);
-            const year = date?.getFullYear();
-            const month = String((date?.getMonth() ?? 0) + 1).padStart(2, '0');
-            const day = String(date?.getDate() ?? 0).padStart(2, '0');
-            const dateStr = date ? `${year}-${month}-${day}` : '';
-            const isSelected = date && selectedDate === dateStr;
-
-            return (
+            
+            {/* Loading text */}
+            <div className="mt-6 text-center">
+              <p className="text-lg text-gray-800 font-semibold flex items-center justify-center">
+                <span>🎬</span>
+                <span className="ml-2">Loading calendar...</span>
+              </p>
+              <p className="mt-2 text-base text-gray-600">Finding available dates</p>
+              <div className="flex items-center justify-center mt-1">
+                <span className="text-sm text-gray-500">Please wait</span>
+                <span className="ml-1 inline-flex space-x-0.5">
+                  <span className="animate-bounce text-gray-500" style={{ animationDelay: '0ms' }}>.</span>
+                  <span className="animate-bounce text-gray-500" style={{ animationDelay: '150ms' }}>.</span>
+                  <span className="animate-bounce text-gray-500" style={{ animationDelay: '300ms' }}>.</span>
+                </span>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="flex items-center justify-between mb-4">
               <button
-                key={idx}
                 type="button"
-                className={`aspect-square rounded p-2 text-sm ${
-                  !date
-                    ? "invisible"
-                    : isSelected
-                    ? "bg-emerald-600 text-white font-semibold"
-                    : available
-                    ? "border-2 border-emerald-200 bg-emerald-50 hover:bg-emerald-100 cursor-pointer font-medium"
-                    : "bg-gray-50 text-gray-400 cursor-not-allowed border border-gray-200"
-                }`}
-                onClick={() => selectDate(date)}
-                disabled={!date || !available}
+                className="flex items-center justify-center w-10 h-10 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                onClick={goToPreviousMonth}
               >
-                {date?.getDate()}
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
               </button>
-            );
-          })}
-        </div>
+              <h3 className="text-lg font-semibold">
+                {MONTHS[currentMonth.getMonth()]} {currentMonth.getFullYear()}
+              </h3>
+              <button
+                type="button"
+                className="flex items-center justify-center w-10 h-10 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                onClick={goToNextMonth}
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="grid grid-cols-7 gap-2">
+              {DAYS.map((day) => (
+                <div key={day} className="text-center text-sm font-medium text-gray-600 py-2">
+                  {day}
+                </div>
+              ))}
+              {days.map((date, idx) => {
+                const available = isDateAvailable(date);
+                const year = date?.getFullYear();
+                const month = String((date?.getMonth() ?? 0) + 1).padStart(2, '0');
+                const day = String(date?.getDate() ?? 0).padStart(2, '0');
+                const dateStr = date ? `${year}-${month}-${day}` : '';
+                const isSelected = date && selectedDate === dateStr;
+
+                return (
+                  <button
+                    key={idx}
+                    type="button"
+                    className={`aspect-square rounded p-2 text-sm ${
+                      !date
+                        ? "invisible"
+                        : isSelected
+                        ? "bg-emerald-600 text-white font-semibold"
+                        : available
+                        ? "border-2 border-emerald-200 bg-emerald-50 hover:bg-emerald-100 cursor-pointer font-medium"
+                        : "bg-gray-50 text-gray-400 cursor-not-allowed border border-gray-200"
+                    }`}
+                    onClick={() => selectDate(date)}
+                    disabled={!date || !available}
+                  >
+                    {date?.getDate()}
+                  </button>
+                );
+              })}
+            </div>
+          </>
+        )}
       </div>
 
       {/* Time Slots */}
