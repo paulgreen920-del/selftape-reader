@@ -1,143 +1,159 @@
-import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+// app/api/availability/sync/route.ts
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
+import { randomUUID } from 'crypto';
 
-export async function POST(req: Request) {
-  try {
-    // Get user from session
-    const { cookies } = await import('next/headers');
-    const cookieStore = await cookies();
-    const sessionCookie = cookieStore.get("session");
-
-    if (!sessionCookie?.value) {
-      return NextResponse.json(
-        { error: "Not authenticated" },
-        { status: 401 }
-      );
-    }
-
-    const sessionData = JSON.parse(sessionCookie.value);
-    const user = await prisma.user.findUnique({
-      where: { id: sessionData.userId },
-    });
-
-    if (!user || (user.role !== 'READER' && user.role !== 'ADMIN')) {
-      return NextResponse.json(
-        { error: "Not authorized" },
-        { status: 403 }
-      );
-    }
-
-    console.log(`[SYNC] Force syncing templates to slots for user ${user.id}`);
-
-    // Get current templates and slots
-    const templates = await prisma.availabilityTemplate.findMany({
-      where: { userId: user.id, isActive: true }
-    });
-
-    const currentSlots = await prisma.availabilitySlot.count({
-      where: { userId: user.id }
-    });
-
-    console.log(`[SYNC] Current state: ${templates.length} templates, ${currentSlots} slots`);
-
-    // Force regeneration
-    await regenerateAvailabilitySlots(user.id);
-
-    const newSlots = await prisma.availabilitySlot.count({
-      where: { userId: user.id }
-    });
-
-    console.log(`[SYNC] Sync complete: ${currentSlots} → ${newSlots} slots`);
-
-    return NextResponse.json({ 
-      ok: true, 
-      message: "Templates synced to calendar successfully",
-      beforeSlots: currentSlots,
-      afterSlots: newSlots,
-      templates: templates.length
-    });
-
-  } catch (error: any) {
-    console.error("[POST /api/availability/sync] Error:", error);
-    return NextResponse.json({ 
-      ok: false, 
-      error: error.message || "Failed to sync availability" 
-    }, { status: 500 });
-  }
-}
-
-// Copy of regeneration function
-async function regenerateAvailabilitySlots(userId: string) {
+// Regenerate availability slots from templates
+async function regenerateAvailabilitySlots(userId: string): Promise<number> {
   console.log(`🔥🔥🔥 [SYNC-REGEN] FUNCTION CALLED FOR USER ${userId} 🔥🔥🔥`);
-  console.log(`[regenerateAvailabilitySlots] Starting regeneration for user ${userId}`);
+  
   try {
-    // Delete existing slots for this user
+    console.log(`[regenerateAvailabilitySlots] Starting regeneration for user ${userId}`);
+    
+    // Delete existing slots (only non-booked ones to preserve bookings)
     console.log(`[regenerateAvailabilitySlots] Deleting existing slots for user ${userId}`);
     const deleteResult = await prisma.availabilitySlot.deleteMany({
-      where: { userId }
+      where: { 
+        userId,
+        isBooked: false  // Only delete unbooked slots
+      }
     });
     console.log(`[regenerateAvailabilitySlots] Deleted ${deleteResult.count} existing slots for user ${userId}`);
-
-    // Get the user's templates
+    
+    // Get active templates
     const templates = await prisma.availabilityTemplate.findMany({
-      where: { userId, isActive: true }
+      where: { 
+        userId,
+        isActive: true 
+      }
     });
-
-    if (templates.length === 0) {
-      console.log(`[regenerateAvailabilitySlots] No templates found for user ${userId}`);
-      return;
-    }
-
     console.log(`[regenerateAvailabilitySlots] Found ${templates.length} templates for user ${userId}`);
-
-    // Generate slots for the next 30 days
+    
+    if (templates.length === 0) {
+      console.log(`[regenerateAvailabilitySlots] No active templates found for user ${userId}`);
+      return 0;
+    }
+    
+    // Generate slots for next 30 days
+    const slotsToCreate: {
+      id: string;
+      userId: string;
+      startTime: Date;
+      endTime: Date;
+      isBooked: boolean;
+      updatedAt: Date;
+    }[] = [];
+    
     const now = new Date();
-    const slotsToCreate: any[] = [];
-
+    
     for (let daysAhead = 0; daysAhead < 30; daysAhead++) {
       const targetDate = new Date(now);
       targetDate.setDate(targetDate.getDate() + daysAhead);
+      const dayOfWeek = targetDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
       
-      templates.forEach((template: any) => {
-        if (targetDate.getDay() === template.dayOfWeek) {
-          // Parse time strings (e.g., "09:00" and "17:00")
-          const [startHour, startMin] = template.startTime.split(':').map(Number);
-          const [endHour, endMin] = template.endTime.split(':').map(Number);
+      // Find templates for this day
+      const dayTemplates = templates.filter(t => t.dayOfWeek === dayOfWeek);
+      
+      for (const template of dayTemplates) {
+        // Parse start and end times (format: "HH:MM")
+        const [startHour, startMin] = template.startTime.split(':').map(Number);
+        const [endHour, endMin] = template.endTime.split(':').map(Number);
+        
+        // Create 30-minute slots
+        let currentHour = startHour;
+        let currentMin = startMin;
+        
+        while (currentHour < endHour || (currentHour === endHour && currentMin < endMin)) {
+          const slotStart = new Date(targetDate);
+          slotStart.setHours(currentHour, currentMin, 0, 0);
           
-          // Create 30-minute slots between start and end time
-          const startMinutes = startHour * 60 + startMin;
-          const endMinutes = endHour * 60 + endMin;
+          // Calculate end time (30 minutes later)
+          let slotEndHour = currentHour;
+          let slotEndMin = currentMin + 30;
+          if (slotEndMin >= 60) {
+            slotEndHour += 1;
+            slotEndMin -= 60;
+          }
           
-          for (let currentMin = startMinutes; currentMin < endMinutes; currentMin += 30) {
-            const slotStartTime = new Date(targetDate);
-            slotStartTime.setHours(Math.floor(currentMin / 60), currentMin % 60, 0, 0);
-            
-            const slotEndTime = new Date(targetDate);
-            slotEndTime.setHours(Math.floor((currentMin + 30) / 60), (currentMin + 30) % 60, 0, 0);
-            
+          const slotEnd = new Date(targetDate);
+          slotEnd.setHours(slotEndHour, slotEndMin, 0, 0);
+          
+          // Only add if end time doesn't exceed template end time
+          if (slotEndHour < endHour || (slotEndHour === endHour && slotEndMin <= endMin)) {
             slotsToCreate.push({
+              id: randomUUID(),
               userId,
-              startTime: slotStartTime,
-              endTime: slotEndTime,
+              startTime: slotStart,
+              endTime: slotEnd,
               isBooked: false,
+              updatedAt: new Date(),
             });
           }
+          
+          // Move to next slot
+          currentMin += 30;
+          if (currentMin >= 60) {
+            currentHour += 1;
+            currentMin -= 60;
+          }
         }
-      });
+      }
     }
-
-    // Create new slots
+    
+    console.log(`[regenerateAvailabilitySlots] Creating ${slotsToCreate.length} slots for user ${userId}`);
+    
     if (slotsToCreate.length > 0) {
       await prisma.availabilitySlot.createMany({
         data: slotsToCreate,
+        skipDuplicates: true,
       });
-      console.log(`[regenerateAvailabilitySlots] Generated ${slotsToCreate.length} slots for user ${userId}`);
-    } else {
-      console.log(`[regenerateAvailabilitySlots] No slots to create for user ${userId}`);
     }
-
+    
+    console.log(`[regenerateAvailabilitySlots] Successfully created ${slotsToCreate.length} slots for user ${userId}`);
+    return slotsToCreate.length;
+    
   } catch (error) {
     console.error(`[regenerateAvailabilitySlots] Error for user ${userId}:`, error);
     throw error;
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+    
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    
+    const userId = session.user.id;
+    
+    // Get current state for logging
+    const [templateCount, slotCount] = await Promise.all([
+      prisma.availabilityTemplate.count({ where: { userId, isActive: true } }),
+      prisma.availabilitySlot.count({ where: { userId } })
+    ]);
+    
+    console.log(`[SYNC] Force syncing templates to slots for user ${userId}`);
+    console.log(`[SYNC] Current state: ${templateCount} templates, ${slotCount} slots`);
+    
+    // Regenerate slots
+    const newSlotCount = await regenerateAvailabilitySlots(userId);
+    
+    return NextResponse.json({
+      ok: true,
+      message: 'Availability synced successfully',
+      templatesFound: templateCount,
+      slotsCreated: newSlotCount,
+    });
+    
+  } catch (error) {
+    console.error('[POST /api/availability/sync] Error:', error);
+    return NextResponse.json(
+      { error: 'Failed to sync availability' },
+      { status: 500 }
+    );
   }
 }
