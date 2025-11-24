@@ -607,46 +607,19 @@ export default function CalendarBooking({
 
         {loadingAvailability ? (
           <div className="flex flex-col items-center justify-center py-12">
-            <div className="relative">
-              {/* Animated clapperboard */}
-              <div className="relative w-20 h-20">
-                {/* Board base */}
-                <div className="absolute bottom-0 w-20 h-14 bg-gray-800 rounded-b-lg shadow-lg"></div>
-                
-                {/* Clapper top - animated with CSS class */}
-                <div className="clapperboard-top absolute top-0 w-20 h-8 bg-white border-2 border-gray-800 rounded-t-lg shadow-md">
-                  {/* Striped pattern on clapper */}
-                  <div className="flex gap-1 mt-1 px-1">
-                    <div className="flex-1 h-5 bg-gray-800"></div>
-                    <div className="flex-1 h-5 bg-white"></div>
-                    <div className="flex-1 h-5 bg-gray-800"></div>
-                    <div className="flex-1 h-5 bg-white"></div>
-                  </div>
-                </div>
-                
-                {/* Text on board */}
-                <div className="absolute bottom-3 inset-x-0 text-center">
-                  <div className="text-white text-xs font-bold tracking-wider">SCENE</div>
-                  <div className="text-emerald-400 text-lg font-bold animate-pulse">1</div>
-                </div>
+            {/* Bouncing dots bubble */}
+            <div className="bg-gray-200 rounded-2xl px-6 py-4 shadow-sm">
+              <div className="flex space-x-2">
+                <div className="w-3 h-3 bg-gray-600 rounded-full animate-bounce" style={{ animationDelay: '0ms', animationDuration: '1s' }}></div>
+                <div className="w-3 h-3 bg-gray-600 rounded-full animate-bounce" style={{ animationDelay: '150ms', animationDuration: '1s' }}></div>
+                <div className="w-3 h-3 bg-gray-600 rounded-full animate-bounce" style={{ animationDelay: '300ms', animationDuration: '1s' }}></div>
               </div>
             </div>
             
             {/* Loading text */}
-            <div className="mt-6 text-center">
-              <p className="text-lg text-gray-800 font-semibold flex items-center justify-center">
-                <span>🎬</span>
-                <span className="ml-2">Loading calendar...</span>
-              </p>
-              <p className="mt-2 text-base text-gray-600">Finding available dates</p>
-              <div className="flex items-center justify-center mt-1">
-                <span className="text-sm text-gray-500">Please wait</span>
-                <span className="ml-1 inline-flex space-x-0.5">
-                  <span className="animate-bounce text-gray-500" style={{ animationDelay: '0ms' }}>.</span>
-                  <span className="animate-bounce text-gray-500" style={{ animationDelay: '150ms' }}>.</span>
-                  <span className="animate-bounce text-gray-500" style={{ animationDelay: '300ms' }}>.</span>
-                </span>
-              </div>
+            <div className="mt-4 text-center">
+              <p className="text-base text-gray-700 font-medium">Loading available dates...</p>
+              <p className="text-sm text-gray-500 mt-1">This will only take a moment</p>
             </div>
           </div>
         ) : (
@@ -732,46 +705,19 @@ export default function CalendarBooking({
           </h3>
           {loadingSlots ? (
             <div className="flex flex-col items-center justify-center py-12">
-              <div className="relative">
-                {/* Animated clapperboard */}
-                <div className="relative w-20 h-20">
-                  {/* Board base */}
-                  <div className="absolute bottom-0 w-20 h-14 bg-gray-800 rounded-b-lg shadow-lg"></div>
-                  
-                  {/* Clapper top - animated with CSS class */}
-                  <div className="clapperboard-top absolute top-0 w-20 h-8 bg-white border-2 border-gray-800 rounded-t-lg shadow-md">
-                    {/* Striped pattern on clapper */}
-                    <div className="flex gap-1 mt-1 px-1">
-                      <div className="flex-1 h-5 bg-gray-800"></div>
-                      <div className="flex-1 h-5 bg-white"></div>
-                      <div className="flex-1 h-5 bg-gray-800"></div>
-                      <div className="flex-1 h-5 bg-white"></div>
-                    </div>
-                  </div>
-                  
-                  {/* Text on board */}
-                  <div className="absolute bottom-3 inset-x-0 text-center">
-                    <div className="text-white text-xs font-bold tracking-wider">SCENE</div>
-                    <div className="text-emerald-400 text-lg font-bold animate-pulse">1</div>
-                  </div>
+              {/* Bouncing dots bubble */}
+              <div className="bg-gray-200 rounded-2xl px-6 py-4 shadow-sm">
+                <div className="flex space-x-2">
+                  <div className="w-3 h-3 bg-gray-600 rounded-full animate-bounce" style={{ animationDelay: '0ms', animationDuration: '1s' }}></div>
+                  <div className="w-3 h-3 bg-gray-600 rounded-full animate-bounce" style={{ animationDelay: '150ms', animationDuration: '1s' }}></div>
+                  <div className="w-3 h-3 bg-gray-600 rounded-full animate-bounce" style={{ animationDelay: '300ms', animationDuration: '1s' }}></div>
                 </div>
               </div>
               
               {/* Loading text */}
-              <div className="mt-6 text-center">
-                <p className="text-lg text-gray-800 font-semibold flex items-center justify-center">
-                  <span>🎬</span>
-                  <span className="ml-2">Action!</span>
-                </p>
-                <p className="mt-2 text-base text-gray-600">Finding available time slots</p>
-                <div className="flex items-center justify-center mt-1">
-                  <span className="text-sm text-gray-500">Checking calendar</span>
-                  <span className="ml-1 inline-flex space-x-0.5">
-                    <span className="animate-bounce text-gray-500" style={{ animationDelay: '0ms' }}>.</span>
-                    <span className="animate-bounce text-gray-500" style={{ animationDelay: '150ms' }}>.</span>
-                    <span className="animate-bounce text-gray-500" style={{ animationDelay: '300ms' }}>.</span>
-                  </span>
-                </div>
+              <div className="mt-4 text-center">
+                <p className="text-base text-gray-700 font-medium">Finding available times...</p>
+                <p className="text-sm text-gray-500 mt-1">Checking calendar for conflicts</p>
               </div>
             </div>
           ) : slots.length === 0 ? (
