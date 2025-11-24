@@ -223,10 +223,13 @@ async function regenerateAvailabilitySlots(userId: string) {
   console.log(`🔥🔥🔥 [REGEN] FUNCTION CALLED FOR USER ${userId} 🔥🔥🔥`);
   console.log(`[regenerateAvailabilitySlots] Starting regeneration for user ${userId}`);
   try {
-    // Delete existing slots for this user
-    console.log(`[regenerateAvailabilitySlots] Deleting existing slots for user ${userId}`);
+    // Delete existing NON-BOOKED slots for this user (preserve booked slots)
+    console.log(`[regenerateAvailabilitySlots] Deleting existing non-booked slots for user ${userId}`);
     const deleteResult = await prisma.availabilitySlot.deleteMany({
-      where: { userId }
+      where: { 
+        userId,
+        isBooked: false 
+      }
     });
     console.log(`[regenerateAvailabilitySlots] Deleted ${deleteResult.count} existing slots for user ${userId}`);
 
@@ -240,9 +243,19 @@ async function regenerateAvailabilitySlots(userId: string) {
       return;
     }
 
+    // Get existing booked slots to avoid creating duplicates for those times
+    const existingBookedSlots = await prisma.availabilitySlot.findMany({
+      where: { userId, isBooked: true },
+      select: { startTime: true }
+    });
+    const bookedSlotTimes = new Set(
+      existingBookedSlots.map(slot => slot.startTime.getTime())
+    );
+
     // Generate slots for the next 30 days
+    // Use a Map to deduplicate slots by their start time (key = timestamp)
+    const slotMap = new Map<number, any>();
     const now = new Date();
-    const slotsToCreate: any[] = [];
 
     for (let daysAhead = 0; daysAhead < 30; daysAhead++) {
       const targetDate = new Date(now);
@@ -265,25 +278,39 @@ async function regenerateAvailabilitySlots(userId: string) {
             const slotEndTime = new Date(targetDate);
             slotEndTime.setHours(Math.floor((currentMin + 30) / 60), (currentMin + 30) % 60, 0, 0);
             
-            slotsToCreate.push({
-  id: randomUUID(),
-  userId,
-  startTime: slotStartTime,
-  endTime: slotEndTime,
-  isBooked: false,
-  updatedAt: new Date(),
-});
+            // Use start time timestamp as key to deduplicate
+            const slotKey = slotStartTime.getTime();
+            
+            // Skip if this slot time is already booked
+            if (bookedSlotTimes.has(slotKey)) {
+              continue;
+            }
+            
+            // Only add if we haven't already added a slot for this time
+            if (!slotMap.has(slotKey)) {
+              slotMap.set(slotKey, {
+                id: randomUUID(),
+                userId,
+                startTime: slotStartTime,
+                endTime: slotEndTime,
+                isBooked: false,
+                updatedAt: new Date(),
+              });
+            }
           }
         }
       });
     }
+
+    // Convert map values to array for createMany
+    const slotsToCreate = Array.from(slotMap.values());
 
     // Create new slots
     if (slotsToCreate.length > 0) {
       await prisma.availabilitySlot.createMany({
         data: slotsToCreate,
       });
-      console.log(`[regenerateAvailabilitySlots] Generated ${slotsToCreate.length} slots for user ${userId}`);
+      console.log(`[regenerateAvailabilitySlots] Generated ${slotsToCreate.length} unique slots for user ${userId}`);
     } else {
       console.log(`[regenerateAvailabilitySlots] No slots to create for user ${userId}`);
     }
