@@ -207,17 +207,18 @@ END:VCALENDAR`;
                       timeZone: readerTZ
                     })}</div>
                     
-                    {/* Session time in local timezone */}
+                    {/* Session time in reader's timezone */}
                     <div className="">
                       <div className="text-lg font-semibold">
                         {start.toLocaleTimeString('en-US', { 
                           hour: '2-digit', 
                           minute: '2-digit',
+                          timeZone: readerTZ,
                           timeZoneName: 'short'
                         })}
                       </div>
                     </div>
-                  </div>"
+                  </div>
                 </div>
 
                 <div>
