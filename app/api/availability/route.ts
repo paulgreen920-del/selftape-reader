@@ -10,9 +10,9 @@ type TimeSlot = {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { readerId, slots } = body as { readerId: string; slots: TimeSlot[] };
+    const { userId, slots } = body as { userId: string; slots: TimeSlot[] };
 
-    if (!readerId) {
+    if (!userId) {
       return NextResponse.json({ ok: false, error: "Missing userId" }, { status: 400 });
     }
 
@@ -38,17 +38,17 @@ export async function POST(req: Request) {
 
     // Delete existing slots AND templates for this user
     await prisma.availabilitySlot.deleteMany({
-      where: { userId: readerId },
+      where: { userId },
     });
     
     await prisma.availabilityTemplate.deleteMany({
-      where: { userId: readerId },
+      where: { userId },
     });
 
     // Create templates from the slots
     const templatesToCreate = slots.map((slot, index) => ({
-      id: `template_${Date.now()}_${readerId}_${index}`,
-      userId: readerId,
+      id: `template_${Date.now()}_${userId}_${index}`,
+      userId,
       dayOfWeek: slot.dayOfWeek,
       startTime: `${Math.floor(slot.startMin / 60).toString().padStart(2, '0')}:${(slot.startMin % 60).toString().padStart(2, '0')}`,
       endTime: `${Math.floor(slot.endMin / 60).toString().padStart(2, '0')}:${(slot.endMin % 60).toString().padStart(2, '0')}`,

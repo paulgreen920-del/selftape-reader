@@ -69,11 +69,15 @@ export default function AvailabilityForm() {
   async function saveAvailability() {
     setSaving(true);
     try {
+      // Get userId from search params
+      const userId = searchParams.get("userId") || searchParams.get("readerId");
+      if (!userId) throw new Error("Missing userId in URL");
+
       // Save availability slots
       const resSlots = await fetch("/api/availability", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ slots }),
+        body: JSON.stringify({ userId, slots }),
       });
 
       const dataSlots = await resSlots.json();
