@@ -78,8 +78,8 @@ export async function POST(req: Request) {
           endTime.setHours(Math.floor(slot.endMin / 60), slot.endMin % 60, 0, 0);
           
           slotsToCreate.push({
-            id: `slot_${Date.now()}_${readerId}_${slotCounter++}`,
-            userId: readerId,
+            id: `slot_${Date.now()}_${userId}_${slotCounter++}`,
+            userId,
             startTime,
             endTime,
             isBooked: false,
