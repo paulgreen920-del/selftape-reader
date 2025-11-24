@@ -230,7 +230,6 @@ export async function GET(req: Request) {
         },
         OR: [
           { status: "CONFIRMED" },
-          { status: "PAID" },
           { 
             status: "PENDING",
             createdAt: { gte: fifteenMinutesAgo }
