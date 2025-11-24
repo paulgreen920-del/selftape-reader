@@ -24,18 +24,64 @@ function setCachedCalendarEvents(cacheKey: string, events: any[]): void {
   }
 }
 
+// Helper to get start and end of a day in a specific timezone as UTC Date objects
+function getDayBoundsInTimezone(dateStr: string, timezone: string): { startUTC: Date; endUTC: Date } {
+  // Parse the date string
+  const [year, month, day] = dateStr.split('-').map(Number);
+  
+  // Create formatter to get timezone offset
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  });
+  
+  // Start of day: midnight in the target timezone
+  // Create a date at midnight UTC
+  const midnightUTC = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
+  
+  // Get what midnight UTC looks like in target timezone
+  const parts = formatter.formatToParts(midnightUTC);
+  const getPart = (type: string) => parts.find(p => p.type === type)?.value || '0';
+  const tzHour = parseInt(getPart('hour'));
+  const tzDay = parseInt(getPart('day'));
+  
+  // Calculate offset: if timezone shows different time than UTC, that's the offset
+  let offsetMinutes = tzHour * 60 - 0; // midnight UTC = 0 minutes
+  if (tzDay > day) {
+    offsetMinutes += 24 * 60;
+  } else if (tzDay < day) {
+    offsetMinutes -= 24 * 60;
+  }
+  
+  // Start of day in timezone = midnight in timezone = midnight UTC minus offset
+  const startUTC = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
+  startUTC.setUTCMinutes(startUTC.getUTCMinutes() - offsetMinutes);
+  
+  // End of day = start + 24 hours
+  const endUTC = new Date(startUTC.getTime() + 24 * 60 * 60 * 1000);
+  
+  return { startUTC, endUTC };
+}
+
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const readerId = searchParams.get("readerId");
-    const date = searchParams.get("date"); // YYYY-MM-DD
+    const date = searchParams.get("date"); // YYYY-MM-DD (in actor's perspective)
     const durationMin = parseInt(searchParams.get("duration") || "30");
+    const actorTimezone = searchParams.get("timezone") || "America/New_York";
 
     if (!readerId || !date) {
       return NextResponse.json({ ok: false, error: "Missing readerId or date" }, { status: 400 });
     }
 
-    // Get reader with availability slots
+    // Get reader with timezone info
     const reader = await prisma.user.findUnique({
       where: { 
         id: readerId,
@@ -43,16 +89,9 @@ export async function GET(req: Request) {
       },
       select: {
         id: true,
+        timezone: true,
         maxAdvanceBooking: true,
         minAdvanceHours: true,
-        AvailabilitySlot: {
-          where: {
-            startTime: {
-              gte: new Date(`${date}T00:00:00.000Z`),
-              lt: new Date(`${date}T23:59:59.999Z`)
-            }
-          }
-        }
       }
     });
 
@@ -60,46 +99,79 @@ export async function GET(req: Request) {
       return NextResponse.json({ ok: false, error: "Reader not found" }, { status: 404 });
     }
 
-    // Check if date is within booking window
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    const selectedDate = new Date(date + 'T00:00:00');
-    selectedDate.setHours(0, 0, 0, 0);
-    
-    const maxDate = new Date(today);
-    maxDate.setTime(maxDate.getTime() + (reader.maxAdvanceBooking || 168) * 60 * 60 * 1000);
+    const readerTimezone = reader.timezone || "America/New_York";
 
-    if (selectedDate < today || selectedDate > maxDate) {
-      return NextResponse.json({ ok: true, slots: [] });
-    }
-
-    // Check if reader has availability slots for this date
-    if (reader.AvailabilitySlot.length === 0) {
-      return NextResponse.json({ ok: true, slots: [] });
-    }
-
-    // Generate time slots from availability by finding consecutive available periods
-    const slots: Array<{ startMin: number; endMin: number; startTime: string; endTime: string }> = [];
+    // Check if date is within booking window (using reader's timezone for consistency)
     const now = new Date();
+    const { startUTC: dayStartUTC, endUTC: dayEndUTC } = getDayBoundsInTimezone(date, readerTimezone);
+    
+    // Get today's start in reader's timezone
+    const todayFormatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: readerTimezone,
+      year: 'numeric',
+      month: '2-digit', 
+      day: '2-digit',
+    });
+    const todayStr = todayFormatter.format(now);
+    const { startUTC: todayStartUTC } = getDayBoundsInTimezone(todayStr, readerTimezone);
+    
+    // Calculate max booking date
+    const maxBookingMs = (reader.maxAdvanceBooking || 168) * 60 * 60 * 1000;
+    const maxDate = new Date(now.getTime() + maxBookingMs);
+
+    if (dayStartUTC < todayStartUTC || dayStartUTC > maxDate) {
+      return NextResponse.json({ ok: true, slots: [] });
+    }
+
+    // Query availability slots for this date range (slots are stored in UTC)
+    const availabilitySlots = await prisma.availabilitySlot.findMany({
+      where: {
+        userId: readerId,
+        startTime: {
+          gte: dayStartUTC,
+          lt: dayEndUTC
+        }
+      }
+    });
+
+    if (availabilitySlots.length === 0) {
+      return NextResponse.json({ ok: true, slots: [] });
+    }
+
+    // Generate time slots from availability
+    const slots: Array<{ startMin: number; endMin: number; startTime: string; endTime: string }> = [];
     const minBookingTime = new Date(now.getTime() + (reader.minAdvanceHours || 2) * 60 * 60 * 1000);
 
-    // Sort availability slots by start time
-    const validSlots = reader.AvailabilitySlot
-      .filter((slot: any) => !slot.isBooked && slot.startTime > minBookingTime)
-      .sort((a: any, b: any) => a.startTime.getTime() - b.startTime.getTime());
+    // Filter and sort availability slots
+    const validSlots = availabilitySlots
+      .filter((slot: any) => !slot.isBooked && new Date(slot.startTime) > minBookingTime)
+      .sort((a: any, b: any) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
 
     if (validSlots.length === 0) {
       return NextResponse.json({ ok: true, slots: [] });
     }
 
-    // Convert to minutes from start of day for easier processing
+    // Convert UTC slots to actor's local time for display
+    // startMin/endMin represent minutes from midnight in ACTOR's timezone
     const slotMinutes = validSlots.map((slot: any) => {
-      const start = new Date(slot.startTime);
-      const end = new Date(slot.endTime);
+      const startUTC = new Date(slot.startTime);
+      const endUTC = new Date(slot.endTime);
+      
+      // Convert to actor's timezone
+      const startInActorTZ = new Date(startUTC.toLocaleString('en-US', { timeZone: actorTimezone }));
+      const endInActorTZ = new Date(endUTC.toLocaleString('en-US', { timeZone: actorTimezone }));
+      
+      // Get hours and minutes in actor's timezone
+      const startHour = startInActorTZ.getHours();
+      const startMinute = startInActorTZ.getMinutes();
+      const endHour = endInActorTZ.getHours();
+      const endMinute = endInActorTZ.getMinutes();
+      
       return {
-        startMin: start.getHours() * 60 + start.getMinutes(),
-        endMin: end.getHours() * 60 + end.getMinutes(),
+        startMin: startHour * 60 + startMinute,
+        endMin: endHour * 60 + endMinute,
+        startTimeUTC: startUTC,
+        endTimeUTC: endUTC,
         originalSlot: slot
       };
     });
@@ -109,6 +181,7 @@ export async function GET(req: Request) {
     while (i < slotMinutes.length) {
       let periodStart = slotMinutes[i].startMin;
       let periodEnd = slotMinutes[i].endMin;
+      let periodStartUTC = slotMinutes[i].startTimeUTC;
       
       // Extend period by finding consecutive slots
       let j = i + 1;
@@ -119,25 +192,26 @@ export async function GET(req: Request) {
       
       // Generate booking slots within this consecutive period
       let currentMin = periodStart;
+      let currentUTC = new Date(periodStartUTC);
+      
       while (currentMin + durationMin <= periodEnd) {
         const slotStart = currentMin;
         const slotEnd = currentMin + durationMin;
-
-        // Build full date-time strings as local dates
-        const [year, month, day] = date.split('-').map(Number);
-        const slotStartTime = new Date(year, month - 1, day, Math.floor(slotStart / 60), slotStart % 60);
-        const slotEndTime = new Date(year, month - 1, day, Math.floor(slotEnd / 60), slotEnd % 60);
+        
+        const slotStartUTC = new Date(currentUTC);
+        const slotEndUTC = new Date(currentUTC.getTime() + durationMin * 60 * 1000);
 
         slots.push({
           startMin: slotStart,
           endMin: slotEnd,
-          startTime: slotStartTime.toISOString(),
-          endTime: slotEndTime.toISOString(),
+          startTime: slotStartUTC.toISOString(),
+          endTime: slotEndUTC.toISOString(),
         });
 
-        // Move to next potential slot - use appropriate increments based on duration
+        // Move to next potential slot
         const increment = durationMin === 15 ? 15 : 30;
         currentMin += increment;
+        currentUTC = new Date(currentUTC.getTime() + increment * 60 * 1000);
       }
       
       // Move to next non-consecutive period
@@ -151,11 +225,12 @@ export async function GET(req: Request) {
       where: {
         readerId,
         startTime: {
-          gte: new Date(`${date}T00:00:00.000Z`),
-          lt: new Date(`${date}T23:59:59.999Z`)
+          gte: dayStartUTC,
+          lt: dayEndUTC
         },
         OR: [
           { status: "CONFIRMED" },
+          { status: "PAID" },
           { 
             status: "PENDING",
             createdAt: { gte: fifteenMinutesAgo }
@@ -174,7 +249,7 @@ export async function GET(req: Request) {
       include: { CalendarConnection: true }
     });
     
-    const calendarEvents = await getCalendarEvents(readerWithCalendar, date);
+    const calendarEvents = await getCalendarEvents(readerWithCalendar, date, readerTimezone);
 
     // Filter out slots that conflict with existing bookings or calendar events
     const availableSlots = slots.filter((slot) => {
@@ -183,7 +258,9 @@ export async function GET(req: Request) {
 
       // Check booking conflicts
       const hasBookingConflict = existingBookings.some((booking: any) => {
-        return slotStart < booking.endTime && slotEnd > booking.startTime;
+        const bookingStart = new Date(booking.startTime);
+        const bookingEnd = new Date(booking.endTime);
+        return slotStart < bookingEnd && slotEnd > bookingStart;
       });
 
       if (hasBookingConflict) return false;
@@ -206,7 +283,7 @@ export async function GET(req: Request) {
 }
 
 // Get calendar events for a specific date to check for conflicts
-async function getCalendarEvents(user: any, dateStr: string): Promise<any[]> {
+async function getCalendarEvents(user: any, dateStr: string, readerTimezone: string): Promise<any[]> {
   if (!user?.CalendarConnection) {
     return [];
   }
@@ -222,11 +299,11 @@ async function getCalendarEvents(user: any, dateStr: string): Promise<any[]> {
   let events: any[] = [];
   
   if (provider === 'GOOGLE') {
-    events = await getGoogleCalendarEvents(user, dateStr);
+    events = await getGoogleCalendarEvents(user, dateStr, readerTimezone);
   } else if (provider === 'MICROSOFT') {
-    events = await getMicrosoftCalendarEvents(user, dateStr);
+    events = await getMicrosoftCalendarEvents(user, dateStr, readerTimezone);
   } else if (provider === 'ICAL') {
-    events = await getICalCalendarEvents(user, dateStr);
+    events = await getICalCalendarEvents(user, dateStr, readerTimezone);
   }
   
   // Cache the results
@@ -235,8 +312,8 @@ async function getCalendarEvents(user: any, dateStr: string): Promise<any[]> {
   return events;
 }
 
-// Get Google Calendar events - OPTIMIZED
-async function getGoogleCalendarEvents(user: any, dateStr: string): Promise<any[]> {
+// Get Google Calendar events
+async function getGoogleCalendarEvents(user: any, dateStr: string, readerTimezone: string): Promise<any[]> {
   try {
     const calendarConnection = user.CalendarConnection;
     let accessToken = calendarConnection.accessToken;
@@ -269,20 +346,11 @@ async function getGoogleCalendarEvents(user: any, dateStr: string): Promise<any[
       }
     }
 
-    // Parse target date and add small buffer for timezone safety
-    const dateParts = dateStr.split('-');
-    const targetDate = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
+    // Get day bounds in reader's timezone
+    const { startUTC, endUTC } = getDayBoundsInTimezone(dateStr, readerTimezone);
     
-    // Start of day in UTC
-    const startOfDay = new Date(targetDate);
-    startOfDay.setHours(0, 0, 0, 0);
-    
-    // End of day in UTC
-    const endOfDay = new Date(targetDate);
-    endOfDay.setHours(23, 59, 59, 999);
-    
-    const timeMin = startOfDay.toISOString();
-    const timeMax = endOfDay.toISOString();
+    const timeMin = startUTC.toISOString();
+    const timeMax = endUTC.toISOString();
 
     const calendarResponse = await fetch(
       `https://www.googleapis.com/calendar/v3/calendars/primary/events?` +
@@ -327,8 +395,8 @@ async function getGoogleCalendarEvents(user: any, dateStr: string): Promise<any[
   }
 }
 
-// Get Microsoft Calendar events - OPTIMIZED
-async function getMicrosoftCalendarEvents(user: any, dateStr: string): Promise<any[]> {
+// Get Microsoft Calendar events
+async function getMicrosoftCalendarEvents(user: any, dateStr: string, readerTimezone: string): Promise<any[]> {
   try {
     const calendarConnection = user.CalendarConnection;
     let accessToken = calendarConnection.accessToken;
@@ -361,18 +429,11 @@ async function getMicrosoftCalendarEvents(user: any, dateStr: string): Promise<a
       }
     }
 
-    // Parse target date
-    const dateParts = dateStr.split('-');
-    const targetDate = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
+    // Get day bounds in reader's timezone
+    const { startUTC, endUTC } = getDayBoundsInTimezone(dateStr, readerTimezone);
     
-    const startOfDay = new Date(targetDate);
-    startOfDay.setHours(0, 0, 0, 0);
-    
-    const endOfDay = new Date(targetDate);
-    endOfDay.setHours(23, 59, 59, 999);
-    
-    const startDateTime = startOfDay.toISOString();
-    const endDateTime = endOfDay.toISOString();
+    const startDateTime = startUTC.toISOString();
+    const endDateTime = endUTC.toISOString();
 
     const calendarResponse = await fetch(
       `https://graph.microsoft.com/v1.0/me/calendarview?` +
@@ -425,8 +486,8 @@ async function getMicrosoftCalendarEvents(user: any, dateStr: string): Promise<a
   }
 }
 
-// Get iCal calendar events - OPTIMIZED
-async function getICalCalendarEvents(user: any, dateStr: string): Promise<any[]> {
+// Get iCal calendar events
+async function getICalCalendarEvents(user: any, dateStr: string, readerTimezone: string): Promise<any[]> {
   try {
     const ICAL = require('ical.js');
     const calendarConnection = user.CalendarConnection;
@@ -449,15 +510,8 @@ async function getICalCalendarEvents(user: any, dateStr: string): Promise<any[]>
     const comp = new ICAL.Component(jcalData);
     const vevents = comp.getAllSubcomponents('vevent');
 
-    // Parse target date
-    const dateParts = dateStr.split('-');
-    const targetDate = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
-    
-    const startOfDay = new Date(targetDate);
-    startOfDay.setHours(0, 0, 0, 0);
-    
-    const endOfDay = new Date(targetDate);
-    endOfDay.setHours(23, 59, 59, 999);
+    // Get day bounds in reader's timezone
+    const { startUTC, endUTC } = getDayBoundsInTimezone(dateStr, readerTimezone);
 
     const events: any[] = [];
 
@@ -470,8 +524,8 @@ async function getICalCalendarEvents(user: any, dateStr: string): Promise<any[]>
       const eventStart = event.startDate.toJSDate();
       const eventEnd = event.endDate.toJSDate();
 
-      // Check if event is on target date
-      if (eventEnd < startOfDay || eventStart > endOfDay) continue;
+      // Check if event overlaps with target date
+      if (eventEnd <= startUTC || eventStart >= endUTC) continue;
 
       // Get event status and transparency
       const status = vevent.getFirstPropertyValue('status');

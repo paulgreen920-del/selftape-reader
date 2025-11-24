@@ -13,12 +13,12 @@ export async function POST(req: Request) {
       readerId: string;
       actorId: string;
       date: string; // YYYY-MM-DD
-      startMin: number; // e.g., 540 for 9:00 AM
+      startMin: number; // e.g., 540 for 9:00 AM in actor's timezone
       durationMin: number; // 15, 30, or 60
       actorTimezone?: string; // Actor's timezone
-      sidesUrl?: string; // URL to uploaded file
-      sidesLink?: string; // External link to sides
-      sidesFileName?: string; // Original filename
+      sidesUrl?: string;
+      sidesLink?: string;
+      sidesFileName?: string;
     };
 
     if (!readerId || !actorId || !date || startMin == null || !durationMin) {
@@ -34,7 +34,7 @@ export async function POST(req: Request) {
         name: true,
         email: true,
         role: true,
-        timezone: true, // Add timezone for proper time handling
+        timezone: true,
         ratePer15Min: true,
         ratePer30Min: true,
         ratePer60Min: true,
@@ -75,24 +75,21 @@ export async function POST(req: Request) {
     // Build start and end times with proper timezone handling
     const readerTZ = reader.timezone || "America/New_York";
     const selectedActorTZ = actorTimezone || "America/New_York";
+    
+    // The startMin is minutes from midnight in the ACTOR's timezone
+    // We need to convert this to UTC
     const [year, month, day] = date.split('-').map(Number);
     const startHour = Math.floor(startMin / 60);
     const startMinute = startMin % 60;
     
-    // Create the datetime in the actor's timezone, then store as UTC
-    // This ensures the selected time is interpreted correctly
-    const localDateTimeString = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}T${String(startHour).padStart(2, '0')}:${String(startMinute).padStart(2, '0')}:00`;
-    
-    // Parse as local time in actor's timezone
-    const startTime = new Date(localDateTimeString);
+    // Convert actor's local time to UTC
+    const startTime = localTimeToUTC(year, month, day, startHour, startMinute, selectedActorTZ);
     const endTime = new Date(startTime.getTime() + durationMin * 60 * 1000);
     
     console.log(`[bookings] Actor selects: ${startHour}:${String(startMinute).padStart(2, '0')} in ${selectedActorTZ}`);
     console.log(`[bookings] Start time UTC: ${startTime.toISOString()}`);
     console.log(`[bookings] Actor sees: ${startTime.toLocaleString('en-US', { timeZone: selectedActorTZ })}`);
     console.log(`[bookings] Reader sees: ${startTime.toLocaleString('en-US', { timeZone: readerTZ })}`);
-    
-    // Store timezone info for future display
 
     // Check for existing booking (deduplication)
     const existing = await prisma.booking.findFirst({
@@ -142,9 +139,8 @@ export async function POST(req: Request) {
 
         console.log("[bookings] Creating Daily.co room for booking:", booking.id);
         
-        // Add timeout to Daily.co API call
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
         
         const roomResponse = await fetch(`${DAILY_API_BASE}/rooms`, {
           method: "POST",
@@ -161,7 +157,7 @@ export async function POST(req: Request) {
               enable_knocking: false,
               start_video_off: false,
               start_audio_off: false,
-              exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7, // 1 week expiry
+              exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7,
             },
           }),
           signal: controller.signal,
@@ -173,7 +169,6 @@ export async function POST(req: Request) {
           const room = await roomResponse.json();
           console.log("[bookings] Got meeting URL:", room.url);
           
-          // Update booking with meeting URL
           await prisma.booking.update({
             where: { id: booking.id },
             data: { meetingUrl: room.url },
@@ -192,8 +187,18 @@ export async function POST(req: Request) {
       }
     };
 
-    // Wait for room creation before proceeding to checkout
     await createMeetingRoom();
+
+    // Format times for Stripe checkout display - show in BOTH timezones for clarity
+    const actorTimeStr = startTime.toLocaleString('en-US', { 
+      timeZone: selectedActorTZ,
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      timeZoneName: 'short'
+    });
 
     // Create Stripe Checkout session
     const session = await stripe.checkout.sessions.create({
@@ -204,7 +209,7 @@ export async function POST(req: Request) {
             currency: "usd",
             product_data: {
               name: `${durationMin}-minute session with ${reader.displayName || reader.name}`,
-              description: `${startTime.toLocaleDateString()} at ${startTime.toLocaleTimeString()}`,
+              description: actorTimeStr,
             },
             unit_amount: priceCents,
           },
@@ -214,7 +219,7 @@ export async function POST(req: Request) {
       mode: "payment",
       success_url: `${process.env.NEXT_PUBLIC_URL}/checkout/success?bookingId=${booking.id}`,
       cancel_url: `${process.env.NEXT_PUBLIC_URL}/reader/${readerId}?booking=${booking.id}&action=cancel`,
-      expires_at: Math.floor(Date.now() / 1000) + (30 * 60), // 30 minute expiration
+      expires_at: Math.floor(Date.now() / 1000) + (30 * 60),
       customer_email: actor.email,
       metadata: {
         bookingId: booking.id,
@@ -231,6 +236,56 @@ export async function POST(req: Request) {
   }
 }
 
+// Helper function to convert a time in a specific timezone to UTC
+function localTimeToUTC(year: number, month: number, day: number, hour: number, minute: number, timezone: string): Date {
+  // Create an ISO string for the local time
+  const localDateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}T${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00`;
+  
+  // Use Intl.DateTimeFormat to get the timezone offset for this timezone at this date/time
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  });
+  
+  // Create date assuming it's UTC first
+  const utcDate = new Date(localDateStr + 'Z');
+  
+  // Get what this UTC time would be in the target timezone
+  const parts = formatter.formatToParts(utcDate);
+  const getPart = (type: string) => parts.find(p => p.type === type)?.value || '0';
+  
+  const tzYear = parseInt(getPart('year'));
+  const tzMonth = parseInt(getPart('month'));
+  const tzDay = parseInt(getPart('day'));
+  const tzHour = parseInt(getPart('hour'));
+  const tzMinute = parseInt(getPart('minute'));
+  
+  // Calculate the offset in minutes
+  const utcMinutes = utcDate.getUTCHours() * 60 + utcDate.getUTCMinutes();
+  const tzMinutes = tzHour * 60 + tzMinute;
+  
+  // Handle day boundary differences
+  let offsetMinutes = tzMinutes - utcMinutes;
+  if (tzDay > utcDate.getUTCDate() || (tzMonth > utcDate.getUTCMonth() + 1)) {
+    offsetMinutes += 24 * 60;
+  } else if (tzDay < utcDate.getUTCDate() || (tzMonth < utcDate.getUTCMonth() + 1)) {
+    offsetMinutes -= 24 * 60;
+  }
+  
+  // Now create the actual date: we want localDateStr to BE the local time,
+  // so we need to subtract the offset to get UTC
+  const targetDate = new Date(localDateStr + 'Z');
+  targetDate.setUTCMinutes(targetDate.getUTCMinutes() - offsetMinutes);
+  
+  return targetDate;
+}
+
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
@@ -241,13 +296,10 @@ export async function GET(req: Request) {
     let where: any = {};
     
     if (scope === "all") {
-      // For scope=all without readerId, return all bookings in system
       if (readerId) {
         where = { readerId };
       }
-      // No additional filtering
     } else {
-      // Future bookings only
       if (readerId) {
         where = { readerId, startTime: { gte: now } };
       } else {
@@ -257,7 +309,7 @@ export async function GET(req: Request) {
 
     const bookings = await prisma.booking.findMany({
       where,
-      orderBy: { startTime: "desc" }, // Latest first for dev view
+      orderBy: { startTime: "desc" },
       include: {
         User_Booking_readerIdToUser: {
           select: {
@@ -276,7 +328,6 @@ export async function GET(req: Request) {
       },
     });
 
-    // Transform to match expected format
     const transformedBookings = bookings.map((b: any) => ({
       id: b.id,
       status: b.status,
@@ -296,7 +347,6 @@ export async function GET(req: Request) {
         name: b.User_Booking_actorIdToUser.name,
         email: b.User_Booking_actorIdToUser.email,
       },
-      // Legacy fields for backward compatibility
       actorName: b.User_Booking_actorIdToUser.name,
       actorEmail: b.User_Booking_actorIdToUser.email,
       priceCents: b.totalCents,
@@ -307,10 +357,4 @@ export async function GET(req: Request) {
     console.error("[GET /api/bookings] Error:", err);
     return NextResponse.json({ ok: false, error: err?.message ?? "Unknown error" }, { status: 500 });
   }
-}
-
-function minutesToTime(min: number): string {
-  const h = Math.floor(min / 60);
-  const m = min % 60;
-  return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
 }

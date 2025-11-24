@@ -119,8 +119,8 @@ export default function CalendarBooking({
     try {
       const timestamp = Date.now();
       const res = await fetch(
-        `/api/schedule/available-slots?readerId=${reader.id}&date=${dateStr}&duration=${duration}&_t=${timestamp}`
-      );
+  `/api/schedule/available-slots?readerId=${reader.id}&date=${dateStr}&duration=${duration}&timezone=${encodeURIComponent(actorTimezone)}&_t=${timestamp}`
+);
       const data = await res.json();
       
       if (data.ok) {

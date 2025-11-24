@@ -2,6 +2,56 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { randomUUID } from "crypto";
 
+// Helper function to convert a time in a specific timezone to UTC
+function localTimeToUTC(year: number, month: number, day: number, hour: number, minute: number, timezone: string): Date {
+  // Create an ISO string for the local time
+  const localDateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}T${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00`;
+  
+  // Use Intl.DateTimeFormat to get the UTC offset for this timezone at this date/time
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  });
+  
+  // Create date assuming it's UTC first
+  const utcDate = new Date(localDateStr + 'Z');
+  
+  // Get what this UTC time would be in the target timezone
+  const parts = formatter.formatToParts(utcDate);
+  const getPart = (type: string) => parts.find(p => p.type === type)?.value || '0';
+  
+  const tzYear = parseInt(getPart('year'));
+  const tzMonth = parseInt(getPart('month'));
+  const tzDay = parseInt(getPart('day'));
+  const tzHour = parseInt(getPart('hour'));
+  const tzMinute = parseInt(getPart('minute'));
+  
+  // Calculate the offset in minutes
+  const utcMinutes = utcDate.getUTCHours() * 60 + utcDate.getUTCMinutes();
+  const tzMinutes = tzHour * 60 + tzMinute;
+  
+  // Handle day boundary differences
+  let offsetMinutes = tzMinutes - utcMinutes;
+  if (tzDay > utcDate.getUTCDate() || (tzMonth > utcDate.getUTCMonth() + 1)) {
+    offsetMinutes += 24 * 60;
+  } else if (tzDay < utcDate.getUTCDate() || (tzMonth < utcDate.getUTCMonth() + 1)) {
+    offsetMinutes -= 24 * 60;
+  }
+  
+  // Now create the actual date: we want localDateStr to BE the local time,
+  // so we need to subtract the offset to get UTC
+  const targetDate = new Date(localDateStr + 'Z');
+  targetDate.setUTCMinutes(targetDate.getUTCMinutes() - offsetMinutes);
+  
+  return targetDate;
+}
+
 export async function GET(req: Request) {
   try {
     // Get user from session
@@ -46,7 +96,7 @@ export async function GET(req: Request) {
     if (needsSync) {
       console.log(`🔥🔥🔥 [GET-AUTO-SYNC] TRIGGERING SYNC: ${templates.length} templates but ${slotCount} slots 🔥🔥🔥`);
       try {
-        await regenerateAvailabilitySlots(user.id);
+        await regenerateAvailabilitySlots(user.id, user.timezone || 'America/New_York');
         console.log(`✅ [GET] Successfully synced templates to slots for user ${user.id}`);
       } catch (error) {
         console.error(`❌ [GET] Failed to sync templates for user ${user.id}:`, error);
@@ -126,7 +176,7 @@ export async function POST(req: Request) {
     }
 
     // Regenerate availability slots from the new templates
-    await regenerateAvailabilitySlots(user.id);
+    await regenerateAvailabilitySlots(user.id, user.timezone || 'America/New_York');
 
     return NextResponse.json({ ok: true });
   } catch (error: any) {
@@ -199,9 +249,9 @@ export async function PUT(req: Request) {
     }
 
     // Regenerate availability slots from the new templates
-    console.log(`[PUT] About to regenerate slots for user ${user.id}`);
+    console.log(`[PUT] About to regenerate slots for user ${user.id} in timezone ${user.timezone || 'America/New_York'}`);
     try {
-      await regenerateAvailabilitySlots(user.id);
+      await regenerateAvailabilitySlots(user.id, user.timezone || 'America/New_York');
       console.log(`[PUT] Successfully regenerated slots for user ${user.id}`);
     } catch (regenerationError) {
       console.error(`[PUT] Failed to regenerate slots for user ${user.id}:`, regenerationError);
@@ -219,8 +269,9 @@ export async function PUT(req: Request) {
 }
 
 // Helper function to regenerate availability slots from templates
-async function regenerateAvailabilitySlots(userId: string) {
-  console.log(`🔥🔥🔥 [REGEN] FUNCTION CALLED FOR USER ${userId} 🔥🔥🔥`);
+// Now accepts readerTimezone parameter to properly convert times to UTC
+async function regenerateAvailabilitySlots(userId: string, readerTimezone: string) {
+  console.log(`🔥🔥🔥 [REGEN] FUNCTION CALLED FOR USER ${userId} with timezone ${readerTimezone} 🔥🔥🔥`);
   console.log(`[regenerateAvailabilitySlots] Starting regeneration for user ${userId}`);
   try {
     // Delete existing NON-BOOKED slots for this user (preserve booked slots)
@@ -255,15 +306,39 @@ async function regenerateAvailabilitySlots(userId: string) {
     // Generate slots for the next 30 days
     // Use a Map to deduplicate slots by their start time (key = timestamp)
     const slotMap = new Map<number, any>();
+    
+    // Get current time in reader's timezone to start from today
     const now = new Date();
 
     for (let daysAhead = 0; daysAhead < 30; daysAhead++) {
+      // Calculate the target date in reader's timezone
       const targetDate = new Date(now);
       targetDate.setDate(targetDate.getDate() + daysAhead);
       
+      // Get year, month, day in reader's timezone
+      const formatter = new Intl.DateTimeFormat('en-CA', { // en-CA gives YYYY-MM-DD format
+        timeZone: readerTimezone,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      });
+      const dateStr = formatter.format(targetDate);
+      const [year, month, day] = dateStr.split('-').map(Number);
+      
+      // Get day of week in reader's timezone
+      const dowFormatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: readerTimezone,
+        weekday: 'short',
+      });
+      const dowStr = dowFormatter.format(targetDate);
+      const dayOfWeekMap: Record<string, number> = {
+        'Sun': 0, 'Mon': 1, 'Tue': 2, 'Wed': 3, 'Thu': 4, 'Fri': 5, 'Sat': 6
+      };
+      const targetDayOfWeek = dayOfWeekMap[dowStr];
+      
       templates.forEach((template: any) => {
-        if (targetDate.getDay() === template.dayOfWeek) {
-          // Parse time strings (e.g., "09:00" and "17:00")
+        if (targetDayOfWeek === template.dayOfWeek) {
+          // Parse time strings (e.g., "09:00" and "17:00") - these are in READER's timezone
           const [startHour, startMin] = template.startTime.split(':').map(Number);
           const [endHour, endMin] = template.endTime.split(':').map(Number);
           
@@ -272,14 +347,15 @@ async function regenerateAvailabilitySlots(userId: string) {
           const endMinutes = endHour * 60 + endMin;
           
           for (let currentMin = startMinutes; currentMin < endMinutes; currentMin += 30) {
-            const slotStartTime = new Date(targetDate);
-            slotStartTime.setHours(Math.floor(currentMin / 60), currentMin % 60, 0, 0);
+            const slotHour = Math.floor(currentMin / 60);
+            const slotMinute = currentMin % 60;
             
-            const slotEndTime = new Date(targetDate);
-            slotEndTime.setHours(Math.floor((currentMin + 30) / 60), (currentMin + 30) % 60, 0, 0);
+            // Convert reader's local time to UTC
+            const slotStartTimeUTC = localTimeToUTC(year, month, day, slotHour, slotMinute, readerTimezone);
+            const slotEndTimeUTC = new Date(slotStartTimeUTC.getTime() + 30 * 60 * 1000);
             
             // Use start time timestamp as key to deduplicate
-            const slotKey = slotStartTime.getTime();
+            const slotKey = slotStartTimeUTC.getTime();
             
             // Skip if this slot time is already booked
             if (bookedSlotTimes.has(slotKey)) {
@@ -291,8 +367,8 @@ async function regenerateAvailabilitySlots(userId: string) {
               slotMap.set(slotKey, {
                 id: randomUUID(),
                 userId,
-                startTime: slotStartTime,
-                endTime: slotEndTime,
+                startTime: slotStartTimeUTC,
+                endTime: slotEndTimeUTC,
                 isBooked: false,
                 updatedAt: new Date(),
               });
@@ -311,6 +387,13 @@ async function regenerateAvailabilitySlots(userId: string) {
         data: slotsToCreate,
       });
       console.log(`[regenerateAvailabilitySlots] Generated ${slotsToCreate.length} unique slots for user ${userId}`);
+      
+      // Log a sample slot for debugging
+      if (slotsToCreate.length > 0) {
+        const sample = slotsToCreate[0];
+        console.log(`[regenerateAvailabilitySlots] Sample slot: ${sample.startTime.toISOString()} UTC`);
+        console.log(`[regenerateAvailabilitySlots] In reader timezone (${readerTimezone}): ${sample.startTime.toLocaleString('en-US', { timeZone: readerTimezone })}`);
+      }
     } else {
       console.log(`[regenerateAvailabilitySlots] No slots to create for user ${userId}`);
     }
