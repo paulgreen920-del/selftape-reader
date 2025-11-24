@@ -27,56 +27,88 @@ async function handlePut(req: Request) {
     } catch (err) {
       return NextResponse.json({ ok: false, error: "Invalid JSON body" }, { status: 400 });
     }
-    const {
-      readerId,
-      displayName,
-      phone,
-      timezone,
-      city,
-      bio,
-      playableAgeMin,
-      playableAgeMax,
-      gender,
-      headshotUrl,
-      rate15Usd,
-      rateUsd,
-      rate60Usd,
-      unions,
-      languages,
-      specialties,
-      links,
-    } = body;
+    
+    const { readerId } = body;
+    
     if (!readerId) {
       return NextResponse.json({ ok: false, error: "Missing user ID" }, { status: 400 });
     }
-    // Convert dollars to cents
-    const rate15Cents = Math.max(0, Math.round(Number(rate15Usd || 0) * 100));
-    const rate30Cents = Math.max(0, Math.round(Number(rateUsd || 0) * 100));
-    const rate60Cents = Math.max(0, Math.round(Number(rate60Usd || 0) * 100));
-    const ageMin = playableAgeMin === null || playableAgeMin === "" ? null : Number(playableAgeMin);
-    const ageMax = playableAgeMax === null || playableAgeMax === "" ? null : Number(playableAgeMax);
-    // Update user
+
+    // Build update data object with only the fields that were provided
+    // This prevents overwriting existing data with null when a field isn't sent
+    const updateData: any = {};
+
+    // String fields - only update if explicitly provided (not undefined)
+    if (body.displayName !== undefined) {
+      updateData.displayName = body.displayName || null;
+    }
+    if (body.phone !== undefined) {
+      updateData.phone = body.phone || null;
+    }
+    if (body.timezone !== undefined) {
+      updateData.timezone = body.timezone || "America/New_York";
+    }
+    if (body.city !== undefined) {
+      updateData.city = body.city || null;
+    }
+    if (body.bio !== undefined) {
+      updateData.bio = body.bio || null;
+    }
+    if (body.gender !== undefined) {
+      updateData.gender = body.gender || null;
+    }
+    if (body.headshotUrl !== undefined) {
+      updateData.headshotUrl = body.headshotUrl || null;
+    }
+
+    // Age range - only update if provided
+    if (body.playableAgeMin !== undefined) {
+      updateData.playableAgeMin = body.playableAgeMin === null || body.playableAgeMin === "" 
+        ? null 
+        : Number(body.playableAgeMin);
+    }
+    if (body.playableAgeMax !== undefined) {
+      updateData.playableAgeMax = body.playableAgeMax === null || body.playableAgeMax === "" 
+        ? null 
+        : Number(body.playableAgeMax);
+    }
+
+    // Rates - only update if provided (convert dollars to cents)
+    if (body.rate15Usd !== undefined) {
+      updateData.ratePer15Min = Math.max(0, Math.round(Number(body.rate15Usd || 0) * 100));
+    }
+    if (body.rateUsd !== undefined) {
+      updateData.ratePer30Min = Math.max(0, Math.round(Number(body.rateUsd || 0) * 100));
+    }
+    if (body.rate60Usd !== undefined) {
+      updateData.ratePer60Min = Math.max(0, Math.round(Number(body.rate60Usd || 0) * 100));
+    }
+
+    // Array fields - only update if provided
+    if (body.unions !== undefined) {
+      updateData.unions = body.unions || [];
+    }
+    if (body.languages !== undefined) {
+      updateData.languages = body.languages || [];
+    }
+    if (body.specialties !== undefined) {
+      updateData.specialties = body.specialties || [];
+    }
+    if (body.links !== undefined) {
+      updateData.links = body.links || [];
+    }
+
+    // Only proceed if there's something to update
+    if (Object.keys(updateData).length === 0) {
+      return NextResponse.json({ ok: false, error: "No fields to update" }, { status: 400 });
+    }
+
+    // Update user with only the provided fields
     const updated = await prisma.user.update({
       where: { id: readerId },
-      data: {
-        displayName: displayName || null,
-        phone: phone || null,
-        timezone: timezone || "America/New_York",
-        city: city || null,
-        bio: bio || null,
-        playableAgeMin: ageMin,
-        playableAgeMax: ageMax,
-        gender: gender || null,
-        headshotUrl: headshotUrl || null,
-        ratePer15Min: rate15Cents,
-        ratePer30Min: rate30Cents,
-        ratePer60Min: rate60Cents,
-        unions: unions || [],
-        languages: languages || [],
-        specialties: specialties || [],
-        links: links || [],
-      },
+      data: updateData,
     });
+    
     return NextResponse.json({ ok: true, reader: updated });
   } catch (err: any) {
     console.error("[PUT /api/readers/profile] error:", err);
