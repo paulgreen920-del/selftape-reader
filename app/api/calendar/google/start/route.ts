@@ -3,9 +3,9 @@ import { NextResponse } from "next/server";
 
 const GOOGLE_AUTH_BASE = "https://accounts.google.com/o/oauth2/v2/auth";
 const SCOPES = [
-  "https://www.googleapis.com/auth/calendar.events",
-  "https://www.googleapis.com/auth/calendar.readonly",
+  "https://www.googleapis.com/auth/calendar.events"
 ];
+
 
 function b64url(input: string) {
   return Buffer.from(input).toString("base64url");
