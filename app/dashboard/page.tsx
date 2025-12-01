@@ -93,8 +93,8 @@ export default function DashboardPage() {
       {isReaderOrAdmin && onboardingStatus && !onboardingStatus.isComplete && (
         <div className="bg-yellow-50 border-b-2 border-yellow-400">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="flex items-center flex-wrap">
                 <span className="text-yellow-800 font-medium">
                   ⚠️ Your profile setup is incomplete. 
                 </span>
@@ -104,7 +104,7 @@ export default function DashboardPage() {
               </div>
               <Link
                 href={onboardingStatus.nextStepUrl || '/onboarding/reader'}
-                className="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-md text-sm font-medium transition"
+                className="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-md text-sm font-medium transition text-center"
               >
                 Complete Setup
               </Link>
@@ -142,7 +142,7 @@ export default function DashboardPage() {
 
         {!(user.role === 'READER' || user.role === 'ADMIN') && (
           <div className="bg-gradient-to-r from-orange-50 to-orange-100 border-2 border-orange-200 rounded-lg p-6 mb-8">
-            <div className="flex items-start justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
               <div className="flex-1">
                 <h3 className="text-lg font-semibold text-orange-900 mb-2">
                   🎭 Want to become a Reader?
@@ -160,7 +160,7 @@ export default function DashboardPage() {
               </div>
               <Link
                 href="/onboarding/reader"
-                className="ml-4 px-6 py-3 bg-orange-600 hover:bg-orange-700 text-white font-semibold rounded-lg transition whitespace-nowrap"
+                className="px-6 py-3 bg-orange-600 hover:bg-orange-700 text-white font-semibold rounded-lg transition whitespace-nowrap text-center"
               >
                 Upgrade to Reader
               </Link>
@@ -175,7 +175,8 @@ export default function DashboardPage() {
               ? 'bg-gray-100 border-gray-300' 
               : 'bg-red-50 border-red-300'
           }`}>
-            <div className="flex items-start justify-between">
+            {/* Header with status and button - stacks on mobile */}
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
               <div className="flex-1">
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">
                   Reader Membership
@@ -196,7 +197,7 @@ export default function DashboardPage() {
               </div>
               <Link
                 href="/settings/subscription"
-                className="ml-4 px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-lg transition whitespace-nowrap"
+                className="px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-lg transition whitespace-nowrap text-center w-full sm:w-auto"
               >
                 Manage Subscription
               </Link>
@@ -217,12 +218,12 @@ export default function DashboardPage() {
 ].map((step) => {
                     const isDone = onboardingStatus.completedSteps?.includes(step.key);
                     return (
-                      <li key={step.key} className="flex items-center justify-between py-2">
+                      <li key={step.key} className="flex flex-col sm:flex-row sm:items-center sm:justify-between py-2 gap-1">
                         <span className="flex items-center gap-2">
-                          <span className={`inline-block w-3 h-3 rounded-full ${isDone ? 'bg-emerald-500' : 'bg-gray-300'}`}></span>
+                          <span className={`inline-block w-3 h-3 rounded-full flex-shrink-0 ${isDone ? 'bg-emerald-500' : 'bg-gray-300'}`}></span>
                           <span className={isDone ? 'text-emerald-700 font-medium' : 'text-gray-700'}>{step.label}</span>
                         </span>
-                        <span className="flex items-center gap-2">
+                        <span className="flex items-center gap-2 ml-5 sm:ml-0">
                           <span className={`text-xs ${isDone ? 'text-emerald-600' : 'text-red-500'}`}>{isDone ? 'Completed' : 'Incomplete'}</span>
                           {!isDone && (
                             <Link href={step.url} className="text-blue-600 hover:underline text-xs">Click to complete</Link>
