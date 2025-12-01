@@ -101,6 +101,11 @@ export default function SubscriptionSettingsPage() {
   if (loading) {
     return (
       <div className="max-w-2xl mx-auto p-6">
+        <div className="mb-4">
+          <Link href="/dashboard" className="text-blue-600 hover:underline text-sm">
+            ← Back to Dashboard
+          </Link>
+        </div>
         <p>Loading subscription details...</p>
       </div>
     );
@@ -109,6 +114,11 @@ export default function SubscriptionSettingsPage() {
   if (user?.role !== "READER" && user?.role !== "ADMIN") {
     return (
       <div className="max-w-2xl mx-auto p-6">
+        <div className="mb-4">
+          <Link href="/dashboard" className="text-blue-600 hover:underline text-sm">
+            ← Back to Dashboard
+          </Link>
+        </div>
         <h1 className="text-2xl font-bold mb-4">Subscription</h1>
         <p className="text-gray-600">You don't have an active reader subscription.</p>
         <button
@@ -128,17 +138,20 @@ export default function SubscriptionSettingsPage() {
   return (
     <div className="max-w-2xl mx-auto p-6">
       <div className="mb-4">
-        <Link href="/dashboard" className="text-emerald-700 hover:underline font-medium">← Back to Dashboard</Link>
+        <Link href="/dashboard" className="text-blue-600 hover:underline text-sm">
+          ← Back to Dashboard
+        </Link>
       </div>
       <h1 className="text-2xl font-bold mb-6">Subscription Management</h1>
 
       <div className="bg-white border rounded-lg p-6 mb-6">
-        <div className="flex items-center justify-between mb-4">
+        {/* Header - stack on mobile */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
           <div>
             <h2 className="text-lg font-semibold">Reader Membership</h2>
             <p className="text-sm text-gray-600">$9.99/month</p>
           </div>
-          <div className={`px-3 py-1 rounded text-sm font-medium ${
+          <div className={`px-3 py-1 rounded text-sm font-medium w-fit ${
             hasActiveSubscription
               ? subscription?.cancelAtPeriodEnd
                 ? "bg-yellow-100 text-yellow-700"
@@ -179,7 +192,7 @@ export default function SubscriptionSettingsPage() {
               </p>
             )}
 
-            <div className="flex gap-3">
+            <div className="flex flex-wrap gap-3">
               {subscription?.cancelAtPeriodEnd ? (
                 <button
                   className="border rounded px-4 py-2 hover:bg-gray-50 disabled:opacity-50"

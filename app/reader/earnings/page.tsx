@@ -101,16 +101,29 @@ export default function ReaderEarningsPage() {
 
   const calculateEarnings = (bookingsList: Booking[]): EarningsSummary => {
     const now = new Date();
-    const confirmedBookings = bookingsList.filter(b => b.status === 'CONFIRMED');
+    // Include both CONFIRMED and PAID statuses for confirmed bookings
+    const confirmedBookings = bookingsList.filter(b => b.status === 'CONFIRMED' || b.status === 'PAID');
     const completedBookings = confirmedBookings.filter(b => new Date(b.endTime) < now);
     const futureBookings = confirmedBookings.filter(b => new Date(b.startTime) >= now);
     const pendingBookings = bookingsList.filter(b => b.status === 'PENDING');
 
-    const completedEarnings = completedBookings.reduce((sum, b) => sum + (b.readerEarningsCents || 0), 0);
-    const futureEarnings = futureBookings.reduce((sum, b) => sum + (b.readerEarningsCents || 0), 0);
+    // Calculate earnings - use readerEarningsCents if available, otherwise calculate 80% of price
+    const completedEarnings = completedBookings.reduce((sum, b) => {
+      const earnings = b.readerEarningsCents || Math.round((b.totalCents || b.priceCents) * 0.8);
+      return sum + earnings;
+    }, 0);
+    
+    const futureEarnings = futureBookings.reduce((sum, b) => {
+      const earnings = b.readerEarningsCents || Math.round((b.totalCents || b.priceCents) * 0.8);
+      return sum + earnings;
+    }, 0);
+    
     const totalEarnings = completedEarnings;
     const grossRevenue = confirmedBookings.reduce((sum, b) => sum + (b.totalCents || b.priceCents), 0);
-    const platformFees = confirmedBookings.reduce((sum, b) => sum + (b.platformFeeCents || 0), 0);
+    const platformFees = confirmedBookings.reduce((sum, b) => {
+      const fee = b.platformFeeCents || Math.round((b.totalCents || b.priceCents) * 0.2);
+      return sum + fee;
+    }, 0);
 
     // Calculate monthly earnings for the past 12 months
     const monthlyEarnings: { [key: string]: number } = {};
@@ -125,7 +138,8 @@ export default function ReaderEarningsPage() {
       const bookingDate = new Date(booking.startTime);
       const monthKey = bookingDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
       if (monthlyEarnings[monthKey] !== undefined) {
-        monthlyEarnings[monthKey] += (booking.readerEarningsCents || 0);
+        const earnings = booking.readerEarningsCents || Math.round((booking.totalCents || booking.priceCents) * 0.8);
+        monthlyEarnings[monthKey] += earnings;
       }
     });
 
@@ -155,7 +169,7 @@ export default function ReaderEarningsPage() {
       <div className="min-h-screen bg-gray-50">
         <header className="bg-white shadow">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-            <Link href="/dashboard" className="text-2xl font-bold text-gray-900 hover:text-emerald-600 transition">
+            <Link href="/dashboard" className="text-blue-600 hover:underline text-sm">
               ← Back to Dashboard
             </Link>
           </div>
@@ -171,7 +185,7 @@ export default function ReaderEarningsPage() {
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <Link href="/dashboard" className="text-2xl font-bold text-gray-900 hover:text-emerald-600 transition">
+          <Link href="/dashboard" className="text-blue-600 hover:underline text-sm">
             ← Back to Dashboard
           </Link>
           <div className="flex gap-4">
@@ -193,7 +207,7 @@ export default function ReaderEarningsPage() {
 
         {/* Time Range Filter */}
         <div className="bg-white rounded-lg shadow mb-6">
-          <div className="flex gap-2 p-4 border-b">
+          <div className="flex flex-wrap gap-2 p-4 border-b">
             <span className="text-sm font-medium text-gray-500 mr-4">Time Period:</span>
             {(['all', 'year', 'quarter', 'month'] as const).map(period => (
               <button
@@ -324,12 +338,15 @@ export default function ReaderEarningsPage() {
             <div className="space-y-3">
               {[15, 30, 60].map(duration => {
                 const sessions = filteredBookings.filter(b => 
-                  b.status === 'CONFIRMED' && 
+                  (b.status === 'CONFIRMED' || b.status === 'PAID') && 
                   b.durationMinutes === duration &&
                   new Date(b.endTime) < new Date()
                 );
                 const count = sessions.length;
-                const revenue = sessions.reduce((sum, b) => sum + (b.readerEarningsCents || 0), 0) / 100;
+                const revenue = sessions.reduce((sum, b) => {
+                  const earnings = b.readerEarningsCents || Math.round((b.totalCents || b.priceCents) * 0.8);
+                  return sum + earnings;
+                }, 0) / 100;
                 
                 return (
                   <div key={duration} className="flex justify-between items-center">
@@ -361,8 +378,8 @@ export default function ReaderEarningsPage() {
                       style={{ height: `${height}%`, minHeight: amount > 0 ? '4px' : '0px' }}
                       title={`${month}: $${(amount / 100).toFixed(2)}`}
                     />
-                    <span className="text-xs text-gray-500 mt-2 transform rotate-45 origin-left">
-                      {month}
+                    <span className="text-xs text-gray-500 mt-2 transform rotate-45 origin-left whitespace-nowrap">
+                      {month.split(' ')[0]}
                     </span>
                   </div>
                 );
@@ -376,12 +393,12 @@ export default function ReaderEarningsPage() {
           <h3 className="text-lg font-semibold mb-4">Booked Sessions</h3>
           <div className="space-y-3">
             {filteredBookings
-              .filter(b => b.status === 'CONFIRMED')
+              .filter(b => b.status === 'CONFIRMED' || b.status === 'PAID')
               .sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime())
               .slice(0, 10)
               .map(booking => {
                 const date = new Date(booking.startTime);
-                const earnings = (booking.readerEarningsCents || 0) / 100;
+                const bookingEarnings = (booking.readerEarningsCents || Math.round((booking.totalCents || booking.priceCents) * 0.8)) / 100;
                 const isCompleted = new Date(booking.endTime) < new Date();
                 
                 return (
@@ -394,7 +411,7 @@ export default function ReaderEarningsPage() {
                     </div>
                     <div className="text-right">
                       <div className={`font-medium ${isCompleted ? 'text-green-600' : 'text-blue-600'}`}>
-                        ${earnings.toFixed(2)} {!isCompleted && '(future)'}
+                        ${bookingEarnings.toFixed(2)} {!isCompleted && '(future)'}
                       </div>
                       <div className="text-xs text-gray-500">
                         ${((booking.totalCents || booking.priceCents) / 100).toFixed(2)} gross
@@ -404,7 +421,7 @@ export default function ReaderEarningsPage() {
                 );
               })}
             
-            {filteredBookings.filter(b => b.status === 'CONFIRMED').length === 0 && (
+            {filteredBookings.filter(b => b.status === 'CONFIRMED' || b.status === 'PAID').length === 0 && (
               <div className="text-center py-8 text-gray-500">
                 <p>No confirmed sessions in this time period.</p>
                 <Link href="/reader/availability" className="text-emerald-600 hover:text-emerald-700 mt-2 inline-block">

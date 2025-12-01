@@ -88,6 +88,11 @@ export default function ActorSessionsPage() {
   if (loading) {
     return (
       <div className="max-w-4xl mx-auto p-6">
+        <div className="mb-6">
+          <Link href="/dashboard" className="text-blue-600 hover:underline text-sm">
+            ← Back to Dashboard
+          </Link>
+        </div>
         <p>Loading your sessions...</p>
       </div>
     );
@@ -97,15 +102,9 @@ export default function ActorSessionsPage() {
     <div className="max-w-4xl mx-auto p-6">
       {/* Back to Dashboard Link */}
       <div className="mb-6">
-        <a 
-          href="/dashboard" 
-          className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-          Back to Dashboard
-        </a>
+        <Link href="/dashboard" className="text-blue-600 hover:underline text-sm">
+          ← Back to Dashboard
+        </Link>
       </div>
       
       <div className="mb-8">

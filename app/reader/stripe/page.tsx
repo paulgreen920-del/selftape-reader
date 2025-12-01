@@ -2,22 +2,44 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 export default function StripeManagementPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [pageLoading, setPageLoading] = useState(true);
   const [accountId, setAccountId] = useState<string | null>(null);
+  const [accountStatus, setAccountStatus] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchStripeAccount() {
       try {
         const res = await fetch('/api/auth/me');
         const data = await res.json();
-        if (data.user?.stripeAccountId) {
-          setAccountId(data.user.stripeAccountId);
+        
+        // Check various possible locations for stripe account ID
+        const user = data.user || data;
+        const stripeId = user?.stripeAccountId || user?.stripeConnectAccountId || user?.stripe_account_id;
+        
+        if (stripeId) {
+          setAccountId(stripeId);
+          
+          // Optionally check account status
+          try {
+            const statusRes = await fetch('/api/stripe/account-status');
+            const statusData = await statusRes.json();
+            if (statusData.ok) {
+              setAccountStatus(statusData.status || 'connected');
+            }
+          } catch (err) {
+            // Account status check is optional
+            setAccountStatus('connected');
+          }
         }
       } catch (err) {
         console.error('Failed to fetch Stripe account:', err);
+      } finally {
+        setPageLoading(false);
       }
     }
     fetchStripeAccount();
@@ -45,15 +67,36 @@ export default function StripeManagementPage() {
     }
   }
 
+  if (pageLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <header className="bg-white shadow">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <Link href="/dashboard" className="text-blue-600 hover:underline text-sm">
+              ← Back to Dashboard
+            </Link>
+          </div>
+        </header>
+        <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <p>Loading Stripe account...</p>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <h1 className="text-2xl font-bold text-gray-900">Stripe Account Management</h1>
+          <Link href="/dashboard" className="text-blue-600 hover:underline text-sm">
+            ← Back to Dashboard
+          </Link>
         </div>
       </header>
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <h1 className="text-2xl font-bold text-gray-900 mb-6">Stripe Account Management</h1>
+        
         <div className="bg-white rounded-lg shadow p-6 mb-6">
           <h2 className="text-xl font-semibold mb-4">Your Stripe Account</h2>
           
@@ -71,6 +114,19 @@ export default function StripeManagementPage() {
             </div>
           ) : (
             <>
+              {/* Show connected status */}
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+                <div className="flex items-center gap-2">
+                  <svg className="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span className="text-green-800 font-medium">Stripe Account Connected</span>
+                </div>
+                <p className="text-sm text-green-700 mt-1">
+                  Account ID: {accountId.substring(0, 12)}...
+                </p>
+              </div>
+
               <p className="text-gray-600 mb-6">
                 Manage your Stripe account, view payouts, update banking details, and create promotional codes for your sessions.
               </p>
@@ -113,15 +169,6 @@ export default function StripeManagementPage() {
               </div>
             </>
           )}
-        </div>
-
-        <div className="flex gap-3">
-          <button
-            onClick={() => router.push('/dashboard')}
-            className="border rounded px-4 py-2 hover:bg-gray-50"
-          >
-            ← Back to Dashboard
-          </button>
         </div>
       </main>
     </div>

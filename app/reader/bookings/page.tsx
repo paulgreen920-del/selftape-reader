@@ -34,7 +34,8 @@ export default function ReaderBookingsPage() {
         }
         const userData = await userRes.json();
         
-        if (userData.user.role !== 'READER') {
+        // Allow both READER and ADMIN roles
+        if (userData.user.role !== 'READER' && userData.user.role !== 'ADMIN') {
           router.push('/dashboard');
           return;
         }
@@ -82,7 +83,7 @@ export default function ReaderBookingsPage() {
       <div className="min-h-screen bg-gray-50">
         <header className="bg-white shadow">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-            <Link href="/dashboard" className="text-2xl font-bold text-gray-900 hover:text-emerald-600 transition">
+            <Link href="/dashboard" className="text-blue-600 hover:underline text-sm">
               ← Back to Dashboard
             </Link>
           </div>
@@ -98,7 +99,7 @@ export default function ReaderBookingsPage() {
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <Link href="/dashboard" className="text-2xl font-bold text-gray-900 hover:text-emerald-600 transition">
+          <Link href="/dashboard" className="text-blue-600 hover:underline text-sm">
             ← Back to Dashboard
           </Link>
           <Link href="/reader/availability" className="text-sm text-gray-600 hover:text-gray-900">
