@@ -87,7 +87,7 @@ export default function Navigation() {
 
   if (loading) {
     return (
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2">
         <div className="w-8 h-8 bg-gray-200 rounded-full animate-pulse"></div>
       </div>
     );
@@ -118,16 +118,16 @@ export default function Navigation() {
 
   // User is not logged in - show sign in/up buttons
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex items-center gap-2 sm:gap-3">
       <Link
         href="/login"
-        className="inline-flex items-center text-gray-700 hover:text-emerald-700 px-3 py-1.5 text-sm font-semibold transition-colors"
+        className="inline-flex items-center justify-center text-gray-700 hover:text-emerald-700 px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-semibold transition-colors whitespace-nowrap"
       >
         Sign In
       </Link>
       <Link
         href="/signup"
-        className="inline-flex items-center rounded-xl bg-emerald-600 text-white px-3 py-1.5 text-sm font-semibold hover:bg-emerald-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 transition-colors"
+        className="inline-flex items-center justify-center rounded-lg sm:rounded-xl bg-emerald-600 text-white px-2.5 sm:px-3 py-1.5 text-xs sm:text-sm font-semibold hover:bg-emerald-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 transition-colors whitespace-nowrap text-center"
       >
         Sign Up
       </Link>

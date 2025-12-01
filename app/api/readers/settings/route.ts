@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { maxAdvanceBooking, minAdvanceHours, bookingBuffer } = body;
+    const { maxAdvanceBooking, minAdvanceHours, bookingBuffer, timezone } = body;
 
     // Get user from session
     const { cookies } = await import('next/headers');
@@ -30,14 +30,22 @@ export async function POST(req: Request) {
       );
     }
 
+    // Build update data - only include fields that are provided
+    const updateData: any = {
+      maxAdvanceBooking: maxAdvanceBooking || 360,
+      minAdvanceHours: minAdvanceHours || 2,
+      bookingBuffer: bookingBuffer || 15
+    };
+
+    // Only update timezone if provided
+    if (timezone) {
+      updateData.timezone = timezone;
+    }
+
     // Update user settings
     await prisma.user.update({
       where: { id: user.id },
-      data: {
-        maxAdvanceBooking: maxAdvanceBooking || 360,
-        minAdvanceHours: minAdvanceHours || 2,
-        bookingBuffer: bookingBuffer || 15
-      }
+      data: updateData
     });
 
     // Note: Availability templates are handled separately via /api/availability/templates

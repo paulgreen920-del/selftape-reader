@@ -20,7 +20,6 @@ export default function EditReaderProfile() {
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [timezone, setTimezone] = useState("America/New_York");
   const [city, setCity] = useState("");
   const [bio, setBio] = useState("");
 
@@ -72,7 +71,6 @@ export default function EditReaderProfile() {
         setDisplayName(reader.displayName || "");
         setEmail(reader.email || "");
         setPhone(reader.phone || "");
-        setTimezone(reader.timezone || "America/New_York");
         setCity(reader.city || "");
         setBio(reader.bio || "");
         setPlayableAgeMin(reader.playableAgeMin ?? "");
@@ -172,7 +170,6 @@ export default function EditReaderProfile() {
         displayName,
         email,
         phone,
-        timezone,
         city,
         bio,
         playableAgeMin: playableAgeMin === "" ? null : Number(playableAgeMin),
@@ -313,30 +310,6 @@ export default function EditReaderProfile() {
               onChange={(e) => setPhone(e.target.value)}
               placeholder="+1 555 555 5555"
             />
-          </div>
-
-          {/* Timezone */}
-          <div>
-            <label className="block text-sm font-medium mb-2">Timezone</label>
-            <select
-              className="border rounded px-3 py-2 w-full"
-              value={timezone}
-              onChange={(e) => setTimezone(e.target.value)}
-            >
-              {[
-                "America/New_York",
-                "America/Chicago",
-                "America/Denver",
-                "America/Los_Angeles",
-                "Europe/London",
-                "Europe/Paris",
-                "Asia/Tokyo",
-              ].map((tz) => (
-                <option key={tz} value={tz}>
-                  {tz}
-                </option>
-              ))}
-            </select>
           </div>
 
           {/* City */}

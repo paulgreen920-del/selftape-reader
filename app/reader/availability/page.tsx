@@ -5,7 +5,7 @@ interface User {
   name: string;
   email: string;
   role: 'READER' | 'ADMIN' | 'USER';
-  // Add other relevant fields as needed
+  timezone?: string;
 }
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -26,7 +26,22 @@ interface AvailabilityTemplate {
   isActive?: boolean;
 }
 
-
+// Common timezone options
+const TIMEZONE_OPTIONS = [
+  { value: "America/New_York", label: "Eastern Time (ET)" },
+  { value: "America/Chicago", label: "Central Time (CT)" },
+  { value: "America/Denver", label: "Mountain Time (MT)" },
+  { value: "America/Los_Angeles", label: "Pacific Time (PT)" },
+  { value: "America/Anchorage", label: "Alaska Time (AKT)" },
+  { value: "Pacific/Honolulu", label: "Hawaii Time (HT)" },
+  { value: "Europe/London", label: "London (GMT/BST)" },
+  { value: "Europe/Paris", label: "Paris (CET/CEST)" },
+  { value: "Europe/Berlin", label: "Berlin (CET/CEST)" },
+  { value: "Asia/Tokyo", label: "Tokyo (JST)" },
+  { value: "Asia/Shanghai", label: "Shanghai (CST)" },
+  { value: "Asia/Dubai", label: "Dubai (GST)" },
+  { value: "Australia/Sydney", label: "Sydney (AEST/AEDT)" },
+];
 
 export default function ManageAvailabilityPage() {
   const router = useRouter();
@@ -38,6 +53,14 @@ export default function ManageAvailabilityPage() {
   const [connectingGoogle, setConnectingGoogle] = useState(false);
   const lastTemplateRef = useRef<HTMLDivElement>(null);
 
+  // Timezone state - defaults to browser timezone
+  const [timezone, setTimezone] = useState(() => {
+    try {
+      return Intl.DateTimeFormat().resolvedOptions().timeZone;
+    } catch {
+      return "America/New_York";
+    }
+  });
 
   // Modal state for disconnect prompt
   const [showDisconnectModal, setShowDisconnectModal] = useState(false);
@@ -155,6 +178,11 @@ export default function ManageAvailabilityPage() {
       }
       const userData = await userRes.json();
       setUser(userData.user);
+
+      // Set timezone from user data, or keep browser default
+      if (userData.user.timezone) {
+        setTimezone(userData.user.timezone);
+      }
 
       if (userData.user.role !== 'READER' && userData.user.role !== 'ADMIN') {
         alert('You must be a reader or admin to access this page');
@@ -469,11 +497,11 @@ export default function ManageAvailabilityPage() {
         throw new Error(templatesError.error || 'Failed to save availability templates');
       }
 
-      // Save settings
+      // Save settings including timezone
       const settingsResponse = await fetch('/api/readers/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ maxAdvanceBooking, minAdvanceHours, bookingBuffer })
+        body: JSON.stringify({ maxAdvanceBooking, minAdvanceHours, bookingBuffer, timezone })
       });
       if (!settingsResponse.ok) {
         const settingsError = await settingsResponse.json();
@@ -714,7 +742,28 @@ export default function ManageAvailabilityPage() {
           {/* Booking Settings */}
           <div className="bg-white rounded-lg shadow p-6">
             <h2 className="text-xl font-semibold mb-4">Booking Preferences</h2>
-            <div className="grid md:grid-cols-3 gap-6">
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {/* Timezone - NEW FIELD */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Your Timezone
+                </label>
+                <select
+                  value={timezone}
+                  onChange={(e) => setTimezone(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                >
+                  {TIMEZONE_OPTIONS.map((tz) => (
+                    <option key={tz.value} value={tz.value}>
+                      {tz.label}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  Times you set below are in this timezone
+                </p>
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Maximum Advance Booking

@@ -26,40 +26,45 @@ function setCachedCalendarEvents(cacheKey: string, events: any[]): void {
 
 // Helper to get start and end of a day in a specific timezone as UTC Date objects
 function getDayBoundsInTimezone(dateStr: string, timezone: string): { startUTC: Date; endUTC: Date } {
-  // Parse the date string
+  // Parse the date string (YYYY-MM-DD)
   const [year, month, day] = dateStr.split('-').map(Number);
   
-  // Create formatter to get timezone offset
+  // We want to find: what UTC time corresponds to midnight on this date in the given timezone?
+  // 
+  // Strategy: Create a date at noon UTC on the target day (to avoid DST edge cases),
+  // then figure out the timezone offset at that moment, and calculate midnight.
+  
+  const noonUTC = new Date(Date.UTC(year, month - 1, day, 12, 0, 0, 0));
+  
+  // Format this UTC time in the target timezone to see what local time it shows
   const formatter = new Intl.DateTimeFormat('en-US', {
     timeZone: timezone,
     year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
+    month: 'numeric',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: 'numeric',
     hour12: false,
   });
   
-  // Start of day: midnight in the target timezone
-  // Create a date at midnight UTC
-  const midnightUTC = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
+  const parts = formatter.formatToParts(noonUTC);
+  const getPart = (type: string) => {
+    const part = parts.find(p => p.type === type);
+    return part ? parseInt(part.value) : 0;
+  };
   
-  // Get what midnight UTC looks like in target timezone
-  const parts = formatter.formatToParts(midnightUTC);
-  const getPart = (type: string) => parts.find(p => p.type === type)?.value || '0';
-  const tzHour = parseInt(getPart('hour'));
-  const tzDay = parseInt(getPart('day'));
+  const tzHour = getPart('hour');
+  const tzMinute = getPart('minute');
   
-  // Calculate offset: if timezone shows different time than UTC, that's the offset
-  let offsetMinutes = tzHour * 60 - 0; // midnight UTC = 0 minutes
-  if (tzDay > day) {
-    offsetMinutes += 24 * 60;
-  } else if (tzDay < day) {
-    offsetMinutes -= 24 * 60;
-  }
+  // noonUTC (12:00 UTC) shows as tzHour:tzMinute in the target timezone
+  // Offset = local time - UTC time
+  // If tzHour is 7 (for EST), offset is 7 - 12 = -5 hours (EST is UTC-5) ✓
+  const offsetHours = tzHour - 12;
+  const offsetMinutes = offsetHours * 60 + tzMinute;
   
-  // Start of day in timezone = midnight in timezone = midnight UTC minus offset
+  // Midnight in the target timezone = midnight local time
+  // To convert local midnight to UTC: UTC = local - offset
+  // If offset is -5 hours (EST), then midnight EST = midnight + 5 hours = 05:00 UTC ✓
   const startUTC = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
   startUTC.setUTCMinutes(startUTC.getUTCMinutes() - offsetMinutes);
   
@@ -101,11 +106,16 @@ export async function GET(req: Request) {
 
     const readerTimezone = reader.timezone || "America/New_York";
 
-    // Check if date is within booking window (using reader's timezone for consistency)
-    const now = new Date();
+    // Get day bounds in reader's timezone
     const { startUTC: dayStartUTC, endUTC: dayEndUTC } = getDayBoundsInTimezone(date, readerTimezone);
     
-    // Get today's start in reader's timezone
+    console.log(`[available-slots] Date: ${date}, Timezone: ${readerTimezone}`);
+    console.log(`[available-slots] Query range: ${dayStartUTC.toISOString()} to ${dayEndUTC.toISOString()}`);
+
+    // Check if date is within booking window
+    const now = new Date();
+    
+    // Get today's date string in reader's timezone
     const todayFormatter = new Intl.DateTimeFormat('en-CA', {
       timeZone: readerTimezone,
       year: 'numeric',
@@ -120,6 +130,7 @@ export async function GET(req: Request) {
     const maxDate = new Date(now.getTime() + maxBookingMs);
 
     if (dayStartUTC < todayStartUTC || dayStartUTC > maxDate) {
+      console.log(`[available-slots] Date outside booking window`);
       return NextResponse.json({ ok: true, slots: [] });
     }
 
@@ -134,6 +145,8 @@ export async function GET(req: Request) {
       }
     });
 
+    console.log(`[available-slots] Found ${availabilitySlots.length} slots in database`);
+
     if (availabilitySlots.length === 0) {
       return NextResponse.json({ ok: true, slots: [] });
     }
@@ -142,10 +155,14 @@ export async function GET(req: Request) {
     const slots: Array<{ startMin: number; endMin: number; startTime: string; endTime: string }> = [];
     const minBookingTime = new Date(now.getTime() + (reader.minAdvanceHours || 2) * 60 * 60 * 1000);
 
+    console.log(`[available-slots] Min booking time: ${minBookingTime.toISOString()}`);
+
     // Filter and sort availability slots
     const validSlots = availabilitySlots
       .filter((slot: any) => !slot.isBooked && new Date(slot.startTime) > minBookingTime)
       .sort((a: any, b: any) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
+
+    console.log(`[available-slots] Valid slots after filtering: ${validSlots.length}`);
 
     if (validSlots.length === 0) {
       return NextResponse.json({ ok: true, slots: [] });
@@ -273,6 +290,8 @@ export async function GET(req: Request) {
 
       return !hasCalendarConflict;
     });
+
+    console.log(`[available-slots] Returning ${availableSlots.length} available slots`);
 
     return NextResponse.json({ ok: true, slots: availableSlots });
   } catch (err: any) {
