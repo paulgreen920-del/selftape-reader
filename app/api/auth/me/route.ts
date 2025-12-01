@@ -35,6 +35,8 @@ async function GET() {
         onboardingStep: true,
         emailVerified: true,
         emailVerifiedAt: true,
+        stripeAccountId: true,
+        stripeCustomerId: true,
       },
     });
 
