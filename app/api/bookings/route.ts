@@ -221,6 +221,7 @@ export async function POST(req: Request) {
       cancel_url: `${process.env.NEXT_PUBLIC_URL}/reader/${readerId}?booking=${booking.id}&action=cancel`,
       expires_at: Math.floor(Date.now() / 1000) + (30 * 60),
       customer_email: actor.email,
+      allow_promotion_codes: true,
       metadata: {
         bookingId: booking.id,
         readerId: reader.id,
