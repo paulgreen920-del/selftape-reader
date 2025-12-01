@@ -9,7 +9,6 @@ export default function StripeManagementPage() {
   const [loading, setLoading] = useState(false);
   const [pageLoading, setPageLoading] = useState(true);
   const [accountId, setAccountId] = useState<string | null>(null);
-  const [accountStatus, setAccountStatus] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchStripeAccount() {
@@ -17,24 +16,11 @@ export default function StripeManagementPage() {
         const res = await fetch('/api/auth/me');
         const data = await res.json();
         
-        // Check various possible locations for stripe account ID
         const user = data.user || data;
         const stripeId = user?.stripeAccountId || user?.stripeConnectAccountId || user?.stripe_account_id;
         
         if (stripeId) {
           setAccountId(stripeId);
-          
-          // Optionally check account status
-          try {
-            const statusRes = await fetch('/api/stripe/account-status');
-            const statusData = await statusRes.json();
-            if (statusData.ok) {
-              setAccountStatus(statusData.status || 'connected');
-            }
-          } catch (err) {
-            // Account status check is optional
-            setAccountStatus('connected');
-          }
         }
       } catch (err) {
         console.error('Failed to fetch Stripe account:', err);
@@ -128,44 +114,27 @@ export default function StripeManagementPage() {
               </div>
 
               <p className="text-gray-600 mb-6">
-                Manage your Stripe account, view payouts, update banking details, and create promotional codes for your sessions.
+                Manage your Stripe account, view payouts, and update your banking details.
               </p>
 
-              <div className="space-y-4">
-                <div className="border rounded-lg p-4">
-                  <h3 className="font-semibold mb-2">Stripe Express Dashboard</h3>
-                  <p className="text-sm text-gray-600 mb-4">
-                    Access your full Stripe account to:
-                  </p>
-                  <ul className="text-sm text-gray-700 space-y-2 mb-4">
-                    <li>✓ View transaction history and payouts</li>
-                    <li>✓ Update bank account details</li>
-                    <li>✓ Create promotional codes (discounts for your sessions)</li>
-                    <li>✓ View analytics and reports</li>
-                    <li>✓ Manage tax information</li>
-                  </ul>
-                  <button
-                    onClick={openStripeDashboard}
-                    disabled={loading}
-                    className="bg-emerald-600 text-white px-6 py-3 rounded-lg hover:bg-emerald-700 disabled:opacity-50 font-semibold"
-                  >
-                    {loading ? 'Opening...' : 'Open Stripe Dashboard'}
-                  </button>
-                </div>
-
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <h3 className="font-semibold text-blue-900 mb-2">💡 Creating Promo Codes</h3>
-                  <p className="text-sm text-blue-800 mb-2">
-                    To create promotional codes for your sessions:
-                  </p>
-                  <ol className="text-sm text-blue-800 space-y-1 list-decimal list-inside">
-                    <li>Click "Open Stripe Dashboard" above</li>
-                    <li>Navigate to "Products" → "Coupons"</li>
-                    <li>Create a new coupon (e.g., 50% off, $10 off)</li>
-                    <li>Generate a promotion code from that coupon</li>
-                    <li>Share the code with actors who book with you!</li>
-                  </ol>
-                </div>
+              <div className="border rounded-lg p-4">
+                <h3 className="font-semibold mb-2">Stripe Express Dashboard</h3>
+                <p className="text-sm text-gray-600 mb-4">
+                  Access your Stripe account to:
+                </p>
+                <ul className="text-sm text-gray-700 space-y-2 mb-4">
+                  <li>✓ View transaction history and payouts</li>
+                  <li>✓ Update bank account details</li>
+                  <li>✓ View analytics and reports</li>
+                  <li>✓ Manage tax information</li>
+                </ul>
+                <button
+                  onClick={openStripeDashboard}
+                  disabled={loading}
+                  className="bg-emerald-600 text-white px-6 py-3 rounded-lg hover:bg-emerald-700 disabled:opacity-50 font-semibold"
+                >
+                  {loading ? 'Opening...' : 'Open Stripe Dashboard'}
+                </button>
               </div>
             </>
           )}
