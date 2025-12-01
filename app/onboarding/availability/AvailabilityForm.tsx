@@ -37,6 +37,46 @@ export default function AvailabilityForm() {
     bookingBufferMin: 15,
   });
   const [saving, setSaving] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch current user if no userId in URL
+  useEffect(() => {
+    async function init() {
+      // Check URL params first
+      const urlUserId = searchParams.get("userId") || searchParams.get("readerId");
+      
+      if (urlUserId) {
+        setUserId(urlUserId);
+        setLoading(false);
+        return;
+      }
+
+      // No URL param - fetch from current session
+      try {
+        const res = await fetch("/api/auth/me");
+        if (!res.ok) {
+          router.push("/login");
+          return;
+        }
+        
+        const data = await res.json();
+        if (!data.ok || !data.user) {
+          router.push("/login");
+          return;
+        }
+
+        setUserId(data.user.id);
+      } catch (err) {
+        console.error("Failed to fetch user:", err);
+        router.push("/login");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    init();
+  }, [searchParams, router]);
 
   function addSlot() {
     setSlots([...slots, { dayOfWeek: 1, startMin: 540, endMin: 1020 }]);
@@ -67,12 +107,13 @@ export default function AvailabilityForm() {
   }
 
   async function saveAvailability() {
+    if (!userId) {
+      alert("User not loaded. Please refresh the page.");
+      return;
+    }
+
     setSaving(true);
     try {
-      // Get userId from search params
-      const userId = searchParams.get("userId") || searchParams.get("readerId");
-      if (!userId) throw new Error("Missing userId in URL");
-
       // Save availability slots
       const resSlots = await fetch("/api/availability", {
         method: "POST",
@@ -107,6 +148,22 @@ export default function AvailabilityForm() {
     } finally {
       setSaving(false);
     }
+  }
+
+  if (loading) {
+    return (
+      <div className="max-w-4xl mx-auto p-6">
+        <p>Loading...</p>
+      </div>
+    );
+  }
+
+  if (!userId) {
+    return (
+      <div className="max-w-4xl mx-auto p-6">
+        <p>Unable to load user. Please <a href="/login" className="text-emerald-600 underline">log in</a> and try again.</p>
+      </div>
+    );
   }
 
   return (
@@ -286,7 +343,7 @@ export default function AvailabilityForm() {
           type="button"
           className="bg-emerald-600 text-white rounded px-4 py-2 hover:bg-emerald-700 disabled:opacity-50 flex-1"
           onClick={saveAvailability}
-          disabled={saving || slots.length === 0}
+          disabled={saving || slots.length === 0 || !userId}
         >
           {saving ? "Saving..." : "Save & Continue"}
         </button>
