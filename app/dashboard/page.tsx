@@ -116,7 +116,7 @@ export default function DashboardPage() {
       <header className="bg-white shadow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
           <Link href="/" className="text-2xl font-bold text-gray-900 hover:text-emerald-600 transition">
-            🎬 Self-Tape Reader
+              🎬 Self-Tape Reader
           </Link>
           <button
             onClick={handleLogout}
@@ -403,7 +403,7 @@ export default function DashboardPage() {
             </div>
             <div className="flex justify-between">
               <dt className="text-gray-600">Email:</dt>
-              <dd className="font-medium">{user.email}</dd>
+                <dd className="font-medium">{user.email.replace(/selftape-reader.com/g, 'selftapereader.com').replace(/@selftape-reader.com/g, '@selftapereader.com')}</dd>
             </div>
             <div className="flex justify-between">
               <dt className="text-gray-600">Account Type:</dt>

@@ -415,9 +415,9 @@ Display on reader profile:
 
 ## 📧 SUPPORT CONTACTS
 
-- **Email:** support@selftape-reader.com
-- **Legal:** legal@selftape-reader.com
-- **Booking:** booking@selftape-reader.com
+- **Email:** support@selftapereader.com
+- **Legal:** legal@selftapereader.com
+- **Booking:** booking@selftapereader.com
 
 ---
 

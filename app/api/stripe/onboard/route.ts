@@ -66,7 +66,7 @@ export async function POST(req: Request) {
         business_profile: {
           mcc: "7392",
           product_description: "Professional reading services for actors' self-tape auditions",
-          url: "https://selftape-reader.com",
+          url: "https://selftapereader.com",
         },
         business_type: "individual",
         metadata: {

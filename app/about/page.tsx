@@ -125,8 +125,8 @@ export default function AboutPage() {
           <h2 className="text-2xl font-semibold mb-4">Questions?</h2>
           <p className="text-gray-700">
             Check out our <Link href="/help" className="text-emerald-600 hover:underline">Help & Support</Link> page or contact us at{' '}
-            <a href="mailto:support@selftape-reader.com" className="text-emerald-600 hover:underline">
-              support@selftape-reader.com
+                <a href="mailto:support@selftapereader.com" className="text-emerald-600 hover:underline">
+                  support@selftapereader.com
             </a>
           </p>
         </section>

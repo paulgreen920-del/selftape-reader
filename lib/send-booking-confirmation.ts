@@ -3,7 +3,7 @@ import { Resend } from 'resend';
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function sendBookingConfirmation(booking: any) {
-  const fromEmail = process.env.FROM_EMAIL || 'Reader Marketplace <booking@selftape-reader.com>';
+  const fromEmail = process.env.FROM_EMAIL || 'Reader Marketplace <booking@selftapereader.com>';
   
     console.log('[Email] Starting to send confirmation emails for booking:', booking.id);
     console.log('[Email] RESEND_API_KEY present:', !!process.env.RESEND_API_KEY);

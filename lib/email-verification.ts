@@ -25,7 +25,7 @@ export async function sendVerificationEmail(email: string, name: string): Promis
     // Send email
     const baseUrl = process.env.NEXT_PUBLIC_URL || 'http://localhost:3000';
     const verificationUrl = `${baseUrl}/api/auth/verify-email?token=${token}`;
-    const fromEmail = process.env.FROM_EMAIL || 'no-reply@selftape-reader.com';
+    const fromEmail = process.env.FROM_EMAIL || 'no-reply@selftapereader.com';
 
     await resend.emails.send({
       from: fromEmail,

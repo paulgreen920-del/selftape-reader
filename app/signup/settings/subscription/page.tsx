@@ -220,8 +220,8 @@ export default function SubscriptionPage() {
           <h3 className="font-semibold text-blue-900 mb-2">Need Help?</h3>
           <p className="text-sm text-blue-800">
             If you're having issues with your subscription or billing, please contact our support team at{' '}
-            <a href="mailto:support@selftape-reader.com" className="underline">
-              support@selftape-reader.com
+            <a href="mailto:support@selftapereader.com" className="underline">
+              support@selftapereader.com
             </a>
           </p>
         </div>

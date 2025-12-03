@@ -423,9 +423,9 @@ export default function TermsPage() {
                 For questions about these Terms of Service, please contact us:
               </p>
               <div className="bg-gray-50 border rounded-lg p-4">
-                <p><strong>Email:</strong> legal@selftape-reader.com</p>
+                <p><strong>Email:</strong> legal@selftapereader.com</p>
                 <p><strong>Address:</strong> [Your Business Address]</p>
-                <p><strong>Support:</strong> support@selftape-reader.com</p>
+                <p><strong>Support:</strong> support@selftapereader.com</p>
               </div>
             </div>
           </section>

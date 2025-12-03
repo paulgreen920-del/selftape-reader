@@ -15,7 +15,7 @@ export default function PrivacyPage() {
             <section className="mb-8">
               <h2 className="text-2xl font-bold text-gray-900 mb-4">1. Introduction</h2>
               <p className="text-gray-700 mb-4">
-                Welcome to Self Tape Reader ("we," "our," or "us"). We are committed to protecting your privacy and ensuring the security of your personal information. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our platform at selftape-reader.com (the "Service").
+                Welcome to Self Tape Reader ("we," "our," or "us"). We are committed to protecting your privacy and ensuring the security of your personal information. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our platform at selftapereader.com (the "Service").
               </p>
               <p className="text-gray-700">
                 By using our Service, you agree to the collection and use of information in accordance with this Privacy Policy. If you do not agree with our policies and practices, please do not use our Service.
@@ -177,7 +177,7 @@ export default function PrivacyPage() {
 
               <h3 className="text-xl font-semibold text-gray-800 mb-3">7.3 Deletion</h3>
               <p className="text-gray-700 mb-4">
-                You can request deletion of your account by contacting us at privacy@selftape-reader.com. We will delete your information within 30 days, except where we are required to retain it for legal purposes.
+                You can request deletion of your account by contacting us at privacy@selftapereader.com. We will delete your information within 30 days, except where we are required to retain it for legal purposes.
               </p>
 
               <h3 className="text-xl font-semibold text-gray-800 mb-3">7.4 Marketing Opt-Out</h3>
@@ -223,8 +223,8 @@ export default function PrivacyPage() {
                 If you have any questions, concerns, or requests regarding this Privacy Policy or our data practices, please contact us:
               </p>
               <div className="bg-gray-50 p-6 rounded-lg">
-                <p className="text-gray-700 mb-2"><strong>Email:</strong> privacy@selftape-reader.com</p>
-                <p className="text-gray-700 mb-2"><strong>Website:</strong> https://selftape-reader.com</p>
+                <p className="text-gray-700 mb-2"><strong>Email:</strong> privacy@selftapereader.com</p>
+                <p className="text-gray-700 mb-2"><strong>Website:</strong> https://selftapereader.com</p>
                 <p className="text-gray-700"><strong>Response Time:</strong> We aim to respond to all inquiries within 48 hours.</p>
               </div>
             </section>
@@ -243,7 +243,7 @@ export default function PrivacyPage() {
                 <li>Right to non-discrimination for exercising your CCPA rights</li>
               </ul>
               <p className="text-gray-700 mb-4">
-                To exercise these rights, contact us at privacy@selftape-reader.com.
+                To exercise these rights, contact us at privacy@selftapereader.com.
               </p>
 
               <h3 className="text-xl font-semibold text-gray-800 mb-3">12.2 European Union Residents (GDPR)</h3>
@@ -260,7 +260,7 @@ export default function PrivacyPage() {
                 <li>Right to withdraw consent</li>
               </ul>
               <p className="text-gray-700">
-                To exercise these rights, contact us at privacy@selftape-reader.com.
+                To exercise these rights, contact us at privacy@selftapereader.com.
               </p>
             </section>
 

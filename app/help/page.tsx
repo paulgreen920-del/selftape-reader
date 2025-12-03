@@ -8,7 +8,7 @@ export default function HelpPage() {
         <div className="bg-white border rounded-lg p-6">
           <h2 className="text-xl font-semibold mb-4">Contact Support</h2>
           <p className="text-gray-600 mb-4">Need help? Our support team is here for you.</p>
-          <a href="mailto:support@selftape-reader.com" className="inline-block bg-emerald-600 text-white px-6 py-2 rounded-lg hover:bg-emerald-700">Email Support</a>
+          <a href="mailto:support@selftapereader.com" className="inline-block bg-emerald-600 text-white px-6 py-2 rounded-lg hover:bg-emerald-700">Email Support</a>
         </div>
         <div className="bg-white border rounded-lg p-6">
           <h2 className="text-xl font-semibold mb-4">Frequently Asked Questions</h2>
