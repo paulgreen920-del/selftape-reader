@@ -424,7 +424,7 @@ export default function TermsPage() {
               </p>
               <div className="bg-gray-50 border rounded-lg p-4">
                 <p><strong>Email:</strong> legal@selftapereader.com</p>
-                <p><strong>Address:</strong> [Your Business Address]</p>
+                <p><strong>Address:</strong> 4539 N 22nd St Ste B, Phoenix, AZ 85016</p>
                 <p><strong>Support:</strong> support@selftapereader.com</p>
               </div>
             </div>
