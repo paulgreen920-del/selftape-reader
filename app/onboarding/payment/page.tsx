@@ -23,24 +23,22 @@ export default function PaymentPage() {
           return;
         }
 
-        const res = await fetch(`/api/readers?email=${userData.user.email}`, { cache: 'no-store' });
-        const data = await res.json();
-        const accountId = data.reader?.stripeAccountId;
-        
-        if (data.ok && accountId) {
+        const accountId = userData.user.stripeAccountId;
+
+        if (accountId) {
           const statusRes = await fetch(`/api/stripe/account-status?accountId=${accountId}`);
           const status = await statusRes.json();
-          
+
           if (status.ok && status.details_submitted) {
             setStripeConnected(true);
             setCheckingStatus(false);
-            // Auto-advance to subscription if coming back from Stripe
             setTimeout(() => {
               continueToSubscribe();
             }, 2000);
             return;
           }
         }
+
         setStripeConnected(false);
         setCheckingStatus(false);
       } catch (err) {

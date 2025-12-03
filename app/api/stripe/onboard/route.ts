@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import Stripe from "stripe";
 
@@ -8,12 +9,34 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
-    const { readerId } = body as { readerId: string };
-    const userId = readerId; // Map for internal use
+    // Get user from session cookie
+    const cookieStore = await cookies();
+    const sessionCookie = cookieStore.get("session");
 
-    if (!readerId) {
-      return NextResponse.json({ ok: false, error: "Missing readerId" }, { status: 400 });
+    if (!sessionCookie?.value) {
+      return NextResponse.json(
+        { ok: false, error: "Not authenticated" },
+        { status: 401 }
+      );
+    }
+
+    // Parse session to get userId
+    let userId: string;
+    try {
+      const session = JSON.parse(sessionCookie.value);
+      userId = session.userId;
+    } catch {
+      return NextResponse.json(
+        { ok: false, error: "Invalid session" },
+        { status: 401 }
+      );
+    }
+
+    if (!userId) {
+      return NextResponse.json(
+        { ok: false, error: "No user in session" },
+        { status: 401 }
+      );
     }
 
     // Get user from database
@@ -23,45 +46,48 @@ export async function POST(req: Request) {
     });
 
     if (!user) {
-      return NextResponse.json({ ok: false, error: "User not found" }, { status: 404 });
+      return NextResponse.json(
+        { ok: false, error: "User not found" },
+        { status: 404 }
+      );
     }
 
     let accountId = user.stripeAccountId;
 
-   // Create Stripe Connect account if doesn't exist
-if (!accountId) {
-  const account = await stripe.accounts.create({
-    type: "express",
-    email: user.email,
-    capabilities: {
-      card_payments: { requested: true },
-      transfers: { requested: true },
-    },
-    business_profile: {
-      mcc: "7392", // Consulting Services - Management, Consulting, and Public Relations
-      product_description: "Professional reading services for actors' self-tape auditions",
-      url: "https://selftape-reader.com",
-    },
-    business_type: "individual",
-    metadata: {
-      industry: "Consulting Services",
-    },
-  });
+    // Create Stripe Connect account if doesn't exist
+    if (!accountId) {
+      const account = await stripe.accounts.create({
+        type: "express",
+        email: user.email,
+        capabilities: {
+          card_payments: { requested: true },
+          transfers: { requested: true },
+        },
+        business_profile: {
+          mcc: "7392",
+          product_description: "Professional reading services for actors' self-tape auditions",
+          url: "https://selftape-reader.com",
+        },
+        business_type: "individual",
+        metadata: {
+          industry: "Consulting Services",
+        },
+      });
 
-  accountId = account.id;
+      accountId = account.id;
 
-  // Save to database
-  await prisma.user.update({
-    where: { id: userId },
-    data: { stripeAccountId: accountId },
-  });
-}
+      // Save to database
+      await prisma.user.update({
+        where: { id: userId },
+        data: { stripeAccountId: accountId },
+      });
+    }
 
     // Create account link for onboarding
     const accountLink = await stripe.accountLinks.create({
       account: accountId,
-      refresh_url: `${process.env.NEXT_PUBLIC_URL}/onboarding/payment?readerId=${readerId}`,
-      return_url: `${process.env.NEXT_PUBLIC_URL}/onboarding/payment?readerId=${readerId}`,
+      refresh_url: `${process.env.NEXT_PUBLIC_URL}/onboarding/payment`,
+      return_url: `${process.env.NEXT_PUBLIC_URL}/onboarding/payment`,
       type: "account_onboarding",
     });
 

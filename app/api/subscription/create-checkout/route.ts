@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
+import { prisma } from "@/lib/prisma";
 import Stripe from "stripe";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -7,28 +9,71 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 
 export async function POST(req: Request) {
   try {
-    const { email } = await req.json();
+    // Get user from session cookie
+    const cookieStore = await cookies();
+    const sessionCookie = cookieStore.get("session");
 
-    if (!email) {
+    if (!sessionCookie?.value) {
       return NextResponse.json(
-        { ok: false, error: "Missing email" },
-        { status: 400 }
+        { ok: false, error: "Not authenticated" },
+        { status: 401 }
       );
     }
 
-    // Create or retrieve Stripe customer
-    const customers = await stripe.customers.list({ email, limit: 1 });
-    let customer: Stripe.Customer;
+    let userId: string;
+    try {
+      const session = JSON.parse(sessionCookie.value);
+      userId = session.userId;
+    } catch {
+      return NextResponse.json(
+        { ok: false, error: "Invalid session" },
+        { status: 401 }
+      );
+    }
 
-    if (customers.data.length > 0) {
-      customer = customers.data[0];
-    } else {
-      customer = await stripe.customers.create({ email });
+    if (!userId) {
+      return NextResponse.json(
+        { ok: false, error: "No user in session" },
+        { status: 401 }
+      );
+    }
+
+    // Get user from database
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true, stripeCustomerId: true },
+    });
+
+    if (!user) {
+      return NextResponse.json(
+        { ok: false, error: "User not found" },
+        { status: 404 }
+      );
+    }
+
+    // Use existing Stripe customer or create new one
+    let customerId = user.stripeCustomerId;
+
+    if (!customerId) {
+      const customers = await stripe.customers.list({ email: user.email, limit: 1 });
+
+      if (customers.data.length > 0) {
+        customerId = customers.data[0].id;
+      } else {
+        const customer = await stripe.customers.create({ email: user.email });
+        customerId = customer.id;
+      }
+
+      // Save customer ID to database
+      await prisma.user.update({
+        where: { id: userId },
+        data: { stripeCustomerId: customerId },
+      });
     }
 
     // Create checkout session for subscription
     const session = await stripe.checkout.sessions.create({
-      customer: customer.id,
+      customer: customerId,
       mode: "subscription",
       payment_method_types: ["card"],
       line_items: [
@@ -37,11 +82,12 @@ export async function POST(req: Request) {
           quantity: 1,
         },
       ],
-      allow_promotion_codes: true, // Enables promo code field
+      allow_promotion_codes: true,
       success_url: `${process.env.NEXT_PUBLIC_URL}/onboarding/complete?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.NEXT_PUBLIC_URL}/onboarding/payment?canceled=true`,
+      cancel_url: `${process.env.NEXT_PUBLIC_URL}/onboarding/subscribe?canceled=true`,
       metadata: {
-        email,
+        readerId: userId,
+        email: user.email,
         type: "reader_subscription",
       },
     });
