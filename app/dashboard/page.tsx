@@ -113,19 +113,7 @@ export default function DashboardPage() {
         </div>
       )}
       
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <Link href="/" className="text-2xl font-bold text-gray-900 hover:text-emerald-600 transition">
-              🎬 Self-Tape Reader
-          </Link>
-          <button
-            onClick={handleLogout}
-            className="text-sm text-gray-600 hover:text-gray-900 font-medium"
-          >
-            Sign out
-          </button>
-        </div>
-      </header>
+      {/* Header removed as requested */}
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="bg-white rounded-lg shadow p-6 mb-8">

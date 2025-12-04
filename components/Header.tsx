@@ -1,10 +1,24 @@
 "use client";
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export default function Header() {
   const [open, setOpen] = useState(false);
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    async function fetchUser() {
+      try {
+        const res = await fetch('/api/auth/me', { cache: 'no-store' });
+        if (res.ok) {
+          const data = await res.json();
+          setUser(data.user);
+        }
+      } catch {}
+    }
+    fetchUser();
+  }, []);
 
   return (
     <header className="bg-white border-b">
@@ -29,6 +43,23 @@ export default function Header() {
           <Link href="/pricing" className="hover:underline">Pricing</Link>
           <Link href="/login" className="text-sm">Sign in</Link>
           <Link href="/signup" className="px-4 py-2 bg-rose-600 text-white rounded-md">Get started</Link>
+          {user && user.headshotUrl && (
+            <div className="relative ml-4">
+              <button
+                className="flex items-center justify-center w-9 h-9 rounded-full bg-gray-200 hover:bg-gray-300 focus:outline-none"
+                onClick={() => setOpen((v) => !v)}
+              >
+                <span className="sr-only">Open user menu</span>
+                <img src={user.headshotUrl} alt="Profile" className="w-8 h-8 rounded-full object-cover" />
+              </button>
+              {open && (
+                <div className="absolute right-0 mt-2 w-40 bg-white border rounded shadow-lg z-50">
+                  <Link href="/dashboard" className="block px-4 py-2 text-gray-700 hover:bg-gray-100">Dashboard</Link>
+                  <button onClick={() => window.location.href = '/api/auth/logout'} className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100">Sign Out</button>
+                </div>
+              )}
+            </div>
+          )}
         </nav>
 
         <div className="md:hidden">
