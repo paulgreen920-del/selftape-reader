@@ -3,7 +3,7 @@ import ical from 'ical'; // You may need to install 'ical' or use a similar pars
 
 export async function getUserBusyTimes(userId: string): Promise<Array<{ start: Date; end: Date }>> {
   // Fetch all iCal connections for the user
-  const connections = await prisma.ICalConnection.findMany({ where: { userId } });
+  const connections = await prisma.iCalConnection.findMany({ where: { userId } });
   const allBusyTimes: Array<{ start: Date; end: Date }> = [];
 
   for (const connection of connections) {
