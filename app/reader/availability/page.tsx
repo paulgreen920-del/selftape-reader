@@ -45,7 +45,6 @@ const TIMEZONE_OPTIONS = [
 ];
 
 export default function ManageAvailabilityPage() {
-    const [showAppleTutorial, setShowAppleTutorial] = useState(false);
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -142,6 +141,7 @@ export default function ManageAvailabilityPage() {
         const calendarData = await calendarRes.json();
         setCalendarConnection(calendarData.connection);
       }
+      
       // Fetch Apple Calendar connections
       const icalRes = await fetch('/api/calendar/ical');
       const icalData = await icalRes.json();
@@ -229,10 +229,6 @@ export default function ManageAvailabilityPage() {
     }
   };
 
-  const connectICal = async () => {
-    alert('iCal connection is not yet implemented. Please contact support if you need this feature.');
-  };
-
   const disconnectCalendarAndContinue = async () => {
     setDisconnecting(true);
     try {
@@ -274,23 +270,40 @@ export default function ManageAvailabilityPage() {
     }
   };
 
+  // Disconnect all Apple Calendar connections
+  const disconnectAppleCalendars = async () => {
+    if (!confirm('⚠️ Disconnecting your Apple Calendar will remove all connected calendars. Are you sure?')) {
+      return;
+    }
+    try {
+      for (const conn of icalConnections) {
+        await fetch(`/api/calendar/ical/${conn.id}`, { method: 'DELETE' });
+      }
+      setIcalConnections([]);
+      alert('Apple Calendar disconnected successfully');
+    } catch (error) {
+      console.error('Failed to disconnect Apple Calendar:', error);
+      alert('Failed to disconnect Apple Calendar');
+    }
+  };
+
   const addAvailabilityTemplate = () => {
-    const newTemplate = {
+    const newTemplate: AvailabilityTemplate = {
       id: `temp-${Date.now()}`,
       dayOfWeek: 1,
       startTime: "09:00",
       endTime: "17:00",
       isActive: true
     };
-    setAvailabilityTemplates(prev => [...prev, newTemplate]);
+    setAvailabilityTemplates((prev: AvailabilityTemplate[]) => [...prev, newTemplate]);
     setTimeout(() => {
       lastTemplateRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }, 100);
   };
 
   const updateTemplate = (id: string, updates: Partial<AvailabilityTemplate>) => {
-    setAvailabilityTemplates(prev => {
-      const updated = prev.map(template =>
+    setAvailabilityTemplates((prev: AvailabilityTemplate[]) => {
+      const updated = prev.map((template: AvailabilityTemplate) =>
         template.id === id ? { ...template, ...updates, isActive: template.isActive ?? true } : template
       );
       return sortTemplates(updated);
@@ -298,27 +311,27 @@ export default function ManageAvailabilityPage() {
   };
 
   const duplicateTemplate = (id: string) => {
-    const templateToDuplicate = availabilityTemplates.find(t => t.id === id);
+    const templateToDuplicate = availabilityTemplates.find((t: AvailabilityTemplate) => t.id === id);
     if (templateToDuplicate) {
-      const newTemplate = {
+      const newTemplate: AvailabilityTemplate = {
         ...templateToDuplicate,
         id: `temp-${Date.now()}`,
         isActive: templateToDuplicate.isActive ?? true
       };
-      setAvailabilityTemplates(prev => sortTemplates([...prev, newTemplate]));
+      setAvailabilityTemplates((prev: AvailabilityTemplate[]) => sortTemplates([...prev, newTemplate]));
     }
   };
 
   const removeTemplate = (id: string) => {
     if (confirm('Are you sure you want to remove this time block?')) {
-      setAvailabilityTemplates(prev => prev.filter(template => template.id !== id));
+      setAvailabilityTemplates((prev: AvailabilityTemplate[]) => prev.filter((template: AvailabilityTemplate) => template.id !== id));
     }
   };
 
   const saveSettings = async () => {
     setSaving(true);
     try {
-      const templatesToSave = availabilityTemplates.map(template => ({
+      const templatesToSave = availabilityTemplates.map((template: AvailabilityTemplate) => ({
         dayOfWeek: template.dayOfWeek,
         startTime: template.startTime,
         endTime: template.endTime
@@ -451,7 +464,7 @@ export default function ManageAvailabilityPage() {
           <div className="relative profile-dropdown">
             <button
               className="flex items-center space-x-2 focus:outline-none"
-              onClick={() => setShowProfileDropdown(v => !v)}
+              onClick={() => setShowProfileDropdown((v: boolean) => !v)}
             >
               <span className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 text-lg">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
@@ -492,7 +505,7 @@ export default function ManageAvailabilityPage() {
             <h2 className="text-xl font-semibold mb-4">Calendar Integration</h2>
             {(calendarConnection || icalConnections.length > 0) ? (
               <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                <div className="flex items-center justify-between">
                   <div>
                     <h3 className="font-medium text-green-900 flex items-center gap-2">
                       <svg className="h-5 w-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
@@ -502,29 +515,31 @@ export default function ManageAvailabilityPage() {
                       Calendar Connected
                     </h3>
                     {calendarConnection && (
-                      <p className="text-sm text-green-700 mt-1">Connected to: {calendarConnection.email}</p>
+                      <>
+                        <p className="text-sm text-green-700 mt-1">Connected to: {calendarConnection.email}</p>
+                        <p className="text-xs text-green-600 mt-1">Your {calendarConnection.provider === 'GOOGLE' ? 'Google Calendar' : 'Microsoft Outlook'} events will automatically block availability slots.</p>
+                      </>
                     )}
-                    {calendarConnection && (
-                      <p className="text-xs text-green-600 mt-1">Your {calendarConnection.provider === 'GOOGLE' ? 'Google Calendar' : 'Microsoft Outlook'} events will automatically block availability slots.</p>
-                    )}
-                    {icalConnections.length > 0 && (
-                      <div className="text-xs text-purple-700 mt-1">Connected to Apple Calendar ({icalConnections.length} calendar{icalConnections.length > 1 ? 's' : ''} connected)</div>
+                    {icalConnections.length > 0 && !calendarConnection && (
+                      <p className="text-sm text-green-700 mt-1">Connected to Apple Calendar ({icalConnections.length} calendar{icalConnections.length > 1 ? 's' : ''} connected)</p>
                     )}
                   </div>
-                  <button
-                    onClick={disconnectCalendar}
-                    className="px-4 py-2 text-sm bg-red-600 text-white rounded hover:bg-red-700 transition whitespace-nowrap"
-                  >
-                    Disconnect
-                  </button>
-                  {icalConnections.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    {icalConnections.length > 0 && (
+                      <button
+                        onClick={() => router.push("/onboarding/schedule/apple?from=dashboard")}
+                        className="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+                      >
+                        Manage
+                      </button>
+                    )}
                     <button
-                      onClick={() => router.push("/onboarding/schedule/apple?from=dashboard")}
-                      className="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition whitespace-nowrap ml-2"
+                      onClick={calendarConnection ? disconnectCalendar : disconnectAppleCalendars}
+                      className="px-4 py-2 text-sm bg-red-600 text-white rounded hover:bg-red-700 transition"
                     >
-                      Manage
+                      Disconnect
                     </button>
-                  )}
+                  </div>
                 </div>
               </div>
             ) : (
@@ -566,8 +581,8 @@ export default function ManageAvailabilityPage() {
                   </button>
                   <button
                     type="button"
-                    className={`rounded-xl border px-4 py-3 bg-white text-left ${icalConnections.length > 0 ? 'border-green-500' : 'hover:bg-gray-50'}`}
-                    onClick={connectingGoogle ? undefined : () => router.push("/onboarding/schedule/apple?from=dashboard")}
+                    className="rounded-xl border px-4 py-3 bg-white text-left hover:bg-gray-50"
+                    onClick={() => router.push("/onboarding/schedule/apple?from=dashboard")}
                     disabled={connectingGoogle}
                   >
                     <div className="font-medium flex items-center gap-2">
@@ -578,17 +593,8 @@ export default function ManageAvailabilityPage() {
                       </svg>
                       Apple Calendar
                     </div>
-                    <div className="text-xs text-gray-500">(iCloud Calendar)<br />{icalConnections.length > 0 ? `${icalConnections.length} connected` : 'Connect with iCal/webcal URL'}</div>
-                    {icalConnections.length > 0 && (
-                      <button
-                        onClick={() => router.push("/onboarding/schedule/apple?from=dashboard")}
-                        className="mt-2 text-xs text-blue-600 underline"
-                      >
-                        Manage
-                      </button>
-                    )}
+                    <div className="text-xs text-gray-500">(iCloud Calendar)<br />Connect with iCal/webcal URL</div>
                   </button>
-                  {/* Apple Calendar tutorial moved to /onboarding/schedule/apple */}
                 </div>
                 <p className="text-xs text-blue-600 mt-3">We'll redirect you to authorize calendar access.</p>
               </div>
@@ -685,7 +691,7 @@ export default function ManageAvailabilityPage() {
             </div>
 
             <div className="space-y-4">
-              {availabilityTemplates.map((template, index) => (
+              {availabilityTemplates.map((template: AvailabilityTemplate, index: number) => (
                 <div
                   key={template.id}
                   className="border rounded-lg p-4"
