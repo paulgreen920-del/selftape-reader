@@ -1,3 +1,15 @@
+
+model ICalConnection {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String   // User-provided label like "Work" or "Personal"
+  url       String   // The iCal URL
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
 generator client {
   provider = "prisma-client-js"
 }
@@ -168,6 +180,7 @@ model User {
   Booking_Booking_actorIdToUser  Booking[]               @relation("Booking_actorIdToUser")
   Booking_Booking_readerIdToUser Booking[]               @relation("Booking_readerIdToUser")
   CalendarConnection             CalendarConnection?
+  ICalConnections                ICalConnection[]
   email_change_requests          email_change_requests[]
   passwordResetTokens            PasswordResetToken[]
   skippedOnboardingSteps         String[]                @default([])

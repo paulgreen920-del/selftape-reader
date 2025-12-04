@@ -56,6 +56,7 @@ export default function OnboardingSchedulePage() {
   const [microsoftConnected, setMicrosoftConnected] = useState<boolean>(false);
   const [icalConnected, setIcalConnected] = useState<boolean>(false);
   const [showIcalInput, setShowIcalInput] = useState<boolean>(false);
+  const [showAppleTutorial, setShowAppleTutorial] = useState(false);
   const [icalUrl, setIcalUrl] = useState<string>("");
   const [icalError, setIcalError] = useState<string>("");
   const [connectingIcal, setConnectingIcal] = useState<boolean>(false);
@@ -384,7 +385,10 @@ export default function OnboardingSchedulePage() {
             disabled={googleConnected || !!err || loading}
             title={googleConnected ? "Already connected" : err ? "Fix the error above first" : ""}
           >
-            <div className="font-medium">Google Calendar</div>
+            <div className="font-medium flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-[#4285F4]" viewBox="0 0 20 20" fill="currentColor"><rect width="20" height="20" rx="4" fill="#fff"/><path d="M6 2a2 2 0 0 0-2 2v1h12V4a2 2 0 0 0-2-2H6zm10 5H4v9a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7zm-2 3H6v2h8v-2z" fill="#4285F4"/></svg>
+              Google Calendar
+            </div>
             <div className="text-xs text-gray-500">
               {googleConnected ? "Connected" : "Use your Google account"}
             </div>
@@ -399,7 +403,10 @@ export default function OnboardingSchedulePage() {
             disabled={microsoftConnected || !!err || loading}
             title={microsoftConnected ? "Already connected" : err ? "Fix the error above first" : ""}
           >
-            <div className="font-medium">Microsoft Outlook</div>
+            <div className="font-medium flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-[#0078D4]" viewBox="0 0 20 20" fill="currentColor"><rect width="20" height="20" rx="4" fill="#fff"/><path d="M6 2a2 2 0 0 0-2 2v1h12V4a2 2 0 0 0-2-2H6zm10 5H4v9a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7zm-2 3H6v2h8v-2z" fill="#0078D4"/></svg>
+              Microsoft Outlook
+            </div>
             <div className="text-xs text-gray-500">
               {microsoftConnected ? "Connected" : "Use your Microsoft account"}
             </div>
@@ -410,65 +417,22 @@ export default function OnboardingSchedulePage() {
             className={`rounded-xl border px-4 py-3 bg-white text-left ${
               icalConnected ? "opacity-50 cursor-not-allowed" : "hover:bg-gray-50"
             }`}
-            onClick={icalConnected ? undefined : () => setShowIcalInput(true)}
+            onClick={icalConnected ? undefined : () => router.push("/onboarding/schedule/apple")}
             disabled={icalConnected || !!err || loading}
             title={icalConnected ? "Already connected" : err ? "Fix the error above first" : ""}
           >
-            <div className="font-medium">iCal Feed</div>
+            <div className="font-medium flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-[#A2AAAD]" viewBox="0 0 20 20" fill="currentColor"><rect width="20" height="20" rx="4" fill="#fff"/><path d="M6 2a2 2 0 0 0-2 2v1h12V4a2 2 0 0 0-2-2H6zm10 5H4v9a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7zm-2 3H6v2h8v-2z" fill="#A2AAAD"/></svg>
+              Apple Calendar
+            </div>
             <div className="text-xs text-gray-500">
-              {icalConnected ? "Connected" : "Use an iCal/webcal URL"}
+              (iCloud Calendar)<br />{icalConnected ? "Connected" : "Use an iCal/webcal URL"}
             </div>
           </button>
         </div>
 
         {/* iCal URL Input */}
-        {showIcalInput && !icalConnected && (
-          <div className="mt-4 p-4 border rounded-lg bg-gray-50">
-            <h3 className="font-medium mb-2">Enter your iCal/webcal URL</h3>
-            <p className="text-xs text-gray-600 mb-3">
-              Find this in your calendar app's sharing settings. Examples:
-              <br />• Google Calendar: Settings → Integrate calendar → Secret address in iCal format
-              <br />• Apple Calendar: Calendar → Publish → Copy webcal URL
-              <br />• Outlook: Calendar → Share → Publish calendar
-            </p>
-            
-            <input
-              type="text"
-              value={icalUrl}
-              onChange={(e) => setIcalUrl(e.target.value)}
-              placeholder="https://calendar.google.com/calendar/ical/..."
-              className="w-full px-3 py-2 border rounded-lg text-sm mb-2"
-              disabled={connectingIcal}
-            />
-            
-            {icalError && (
-              <p className="text-sm text-red-600 mb-2">{icalError}</p>
-            )}
-            
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={connectIcal}
-                disabled={connectingIcal || !icalUrl.trim()}
-                className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {connectingIcal ? "Connecting..." : "Connect"}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowIcalInput(false);
-                  setIcalUrl("");
-                  setIcalError("");
-                }}
-                disabled={connectingIcal}
-                className="px-4 py-2 border rounded-lg text-sm hover:bg-gray-100"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        )}
+        {/* Apple Calendar tutorial moved to /onboarding/schedule/apple */}
       </section>
 
       {/* Availability */}
@@ -485,7 +449,7 @@ export default function OnboardingSchedulePage() {
         {!googleConnected && !microsoftConnected && !icalConnected && (
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
             <p className="text-sm text-yellow-800">
-              <strong>⚠️ Calendar sync required:</strong> Please connect your Google Calendar, Microsoft Outlook, or iCal feed above before continuing. This ensures actors can see your real-time availability and prevents double-bookings.
+              <strong>⚠️ Calendar sync required:</strong> Please connect your Google Calendar, Microsoft Outlook, or Apple Calendar above before continuing. This ensures actors can see your real-time availability and prevents double-bookings.
             </p>
           </div>
         )}

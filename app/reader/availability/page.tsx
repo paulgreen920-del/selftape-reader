@@ -45,6 +45,7 @@ const TIMEZONE_OPTIONS = [
 ];
 
 export default function ManageAvailabilityPage() {
+    const [showAppleTutorial, setShowAppleTutorial] = useState(false);
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -544,7 +545,7 @@ export default function ManageAvailabilityPage() {
                   <button
                     type="button"
                     className={`rounded-xl border px-4 py-3 bg-white text-left ${connectingGoogle ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50'}`}
-                    onClick={connectingGoogle ? undefined : connectICal}
+                    onClick={connectingGoogle ? undefined : () => router.push("/onboarding/schedule/apple?from=dashboard")}
                     disabled={connectingGoogle}
                   >
                     <div className="font-medium flex items-center gap-2">
@@ -553,10 +554,11 @@ export default function ManageAvailabilityPage() {
                         <path d="M16 2v4M8 2v4M3 10h18" stroke="#4b5563" strokeWidth="2" strokeLinecap="round"/>
                         <rect x="3" y="4" width="18" height="16" rx="2" stroke="#4b5563" strokeWidth="2"/>
                       </svg>
-                      iCal (.ics)
+                      Apple Calendar
                     </div>
-                    <div className="text-xs text-gray-500">Connect with iCal/webcal URL</div>
+                    <div className="text-xs text-gray-500">(iCloud Calendar)<br />Connect with iCal/webcal URL</div>
                   </button>
+                  {/* Apple Calendar tutorial moved to /onboarding/schedule/apple */}
                 </div>
                 <p className="text-xs text-blue-600 mt-3">We'll redirect you to authorize calendar access.</p>
               </div>
