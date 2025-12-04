@@ -9,13 +9,25 @@ export default function AppleCalendarPage() {
   const params = useSearchParams();
   const fromDashboard = params.get("from") === "dashboard";
 
-  // Simulated connected calendars (replace with real API call)
-  const [calendars, setCalendars] = useState<Array<{ name: string; url: string }>>([]);
+  // Connected calendars from API
+  const [calendars, setCalendars] = useState<Array<{ id: string; name: string; url: string }>>([]);
   const [name, setName] = useState("");
   const [url, setUrl] = useState("");
   const maxCalendars = 5;
   const [showForm, setShowForm] = useState(calendars.length === 0);
   const [showSuccess, setShowSuccess] = useState(false);
+
+  // Fetch existing calendars on mount
+  useEffect(() => {
+    fetch('/api/calendar/ical')
+      .then(res => res.json())
+      .then(data => {
+        if (data.ok && data.connections) {
+          setCalendars(data.connections);
+          setShowForm(data.connections.length === 0);
+        }
+      });
+  }, []);
 
   useEffect(() => {
     if (showSuccess) {
@@ -24,21 +36,37 @@ export default function AppleCalendarPage() {
     }
   }, [showSuccess]);
 
-  const handleConnect = () => {
+  const handleConnect = async () => {
     if (name && url && calendars.length < maxCalendars) {
-      setCalendars([...calendars, { name, url }]);
-      setName("");
-      setUrl("");
-      setShowForm(false);
-      setShowSuccess(true);
+      const res = await fetch('/api/calendar/ical', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, url }),
+      });
+      const data = await res.json();
+      if (data.ok && data.connection) {
+        setCalendars([...calendars, data.connection]);
+        setName("");
+        setUrl("");
+        setShowForm(false);
+        setShowSuccess(true);
+      } else {
+        alert(data.error || 'Failed to connect calendar');
+      }
     }
   };
 
-  const handleRemove = (idx: number) => {
-    const newCals = calendars.filter((_, i) => i !== idx);
-    setCalendars(newCals);
-    if (newCals.length === 0) {
-      setShowForm(true);
+  const handleRemove = async (id: string) => {
+    const res = await fetch(`/api/calendar/ical/${id}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (data.ok) {
+      const newCals = calendars.filter(c => c.id !== id);
+      setCalendars(newCals);
+      if (newCals.length === 0) {
+        setShowForm(true);
+      }
+    } else {
+      alert(data.error || 'Failed to remove calendar');
     }
   };
 
@@ -149,12 +177,12 @@ export default function AppleCalendarPage() {
            <div className="mb-8">
              <div className="mb-2 font-semibold">Connected Apple Calendars</div>
              <ul className="space-y-2 mb-2">
-               {calendars.map((cal, idx) => (
-                 <li key={idx} className="flex items-center justify-between bg-white border rounded px-3 py-2">
+               {calendars.map((cal) => (
+                 <li key={cal.id} className="flex items-center justify-between bg-white border rounded px-3 py-2">
                    <span>{cal.name}</span>
                    <button
                      className="text-red-500 text-xs px-2 py-1 border border-red-200 rounded hover:bg-red-50"
-                     onClick={() => handleRemove(idx)}
+                     onClick={() => handleRemove(cal.id)}
                    >Remove</button>
                  </li>
                ))}
