@@ -1,6 +1,8 @@
+"use client";
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect } from "react";
 
 export default function AppleCalendarPage() {
   const router = useRouter();
@@ -12,17 +14,32 @@ export default function AppleCalendarPage() {
   const [name, setName] = useState("");
   const [url, setUrl] = useState("");
   const maxCalendars = 5;
+  const [showForm, setShowForm] = useState(calendars.length === 0);
+  const [showSuccess, setShowSuccess] = useState(false);
+
+  useEffect(() => {
+    if (showSuccess) {
+      const timer = setTimeout(() => setShowSuccess(false), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [showSuccess]);
 
   const handleConnect = () => {
     if (name && url && calendars.length < maxCalendars) {
       setCalendars([...calendars, { name, url }]);
       setName("");
       setUrl("");
+      setShowForm(false);
+      setShowSuccess(true);
     }
   };
 
   const handleRemove = (idx: number) => {
-    setCalendars(calendars.filter((_, i) => i !== idx));
+    const newCals = calendars.filter((_, i) => i !== idx);
+    setCalendars(newCals);
+    if (newCals.length === 0) {
+      setShowForm(true);
+    }
   };
 
   const handleContinue = () => {
@@ -41,6 +58,12 @@ export default function AppleCalendarPage() {
     } else {
       router.push("/onboarding/schedule");
     }
+  };
+
+  const handleAddAnother = () => {
+    setShowForm(true);
+    setName("");
+    setUrl("");
   };
 
   return (
@@ -80,61 +103,73 @@ export default function AppleCalendarPage() {
             </ol>
           </div>
         </div>
-        {/* Input Section */}
-        <div className="bg-gray-50 border rounded-lg p-6 mb-8">
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-1">Calendar Name</label>
-            <input
-              type="text"
-              className="w-full border rounded px-3 py-2"
-              placeholder="e.g., Work, Personal"
-              value={name}
-              onChange={e => setName(e.target.value)}
-            />
-          </div>
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-1">iCal URL</label>
-            <input
-              type="text"
-              className="w-full border rounded px-3 py-2"
-              placeholder="Paste your Apple Calendar link here"
-              value={url}
-              onChange={e => setUrl(e.target.value)}
-            />
-          </div>
-          <button
-            className="w-full bg-emerald-600 text-white py-2 rounded font-semibold disabled:opacity-50"
-            onClick={handleConnect}
-            disabled={!name || !url || calendars.length >= maxCalendars}
-          >
-            Connect Calendar
-          </button>
-        </div>
+         {/* Input Section */}
+         {showForm && calendars.length < maxCalendars && (
+           <div className="bg-gray-50 border rounded-lg p-6 mb-8">
+             <div className="mb-4">
+               <label className="block text-sm font-medium mb-1">Calendar Name</label>
+               <input
+                 type="text"
+                 className="w-full border rounded px-3 py-2"
+                 placeholder="e.g., Work, Personal"
+                 value={name}
+                 onChange={e => setName(e.target.value)}
+               />
+             </div>
+             <div className="mb-4">
+               <label className="block text-sm font-medium mb-1">iCal URL</label>
+               <input
+                 type="text"
+                 className="w-full border rounded px-3 py-2"
+                 placeholder="Paste your Apple Calendar link here"
+                 value={url}
+                 onChange={e => setUrl(e.target.value)}
+               />
+             </div>
+             <button
+               className="w-full bg-emerald-600 text-white py-2 rounded font-semibold disabled:opacity-50"
+               onClick={handleConnect}
+               disabled={!name || !url || calendars.length >= maxCalendars}
+             >
+               Connect Calendar
+             </button>
+           </div>
+         )}
+         {/* Success Message */}
+         {showSuccess && (
+           <div className="flex items-center justify-center mb-8">
+             <span className="text-green-600 mr-2">
+               <svg width="24" height="24" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="12" fill="#22c55e"/><path d="M7 13l3 3 7-7" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+             </span>
+             <span className="text-green-700 font-semibold">Calendar connected successfully!</span>
+           </div>
+         )}
         {/* Connected Calendars List */}
-        {calendars.length > 0 && (
-          <div className="mb-8">
-            <div className="mb-2 font-semibold">Connected Apple Calendars</div>
-            <ul className="space-y-2 mb-2">
-              {calendars.map((cal, idx) => (
-                <li key={idx} className="flex items-center justify-between bg-white border rounded px-3 py-2">
-                  <span>{cal.name}</span>
-                  <button
-                    className="text-red-500 text-xs px-2 py-1 border border-red-200 rounded hover:bg-red-50"
-                    onClick={() => handleRemove(idx)}
-                  >Remove</button>
-                </li>
-              ))}
-            </ul>
-            {calendars.length < maxCalendars && (
-              <button
-                className="text-emerald-600 text-sm font-semibold px-2 py-1 border border-emerald-200 rounded hover:bg-emerald-50"
-                onClick={() => {}}
-                disabled={calendars.length >= maxCalendars}
-              >Add Another Calendar</button>
-            )}
-            <div className="text-xs text-gray-500 mt-2">{calendars.length} of {maxCalendars} calendars connected</div>
-          </div>
-        )}
+         {calendars.length > 0 && (
+           <div className="mb-8">
+             <div className="mb-2 font-semibold">Connected Apple Calendars</div>
+             <ul className="space-y-2 mb-2">
+               {calendars.map((cal, idx) => (
+                 <li key={idx} className="flex items-center justify-between bg-white border rounded px-3 py-2">
+                   <span>{cal.name}</span>
+                   <button
+                     className="text-red-500 text-xs px-2 py-1 border border-red-200 rounded hover:bg-red-50"
+                     onClick={() => handleRemove(idx)}
+                   >Remove</button>
+                 </li>
+               ))}
+             </ul>
+             {/* Show Add Another Calendar only when form is hidden and less than max */}
+             {!showForm && calendars.length < maxCalendars && (
+               <button
+                 className="text-emerald-600 text-sm font-semibold px-2 py-1 border border-emerald-200 rounded hover:bg-emerald-50"
+                 onClick={handleAddAnother}
+                 disabled={calendars.length >= maxCalendars}
+               >Add Another Calendar</button>
+             )}
+             <div className="text-xs text-gray-500 mt-2">{calendars.length} of {maxCalendars} calendars connected</div>
+           </div>
+         )}
         {/* Footer Note */}
         <div className="text-xs text-gray-500 mb-8">
           Note: Apple Calendar is read-only. We'll see your busy times to prevent double-bookings, but new sessions won't automatically appear on your calendar. You'll receive an email with a calendar invite (.ics file) for each booking.
