@@ -19,7 +19,7 @@ export default function OnboardingSchedulePage() {
       if (res.ok) {
         setGoogleConnected(false);
         setMicrosoftConnected(false);
-        setIcalConnected(false);
+        setIcalConnections([]);
         setShowDisconnectModal(false);
         // Continue with pending provider
         if (pendingProvider === "GOOGLE") {
@@ -54,7 +54,7 @@ export default function OnboardingSchedulePage() {
   // --- Track calendar connection status from database
   const [googleConnected, setGoogleConnected] = useState<boolean>(false);
   const [microsoftConnected, setMicrosoftConnected] = useState<boolean>(false);
-  const [icalConnected, setIcalConnected] = useState<boolean>(false);
+  const [icalConnections, setIcalConnections] = useState<Array<{ id: string; name: string; url: string }>>([]);
   const [showIcalInput, setShowIcalInput] = useState<boolean>(false);
   const [showAppleTutorial, setShowAppleTutorial] = useState(false);
   const [icalUrl, setIcalUrl] = useState<string>("");
@@ -144,20 +144,22 @@ export default function OnboardingSchedulePage() {
   useEffect(() => {
     async function checkConnection() {
       if (!effectiveReaderId) return;
-      
       setCheckingConnection(true);
       try {
         const res = await fetch(`/api/calendar/connection?userId=${encodeURIComponent(effectiveReaderId)}`);
         const data = await res.json();
-        
         if (data.connected) {
           if (data.provider === 'GOOGLE') {
             setGoogleConnected(true);
           } else if (data.provider === 'MICROSOFT') {
             setMicrosoftConnected(true);
-          } else if (data.provider === 'ICAL') {
-            setIcalConnected(true);
           }
+        }
+        // Fetch Apple Calendar connections
+        const icalRes = await fetch('/api/calendar/ical');
+        const icalData = await icalRes.json();
+        if (icalData.ok && Array.isArray(icalData.connections)) {
+          setIcalConnections(icalData.connections);
         }
       } catch (e) {
         console.error('Failed to check calendar connection:', e);
@@ -165,18 +167,13 @@ export default function OnboardingSchedulePage() {
         setCheckingConnection(false);
       }
     }
-
-    // Check on mount and when effectiveReaderId changes
     checkConnection();
-
     // Also check if URL param indicates just connected
     const connectedParam = (searchParams.get("connected") || "").toLowerCase();
     if (connectedParam === "google") {
       setGoogleConnected(true);
     } else if (connectedParam === "microsoft") {
       setMicrosoftConnected(true);
-    } else if (connectedParam === "ical") {
-      setIcalConnected(true);
     }
   }, [effectiveReaderId, searchParams]);
 
@@ -208,7 +205,7 @@ export default function OnboardingSchedulePage() {
         throw new Error(data.error || 'Failed to connect iCal calendar');
       }
 
-      setIcalConnected(true);
+      // Apple Calendar connection is now tracked via icalConnections
       setShowIcalInput(false);
       setIcalUrl("");
     } catch (e: any) {
@@ -220,7 +217,7 @@ export default function OnboardingSchedulePage() {
 
   // ---- Start Google OAuth via our API
   async function goGoogle() {
-    if (googleConnected || microsoftConnected || icalConnected) {
+    if (googleConnected || microsoftConnected || icalConnections.length > 0) {
       setPendingProvider("GOOGLE");
       setShowDisconnectModal(true);
       return;
@@ -248,7 +245,7 @@ export default function OnboardingSchedulePage() {
 
   // ---- Start Microsoft OAuth via our API
   async function goMicrosoft() {
-    if (googleConnected || microsoftConnected || icalConnected) {
+    if (googleConnected || microsoftConnected || icalConnections.length > 0) {
       setPendingProvider("MICROSOFT");
       setShowDisconnectModal(true);
       return;
@@ -351,88 +348,75 @@ export default function OnboardingSchedulePage() {
       {/* Calendar Sync */}
       <section className="mt-10">
         <div className="flex items-center gap-3">
-          <h2 className="text-lg font-semibold">Connect your calendar</h2>
-
-          {/* Connection status badges */}
-          {googleConnected && (
+          <h2 className="text-lg font-semibold">{(googleConnected || microsoftConnected || icalConnections.length > 0) ? "Calendar Connected" : "Connect your calendar"}</h2>
+          {(googleConnected || microsoftConnected || icalConnections.length > 0) && (
             <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700">
-              Google connected
-            </span>
-          )}
-          {microsoftConnected && (
-            <span className="inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700">
-              Microsoft connected
-            </span>
-          )}
-          {icalConnected && (
-            <span className="inline-flex items-center rounded-full border border-purple-200 bg-purple-50 px-2.5 py-0.5 text-xs font-medium text-purple-700">
-              iCal connected
+              ✓ Calendar Connected
             </span>
           )}
         </div>
-
-        <p className="text-sm text-gray-600 mb-4">
-          Choose a provider to sync bookings automatically.
-        </p>
-
+        {(googleConnected || microsoftConnected || icalConnections.length > 0) ? (
+          <div className="mb-4">
+            <p className="text-sm text-gray-600">Your calendar is synced to avoid double-bookings.</p>
+            {googleConnected && <div className="text-xs text-emerald-700">Connected to Google Calendar</div>}
+            {microsoftConnected && <div className="text-xs text-blue-700">Connected to Microsoft Outlook</div>}
+            {icalConnections.length > 0 && (
+              <div className="text-xs text-purple-700">Connected to Apple Calendar ({icalConnections.length} calendar{icalConnections.length > 1 ? "s" : ""} connected)</div>
+            )}
+          </div>
+        ) : (
+          <p className="text-sm text-gray-600 mb-4">Choose a provider to sync bookings automatically.</p>
+        )}
         <div className="grid sm:grid-cols-3 gap-3">
           <button
             type="button"
-            className={`rounded-xl border px-4 py-3 bg-white text-left ${
-              googleConnected ? "opacity-50 cursor-not-allowed" : "hover:bg-gray-50"
-            }`}
+            className={`rounded-xl border px-4 py-3 bg-white text-left ${googleConnected ? "border-green-500" : "hover:bg-gray-50"}`}
             onClick={googleConnected ? undefined : goGoogle}
             disabled={googleConnected || !!err || loading}
             title={googleConnected ? "Already connected" : err ? "Fix the error above first" : ""}
           >
             <div className="font-medium flex items-center gap-2">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-[#4285F4]" viewBox="0 0 20 20" fill="currentColor"><rect width="20" height="20" rx="4" fill="#fff"/><path d="M6 2a2 2 0 0 0-2 2v1h12V4a2 2 0 0 0-2-2H6zm10 5H4v9a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7zm-2 3H6v2h8v-2z" fill="#4285F4"/></svg>
-              Google Calendar
+              Google Calendar {googleConnected && <span className="ml-2 text-green-600">✓ Connected</span>}
             </div>
             <div className="text-xs text-gray-500">
               {googleConnected ? "Connected" : "Use your Google account"}
             </div>
+            {googleConnected && <button className="mt-2 text-xs text-blue-600 underline" onClick={() => setShowDisconnectModal(true)}>Manage</button>}
           </button>
-
           <button
             type="button"
-            className={`rounded-xl border px-4 py-3 bg-white text-left ${
-              microsoftConnected ? "opacity-50 cursor-not-allowed" : "hover:bg-gray-50"
-            }`}
+            className={`rounded-xl border px-4 py-3 bg-white text-left ${microsoftConnected ? "border-green-500" : "hover:bg-gray-50"}`}
             onClick={microsoftConnected ? undefined : goMicrosoft}
             disabled={microsoftConnected || !!err || loading}
             title={microsoftConnected ? "Already connected" : err ? "Fix the error above first" : ""}
           >
             <div className="font-medium flex items-center gap-2">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-[#0078D4]" viewBox="0 0 20 20" fill="currentColor"><rect width="20" height="20" rx="4" fill="#fff"/><path d="M6 2a2 2 0 0 0-2 2v1h12V4a2 2 0 0 0-2-2H6zm10 5H4v9a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7zm-2 3H6v2h8v-2z" fill="#0078D4"/></svg>
-              Microsoft Outlook
+              Microsoft Outlook {microsoftConnected && <span className="ml-2 text-green-600">✓ Connected</span>}
             </div>
             <div className="text-xs text-gray-500">
               {microsoftConnected ? "Connected" : "Use your Microsoft account"}
             </div>
+            {microsoftConnected && <button className="mt-2 text-xs text-blue-600 underline" onClick={() => setShowDisconnectModal(true)}>Manage</button>}
           </button>
-
           <button
             type="button"
-            className={`rounded-xl border px-4 py-3 bg-white text-left ${
-              icalConnected ? "opacity-50 cursor-not-allowed" : "hover:bg-gray-50"
-            }`}
-            onClick={icalConnected ? undefined : () => router.push("/onboarding/schedule/apple")}
-            disabled={icalConnected || !!err || loading}
-            title={icalConnected ? "Already connected" : err ? "Fix the error above first" : ""}
+            className={`rounded-xl border px-4 py-3 bg-white text-left ${icalConnections.length > 0 ? "border-green-500" : "hover:bg-gray-50"}`}
+            onClick={icalConnections.length > 0 ? () => router.push("/onboarding/schedule/apple") : () => router.push("/onboarding/schedule/apple")}
+            disabled={!!err || loading}
+            title={icalConnections.length > 0 ? "Already connected" : err ? "Fix the error above first" : ""}
           >
             <div className="font-medium flex items-center gap-2">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-[#A2AAAD]" viewBox="0 0 20 20" fill="currentColor"><rect width="20" height="20" rx="4" fill="#fff"/><path d="M6 2a2 2 0 0 0-2 2v1h12V4a2 2 0 0 0-2-2H6zm10 5H4v9a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7zm-2 3H6v2h8v-2z" fill="#A2AAAD"/></svg>
-              Apple Calendar
+              Apple Calendar {icalConnections.length > 0 && <span className="ml-2 text-green-600">✓ Connected</span>}
             </div>
             <div className="text-xs text-gray-500">
-              (iCloud Calendar)<br />{icalConnected ? "Connected" : "Use an iCal/webcal URL"}
+              (iCloud Calendar)<br />{icalConnections.length > 0 ? `${icalConnections.length} connected` : "Use an iCal/webcal URL"}
             </div>
+            {icalConnections.length > 0 && <button className="mt-2 text-xs text-blue-600 underline" onClick={() => router.push("/onboarding/schedule/apple")}>Manage</button>}
           </button>
         </div>
-
-        {/* iCal URL Input */}
-        {/* Apple Calendar tutorial moved to /onboarding/schedule/apple */}
       </section>
 
       {/* Availability */}
@@ -446,7 +430,7 @@ export default function OnboardingSchedulePage() {
 
       {/* Footer actions */}
       <div className="mt-12 flex flex-col gap-3">
-        {!googleConnected && !microsoftConnected && !icalConnected && (
+        {!googleConnected && !microsoftConnected && icalConnections.length === 0 && (
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
             <p className="text-sm text-yellow-800">
               <strong>⚠️ Calendar sync required:</strong> Please connect your Google Calendar, Microsoft Outlook, or Apple Calendar above before continuing. This ensures actors can see your real-time availability and prevents double-bookings.
@@ -465,12 +449,12 @@ export default function OnboardingSchedulePage() {
           <button
             type="button"
             className={`rounded-lg px-4 py-2 ${
-              (googleConnected || microsoftConnected || icalConnected)
+              (googleConnected || microsoftConnected || icalConnections.length > 0)
                 ? "bg-emerald-600 text-white hover:bg-emerald-700"
                 : "bg-gray-300 text-gray-500 cursor-not-allowed"
             }`}
             onClick={async () => {
-              if (googleConnected || microsoftConnected || icalConnected) {
+              if (googleConnected || microsoftConnected || icalConnections.length > 0) {
                 // Update onboarding step before continuing
                 setUpdatingStep(true);
                 try {
@@ -488,8 +472,8 @@ export default function OnboardingSchedulePage() {
                 router.push(`/onboarding/availability?readerId=${id}`);
               }
             }}
-            disabled={!googleConnected && !microsoftConnected && !icalConnected || updatingStep}
-            title={(!googleConnected && !microsoftConnected && !icalConnected) ? "Please connect your calendar first" : ""}
+            disabled={!googleConnected && !microsoftConnected && icalConnections.length === 0 || updatingStep}
+            title={(!googleConnected && !microsoftConnected && icalConnections.length === 0) ? "Please connect your calendar first" : ""}
           >
             {updatingStep ? "Saving..." : checkingConnection ? "Checking..." : "Continue"}
           </button>
