@@ -1,14 +1,28 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+// Fisher-Yates shuffle for true randomization
+function shuffle<T>(array: T[]): T[] {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
+
 /**
  * GET /api/readers/available
- * Returns all fully onboarded available readers who have bookable time slots
+ * Returns all fully onboarded available readers, sorted by cohorts
  */
 export async function GET() {
   try {
+    // Get today's date boundaries
     const now = new Date();
-    
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const todayEnd = new Date(todayStart);
+    todayEnd.setDate(todayEnd.getDate() + 1);
+
     // Find all users with role READER or ADMIN, and include all necessary relations
     const users = await prisma.user.findMany({
       where: { role: { in: ["READER", "ADMIN"] } },
@@ -16,19 +30,24 @@ export async function GET() {
         CalendarConnection: true,
         AvailabilitySlot: {
           where: {
+            startTime: { gte: now },
             isBooked: false,
-            startTime: { gt: now }
-          }
+          },
+          orderBy: { startTime: "asc" },
+          take: 20,
+        },
+        // Get today's bookings to determine cohort
+        Booking_Booking_readerIdToUser: {
+          where: {
+            startTime: { gte: todayStart, lt: todayEnd },
+            status: { in: ["PENDING", "CONFIRMED"] },
+          },
         },
       },
     });
 
-    // Inline onboarding logic as per requirements
-    // Now also checks for FUTURE AVAILABLE slots, not just any slots
-    const fullyOnboarded = users.filter((user: any) => {
-      // Count only future, unbooked slots
-      const futureAvailableSlots = user.AvailabilitySlot?.length || 0;
-      
+    // Filter to only fully onboarded readers
+    const fullyOnboarded = users.filter((user) => {
       return (
         user.emailVerified === true &&
         (user.role === "READER" || user.role === "ADMIN") &&
@@ -42,29 +61,85 @@ export async function GET() {
         user.stripeAccountId != null &&
         user.stripeCustomerId != null &&
         user.isActive === true &&
-        futureAvailableSlots > 0 && // Must have at least one future available slot
+        user.AvailabilitySlot && user.AvailabilitySlot.length > 0 &&
         user.CalendarConnection != null
       );
     });
 
-    // Remove relations from output if not needed
-    const output = fullyOnboarded.map(({
-      CalendarConnection,
-      AvailabilitySlot,
-      ...rest
-    }: {
-      CalendarConnection: any;
-      AvailabilitySlot: any[];
-      [key: string]: any;
+    // Add metadata for sorting
+    const readersWithMeta = fullyOnboarded.map((r) => {
+      const bookingsToday = r.Booking_Booking_readerIdToUser?.length || 0;
+      const soonestSlot = r.AvailabilitySlot[0]?.startTime || null;
+      const hasAvailabilityToday = r.AvailabilitySlot.some(
+        (slot: { startTime: Date }) => slot.startTime >= now && slot.startTime < todayEnd
+      );
+
+      return {
+        ...r,
+        bookingsToday,
+        soonestSlot,
+        hasAvailabilityToday,
+      };
+    });
+
+    type ReaderWithMeta = (typeof readersWithMeta)[0];
+
+    // Separate into cohorts
+    const availableToday = readersWithMeta.filter((r) => r.hasAvailabilityToday);
+    const availableFuture = readersWithMeta.filter(
+      (r) => !r.hasAvailabilityToday && r.soonestSlot
+    );
+    const noAvailability = readersWithMeta.filter((r) => !r.soonestSlot);
+
+    // Group by bookings count and shuffle within each group
+    function groupAndShuffle(readers: ReaderWithMeta[]): ReaderWithMeta[] {
+      const grouped: { [key: number]: ReaderWithMeta[] } = {};
+
+      readers.forEach((r) => {
+        if (!grouped[r.bookingsToday]) {
+          grouped[r.bookingsToday] = [];
+        }
+        grouped[r.bookingsToday].push(r);
+      });
+
+      // Sort by booking count (ascending) and shuffle within each group
+      const sortedKeys = Object.keys(grouped)
+        .map(Number)
+        .sort((a, b) => a - b);
+
+      const result: ReaderWithMeta[] = [];
+      sortedKeys.forEach((key) => {
+        result.push(...shuffle(grouped[key]));
+      });
+
+      return result;
+    }
+
+    // Final sorted order
+    const sortedReaders = [
+      ...groupAndShuffle(availableToday),
+      ...groupAndShuffle(availableFuture),
+      ...shuffle(noAvailability),
+    ];
+
+    // Remove relations from output
+    const output = sortedReaders.map(({ 
+      CalendarConnection, 
+      AvailabilitySlot, 
+      Booking_Booking_readerIdToUser,
+      bookingsToday,
+      soonestSlot,
+      hasAvailabilityToday,
+      ...rest 
     }) => ({
       ...rest,
-      calendarConnection: CalendarConnection,
       availabilitySlotCount: AvailabilitySlot.length,
     }));
 
     return NextResponse.json({ ok: true, readers: output }, { status: 200 });
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const errorMessage = err instanceof Error ? err.message : "Server error";
     console.error("[GET /api/readers/available] error:", err);
-    return NextResponse.json({ ok: false, error: err?.message || "Server error" }, { status: 500 });
+    return NextResponse.json({ ok: false, error: errorMessage }, { status: 500 });
   }
 }
