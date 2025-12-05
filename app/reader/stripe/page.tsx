@@ -1,3 +1,4 @@
+"use client";
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -45,7 +46,7 @@ export default function StripeManagementPage() {
         throw new Error(data.error || 'Failed to get dashboard link');
       }
 
-      window.open(data.url, '_blank');
+      window.location.href = data.url;
     } catch (err: any) {
       alert(err.message || 'Failed to open Stripe dashboard');
     } finally {

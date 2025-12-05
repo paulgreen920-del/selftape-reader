@@ -1,3 +1,6 @@
+
+'use client';
+
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import Stripe from "stripe";
@@ -200,7 +203,11 @@ export async function POST(req: Request) {
       timeZoneName: 'short'
     });
 
-    // Create Stripe Checkout session
+    // Calculate platform fee (20%) and reader earnings (80%)
+    const platformFeeCents = Math.round(booking.totalCents * 0.20);
+    const readerEarningsCents = booking.totalCents - platformFeeCents;
+
+    // Create Stripe Checkout session with Connect transfer
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
       line_items: [
@@ -208,23 +215,37 @@ export async function POST(req: Request) {
           price_data: {
             currency: "usd",
             product_data: {
-              name: `${durationMin}-minute session with ${reader.displayName || reader.name}`,
-              description: actorTimeStr,
+              name: `${booking.durationMinutes}-minute session with ${reader.displayName || reader.name}`,
+              description: `${booking.startTime.toLocaleDateString()} at ${booking.startTime.toLocaleTimeString()}`,
             },
-            unit_amount: priceCents,
+            unit_amount: booking.totalCents,
           },
           quantity: 1,
         },
       ],
       mode: "payment",
-      success_url: `${process.env.NEXT_PUBLIC_URL}/checkout/success?bookingId=${booking.id}`,
-      cancel_url: `${process.env.NEXT_PUBLIC_URL}/reader/${readerId}?booking=${booking.id}&action=cancel`,
-      expires_at: Math.floor(Date.now() / 1000) + (30 * 60),
-      customer_email: actor.email,
       allow_promotion_codes: true,
+      success_url: `${process.env.NEXT_PUBLIC_URL}/checkout/success?bookingId=${booking.id}`,
+      cancel_url: `${process.env.NEXT_PUBLIC_URL}/sessions`,
+      customer_email: actor.email,
+      payment_intent_data: {
+        application_fee_amount: platformFeeCents,
+        transfer_data: {
+          destination: reader.stripeAccountId,
+        },
+      },
       metadata: {
         bookingId: booking.id,
         readerId: reader.id,
+      },
+    });
+
+    // Update booking with fee breakdown
+    await prisma.booking.update({
+      where: { id: booking.id },
+      data: {
+        platformFeeCents,
+        readerEarningsCents,
       },
     });
 
