@@ -213,7 +213,7 @@ export async function POST(req: Request) {
             currency: "usd",
             product_data: {
               name: `${booking.durationMinutes}-minute session with ${reader.displayName || reader.name}`,
-              description: `${booking.startTime.toLocaleDateString()} at ${booking.startTime.toLocaleTimeString()}`,
+              description: actorTimeStr,
             },
             unit_amount: booking.totalCents,
           },
