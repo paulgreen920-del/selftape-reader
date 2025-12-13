@@ -1,5 +1,4 @@
-import { trackSignUpComplete } from '@/lib/fbpixel';
-import { trackSignUpClick } from '@/lib/fbpixel';
+import { trackSignUpComplete, trackSignUpClick } from '../../lib/fbpixel';
 'use client';
 
 import { useState, FormEvent, useEffect, Suspense } from 'react';
