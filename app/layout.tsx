@@ -29,7 +29,6 @@ export default function RootLayout({
             fbq('track', 'PageView');
           `}
         </Script>
-        <FacebookPixel />
 
         {/* NAVBAR */}
         <header className="sticky top-0 z-40 bg-white/80 backdrop-blur border-b">
