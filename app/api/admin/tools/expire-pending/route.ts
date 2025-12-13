@@ -29,7 +29,7 @@ export async function POST(req: Request) {
   const ids = bookings.map(b => b.id);
   await prisma.booking.updateMany({
     where: { id: { in: ids } },
-    data: { status: "EXPIRED" },
+    data: { status: "CANCELED" }, // Use a valid BookingStatus value
   });
   return NextResponse.json({ ok: true, count: ids.length });
 }
