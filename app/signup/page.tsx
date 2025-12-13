@@ -1,5 +1,6 @@
-import { trackSignUpComplete, trackSignUpClick } from '../../lib/fbpixel';
+
 'use client';
+import { trackSignUpComplete, trackSignUpClick } from '../../lib/fbpixel';
 
 import { useState, FormEvent, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
