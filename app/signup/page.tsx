@@ -44,8 +44,7 @@ function SignupForm() {
         return;
       }
 
-      // Track Facebook Pixel CompleteRegistration event
-      trackSignUpComplete(role);
+      // ...existing code...
       // Facebook Pixel: Track CompleteRegistration
       if (typeof window !== 'undefined' && typeof window.fbq === 'function') {
         window.fbq('track', 'CompleteRegistration');
