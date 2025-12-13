@@ -426,7 +426,7 @@ export default function ReadersGrid({
               <div className="mt-5">
                 <button
                   onClick={() => checkAuthAndRoute(r.id)}
-                  className="inline-flex w-full items-center justify-center rounded-xl border bg-foreground px-4 py-2 text-background transition hover:opacity-90"
+                  className="inline-flex w-full items-center justify-center rounded-xl bg-emerald-600 px-4 py-2 text-white font-semibold transition hover:bg-emerald-700"
                 >
                   Book {r.displayName || r.name}
                 </button>
