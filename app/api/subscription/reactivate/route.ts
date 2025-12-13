@@ -39,61 +39,73 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: false, error: "User not found" }, { status: 404 });
     }
 
-    // If they have an active subscription that's set to cancel, just undo the cancellation
-    if (user.subscriptionId && user.subscriptionStatus === "canceling") {
-      // Reactivate the existing subscription
-      await stripe.subscriptions.update(user.subscriptionId, {
-        cancel_at_period_end: false,
-      });
+    console.log(`[reactivate] User ${user.id} - Status: ${user.subscriptionStatus}, SubId: ${user.subscriptionId}`);
 
-      await prisma.user.update({
-        where: { id: user.id },
-        data: {
-          subscriptionStatus: "active",
-          isActive: true,
-        },
-      });
 
-      console.log(`✅ Reactivated existing subscription for user ${user.id}`);
+    // If they have a subscription, check its actual state with Stripe
+    if (user.subscriptionId) {
+      const subscription = await stripe.subscriptions.retrieve(user.subscriptionId);
+      
+      console.log(`[reactivate] Stripe status: ${subscription.status}, cancel_at_period_end: ${subscription.cancel_at_period_end}`);
 
-      return NextResponse.json({ 
-        ok: true, 
-        message: "Subscription reactivated!" 
-      });
-    }
+      // If subscription is active but scheduled to cancel, undo the cancellation
+      if (subscription.status === "active" && subscription.cancel_at_period_end) {
+        await stripe.subscriptions.update(user.subscriptionId, {
+          cancel_at_period_end: false,
+        });
 
-    // If they're fully canceled (no active subscription), they need to re-subscribe
-    if (!user.subscriptionId || user.subscriptionStatus === "canceled") {
-      // Create new checkout session for resubscription
-      const checkoutSession = await stripe.checkout.sessions.create({
-        customer: user.stripeCustomerId || undefined,
-        mode: "subscription",
-        payment_method_types: ["card"],
-        line_items: [
-          {
-            price: process.env.STRIPE_READER_PRICE_ID!,
-            quantity: 1,
+        await prisma.user.update({
+          where: { id: user.id },
+          data: {
+            subscriptionStatus: "active",
+            isActive: true,
           },
-        ],
-        success_url: `${process.env.NEXT_PUBLIC_URL}/settings/subscription?reactivated=true`,
-        cancel_url: `${process.env.NEXT_PUBLIC_URL}/settings/subscription`,
-        metadata: {
-          userId: user.id,
-          type: "reader_resubscription",
-        },
-      });
+        });
 
-      return NextResponse.json({ 
-        ok: true, 
-        checkoutUrl: checkoutSession.url,
-        message: "Redirecting to payment..." 
-      });
+        console.log(`✅ Reactivated subscription for user ${user.id}`);
+
+        return NextResponse.json({ 
+          ok: true, 
+          message: "Subscription reactivated!" 
+        });
+      }
+
+      // If subscription is fully canceled or past_due, need new checkout
+      if (subscription.status === "canceled" || subscription.status === "past_due" || subscription.status === "unpaid") {
+        // Fall through to create new checkout
+      } else if (subscription.status === "active" && !subscription.cancel_at_period_end) {
+        // Already active, nothing to do
+        return NextResponse.json({ 
+          ok: true, 
+          message: "Subscription is already active!" 
+        });
+      }
     }
+
+    // Create new checkout session for resubscription
+    const checkoutSession = await stripe.checkout.sessions.create({
+      customer: user.stripeCustomerId || undefined,
+      mode: "subscription",
+      payment_method_types: ["card"],
+      line_items: [
+        {
+          price: process.env.STRIPE_READER_PRICE_ID!,
+          quantity: 1,
+        },
+      ],
+      success_url: `${process.env.NEXT_PUBLIC_URL}/settings/subscription?reactivated=true`,
+      cancel_url: `${process.env.NEXT_PUBLIC_URL}/settings/subscription`,
+      metadata: {
+        userId: user.id,
+        type: "reader_resubscription",
+      },
+    });
 
     return NextResponse.json({ 
-      ok: false, 
-      error: "Unable to reactivate - please contact support" 
-    }, { status: 400 });
+      ok: true, 
+      checkoutUrl: checkoutSession.url,
+      message: "Redirecting to payment..." 
+    });
 
   } catch (err: any) {
     console.error("[subscription/reactivate] Error:", err);
