@@ -14,9 +14,19 @@ export async function GET(req: Request) {
     const status = url.searchParams.get("status");
     const search = url.searchParams.get("search");
     const page = parseInt(url.searchParams.get("page") || "1");
-    const limit = parseInt(url.searchParams.get("limit") || "50");
+    const limit = parseInt(url.searchParams.get("limit") || "20");
+    const readerId = url.searchParams.get("readerId");
+    const date = url.searchParams.get("date");
 
     const where: any = {};
+
+    if (readerId) where.readerId = readerId;
+    
+    if (date) {
+      const start = new Date(date + "T00:00:00Z");
+      const end = new Date(date + "T23:59:59Z");
+      where.startTime = { gte: start, lt: end };
+    }
     
     if (status && ["PENDING", "CONFIRMED", "COMPLETED", "CANCELED"].includes(status)) {
       where.status = status;

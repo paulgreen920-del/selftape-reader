@@ -1,6 +1,8 @@
 import "./globals.css";
 import Link from "next/link";
+
 import Navigation from "@/components/Navigation";
+import FacebookPixel from "@/components/FacebookPixel";
 
 export const metadata = {
   title: "Self Tape Reader",
@@ -31,6 +33,7 @@ export default function RootLayout({
         </noscript>
       </head>
       <body className="bg-gray-50 text-gray-900">
+        <FacebookPixel />
         {/* NAVBAR */}
         <header className="sticky top-0 z-40 bg-white/80 backdrop-blur border-b">
           <nav className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">

@@ -74,6 +74,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 >
                   Bookings
                 </Link>
+                <Link
+                  href="/admin/availability"
+                  className="px-3 py-2 rounded-md text-sm hover:bg-gray-800"
+                >
+                  Availability
+                </Link>
+                <Link
+                  href="/admin/tools"
+                  className="px-3 py-2 rounded-md text-sm hover:bg-gray-800"
+                >
+                  Tools
+                </Link>
               </nav>
             </div>
             <div className="flex items-center gap-4">
