@@ -42,7 +42,7 @@ export default function RootLayout({
         <main className="max-w-6xl mx-auto px-4 py-10">{children}</main>
 
         {/* FOOTER */}
-            <img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=918220014962169&ev=PageView&noscript=1" />
+        <footer className="mt-16 border-t">
           <div className="max-w-6xl mx-auto px-4 h-16 text-sm flex items-center justify-between">
             <p>© {new Date().getFullYear()} Self Tape Reader</p>
             <div className="flex gap-4">
@@ -53,6 +53,7 @@ export default function RootLayout({
             </div>
           </div>
         </footer>
+        <noscript dangerouslySetInnerHTML={{ __html: `<img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=918220014962169&ev=PageView&noscript=1" />` }} />
       </body>
     </html>
   );
