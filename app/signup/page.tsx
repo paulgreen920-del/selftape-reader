@@ -42,6 +42,11 @@ function SignupForm() {
         return;
       }
 
+      // Facebook Pixel: Track CompleteRegistration
+      if (typeof window !== 'undefined' && typeof window.fbq === 'function') {
+        window.fbq('track', 'CompleteRegistration');
+      }
+
       // Trigger auth change event for Navigation component
       window.dispatchEvent(new CustomEvent('auth-change'));
 
