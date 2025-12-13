@@ -1,7 +1,7 @@
 import "./globals.css";
 import Link from "next/link";
 import Navigation from "@/components/Navigation";
-import FacebookPixel from "@/components/FacebookPixel";
+import Script from "next/script";
 
 export const metadata = {
   title: "Self Tape Reader",
@@ -15,7 +15,20 @@ export default function RootLayout({
     <html lang="en">
       <head />
       <body className="bg-gray-50 text-gray-900">
-        <FacebookPixel />
+        <Script
+          src="https://connect.facebook.net/en_US/fbevents.js"
+          strategy="afterInteractive"
+        />
+        <Script id="fb-pixel-init" strategy="afterInteractive">
+          {`
+            !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+            n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
+            n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];}(window,document,'script',
+            'https://connect.facebook.net/en_US/fbevents.js');
+            fbq('init', '918220014962169');
+            fbq('track', 'PageView');
+          `}
+        </Script>
         <FacebookPixel />
 
         {/* NAVBAR */}
