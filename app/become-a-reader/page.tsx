@@ -109,17 +109,17 @@ export default function BecomeReaderLanding() {
           <div className="grid md:grid-cols-3 gap-6 text-white">
             <div className="bg-slate-700 rounded-xl p-6">
               <p className="text-slate-400 text-sm mb-1">5 sessions/week</p>
-              <p className="text-3xl font-bold text-emerald-400">$400/mo</p>
+              <p className="text-3xl font-bold text-emerald-400">$320/mo</p>
               <p className="text-slate-400 text-xs mt-1">at $20 avg</p>
             </div>
             <div className="bg-slate-700 rounded-xl p-6 ring-2 ring-yellow-400">
               <p className="text-slate-400 text-sm mb-1">10 sessions/week</p>
-              <p className="text-3xl font-bold text-yellow-400">$800/mo</p>
+              <p className="text-3xl font-bold text-yellow-400">$640/mo</p>
               <p className="text-slate-400 text-xs mt-1">at $20 avg</p>
             </div>
             <div className="bg-slate-700 rounded-xl p-6">
               <p className="text-slate-400 text-sm mb-1">20 sessions/week</p>
-              <p className="text-3xl font-bold text-emerald-400">$1,600/mo</p>
+              <p className="text-3xl font-bold text-emerald-400">$1,280/mo</p>
               <p className="text-slate-400 text-xs mt-1">at $20 avg</p>
             </div>
           </div>
