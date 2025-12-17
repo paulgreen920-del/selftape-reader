@@ -56,10 +56,7 @@ export async function GET() {
         user.ratePer15Min != null &&
         user.ratePer30Min != null &&
         user.ratePer60Min != null &&
-        user.subscriptionId != null &&
-        user.subscriptionStatus === "active" &&
         user.stripeAccountId != null &&
-        user.stripeCustomerId != null &&
         user.isActive === true &&
         user.AvailabilitySlot && user.AvailabilitySlot.length > 0 &&
         user.CalendarConnection != null

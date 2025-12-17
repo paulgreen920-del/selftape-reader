@@ -29,19 +29,9 @@ export default function BecomeReaderLanding() {
 
         {/* Price Box */}
         <div className="bg-slate-800 rounded-2xl p-8 max-w-lg mx-auto mb-10 text-center shadow-xl">
-          <p className="text-emerald-400 text-sm font-medium tracking-wide mb-2">
-            ✨ LIMITED BETA OFFER ✨
+          <p className="text-emerald-400 text-lg font-bold mb-2">
+            FREE to join - keep 80% of every booking
           </p>
-          <div className="text-5xl md:text-6xl font-extrabold text-yellow-400 mb-2">
-            $1/month
-          </div>
-          <p className="text-slate-400 mb-4">
-            for your first year <span className="line-through">(reg. $9.99/mo)</span>
-          </p>
-          <div className="bg-slate-700 rounded-lg py-3 px-6 inline-block">
-            <span className="text-white font-medium">Use code: </span>
-            <span className="text-yellow-400 font-bold text-xl">READER</span>
-          </div>
         </div>
 
         {/* CTA Button */}
@@ -53,7 +43,7 @@ export default function BecomeReaderLanding() {
             Start Earning Today →
           </Link>
           <p className="text-gray-500 mt-4 text-sm">
-            Free to sign up • Apply promo code at checkout
+            Free to sign up — no subscription required
           </p>
         </div>
 
@@ -132,17 +122,14 @@ export default function BecomeReaderLanding() {
             Ready to Start Earning?
           </h2>
           <p className="text-emerald-100 mb-6 text-lg">
-            Join during beta and lock in <span className="font-bold">$1/month for a full year</span>.
+            Join during beta and start earning as a reader!
           </p>
           <Link
             href="/signup?role=READER"
             className="inline-block bg-white hover:bg-gray-100 text-emerald-600 text-xl font-bold py-4 px-12 rounded-full shadow-lg hover:shadow-xl transition-all"
           >
-            Become a Reader — $1/month →
+            Become a Reader →
           </Link>
-          <p className="text-emerald-200 mt-4 text-sm">
-            Use code <span className="font-bold text-white">READER</span> at checkout
-          </p>
         </div>
 
         {/* Footer note */}

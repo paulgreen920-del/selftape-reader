@@ -96,11 +96,11 @@ export async function checkReaderOnboardingStatus(userId: string): Promise<Onboa
   }
 
   // Step 7: Subscription active
-  const hasActiveSubscription = user.subscriptionStatus === 'active';
-  if (hasActiveSubscription) {
+  // Step 7: Go Live (activate profile)
+  if (user.isActive) {
     completedSteps.push('subscription-active');
   } else {
-    if (!nextStepUrl) nextStepUrl = '/onboarding/subscribe';
+    if (!nextStepUrl) nextStepUrl = '/onboarding/go-live';
     if (['account-created','email-verified','profile-completed','calendar-connected','availability-set','stripe-connected'].includes(currentStep)) currentStep = 'subscription-active';
   }
 
@@ -132,7 +132,7 @@ export function getStepName(step: OnboardingStep): string {
     'calendar-connected': 'Connect Calendar',
     'availability-set': 'Set Availability',
     'stripe-connected': 'Connect Payment',
-    'subscription-active': 'Activate Subscription',
+    'subscription-active': 'Go Live',
     'completed': 'Completed',
   };
   return names[step];
