@@ -1,3 +1,4 @@
+import FacebookPixel from "@/components/FacebookPixel";
 import "./globals.css";
 import Link from "next/link";
 import Navigation from "@/components/Navigation";

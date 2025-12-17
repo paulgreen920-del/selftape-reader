@@ -181,7 +181,7 @@ export default function Home() {
                   {
                     step: "1",
                     title: "Create Your Profile",
-                    desc: "Set your rates, availability, and showcase your experience. Join for just $9.99/month."
+                    desc: "Set your rates, availability, and showcase your experience. FREE for a limited time!"
                   },
                   {
                     step: "2",
@@ -407,8 +407,8 @@ export default function Home() {
           <div className="bg-white rounded-2xl p-8 shadow-lg border-2 border-orange-200">
             <div className="text-center">
               <h3 className="text-2xl font-bold text-gray-900 mb-2">For Readers</h3>
-              <div className="text-4xl font-bold text-orange-600 mb-1">$9.99</div>
-              <p className="text-gray-600 mb-6">per month • keep 80%</p>
+              <div className="text-4xl font-bold text-orange-600 mb-1">FREE*</div>
+              <p className="text-gray-600 mb-6">for the first 100 readers • keep 80%</p>
             </div>
             <ul className="space-y-3 mb-8">
               <li className="flex items-center gap-3">

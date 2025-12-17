@@ -169,7 +169,7 @@ function SignupForm() {
                   />
                   <span className="ml-3">
                     <span className="block text-sm font-medium text-gray-900">Become a reader</span>
-                    <span className="block text-xs text-gray-500">$9.99/month - get paid to help other actors</span>
+                    <span className="block text-xs text-gray-500">FREE for a limited time – get paid to help other actors</span>
                   </span>
                 </label>
               </div>
