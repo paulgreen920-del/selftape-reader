@@ -33,7 +33,7 @@ export default function PaymentPage() {
             setStripeConnected(true);
             setCheckingStatus(false);
             setTimeout(() => {
-              continueToSubscribe();
+              continueToGoLive();
             }, 2000);
             return;
           }
@@ -71,8 +71,8 @@ export default function PaymentPage() {
     }
   }
 
-  async function continueToSubscribe() {
-    window.location.href = '/onboarding/subscribe';
+  async function continueToGoLive() {
+    window.location.href = '/onboarding/go-live';
   }
 
   if (checkingStatus) {
@@ -125,9 +125,9 @@ export default function PaymentPage() {
           <button
             type="button"
             className="bg-emerald-600 text-white rounded px-4 py-2 hover:bg-emerald-700"
-            onClick={continueToSubscribe}
+            onClick={continueToGoLive}
           >
-            Continue to Subscription
+            Continue to Activation
           </button>
         )}
       </div>
