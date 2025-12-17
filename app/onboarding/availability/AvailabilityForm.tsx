@@ -142,6 +142,18 @@ export default function AvailabilityForm() {
         throw new Error(dataSettings.error || "Failed to save settings");
       }
 
+      // Sync availability to generate actual bookable slots
+      const resSync = await fetch("/api/availability/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      const dataSync = await resSync.json();
+      if (!resSync.ok || !dataSync.ok) {
+        console.error("Failed to sync availability slots:", dataSync.error);
+        // Don't block onboarding, just log the error
+      }
+
       router.push('/onboarding/payment');
     } catch (err: any) {
       alert(err.message || "Failed to save");
