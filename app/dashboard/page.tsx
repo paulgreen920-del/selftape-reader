@@ -202,7 +202,7 @@ export default function DashboardPage() {
   { key: 'calendar-connected', label: '4. Connect Calendar', url: '/onboarding/schedule' },
   { key: 'availability-set', label: '5. Availability', url: '/onboarding/availability' },
   { key: 'stripe-connected', label: '6. Create Stripe Account', url: '/onboarding/payment' },
-  { key: 'subscription-active', label: '7. Pay Subscription', url: '/onboarding/subscribe' },
+  { key: 'subscription-active', label: '7. Activated Account', url: '/onboarding/go-live' },
 ].map((step) => {
                     const isDone = onboardingStatus.completedSteps?.includes(step.key);
                     return (

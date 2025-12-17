@@ -21,7 +21,7 @@ export default function GoLivePage() {
       const data = await res.json();
 
       if (data.ok) {
-        router.push('/reader?activated=true');
+        router.push('/dashboard?activated=true');
       } else {
         setError(data.error || 'Failed to activate');
       }
