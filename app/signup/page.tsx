@@ -3,6 +3,7 @@
 // import { trackSignUpComplete, trackSignUpClick } from '../../lib/fbpixel';
 
 import { useState, FormEvent, useEffect, Suspense } from 'react';
+import { useRecaptcha } from '@/hooks/use-recaptcha';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
@@ -24,16 +25,27 @@ function SignupForm() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // reCAPTCHA
+  const { getToken } = useRecaptcha();
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
     try {
+      // Get reCAPTCHA token
+      const recaptchaToken = await getToken('signup');
+      if (!recaptchaToken) {
+        setError('Security verification failed. Please try again.');
+        setLoading(false);
+        return;
+      }
+
       const res = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password, role }),
+        body: JSON.stringify({ name, email, password, role, recaptchaToken }),
       });
 
       const data = await res.json();

@@ -1,15 +1,27 @@
-import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { sendVerificationEmail } from "@/lib/email-verification";
 
+import { verifyRecaptcha } from '@/lib/recaptcha';
+
+
 async function POST(req: Request) {
   try {
-    const { email, password, name, role } = await req.json();
+    const { email, password, name, role, recaptchaToken } = await req.json();
 
     if (!email || !password || !name) {
       return NextResponse.json(
         { ok: false, error: "Missing required fields" },
+        { status: 400 }
+      );
+    }
+
+    // Verify reCAPTCHA
+    const recaptchaResult = await verifyRecaptcha(recaptchaToken, 'signup', 0.5);
+    if (!recaptchaResult.success) {
+      console.log('[signup] reCAPTCHA failed:', recaptchaResult);
+      return NextResponse.json(
+        { ok: false, error: 'Security verification failed' },
         { status: 400 }
       );
     }

@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { useRecaptcha } from '@/hooks/use-recaptcha';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -7,15 +8,25 @@ export default function ForgotPasswordPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  // reCAPTCHA
+  const { getToken } = useRecaptcha();
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
     try {
+      // Get reCAPTCHA token
+      const recaptchaToken = await getToken('forgot_password');
+      if (!recaptchaToken) {
+        setError('Security verification failed. Please try again.');
+        setLoading(false);
+        return;
+      }
       const res = await fetch("/api/auth/forgot-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, recaptchaToken }),
       });
       if (!res.ok) throw new Error("Failed to send reset email");
       setSent(true);
