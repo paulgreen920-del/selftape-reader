@@ -309,10 +309,10 @@ export default function AdminUsersPage() {
       ) : (
         <>
           <div className="bg-white rounded-lg shadow overflow-hidden">
-            <table className="w-full">
+            <table className="w-full table-fixed">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-4 py-3 text-left">
+                  <th className="w-10 px-2 py-3 text-left">
                     <input
                       type="checkbox"
                       checked={users.length > 0 && selectedUsers.size === users.length}
@@ -320,13 +320,13 @@ export default function AdminUsersPage() {
                       className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
                     />
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Subscription</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Onboarding</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                  <th className="w-48 px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+                  <th className="w-36 px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+                  <th className="w-20 px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
+                  <th className="w-20 px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                  <th className="w-24 px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Subscription</th>
+                  <th className="w-24 px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Onboarding</th>
+                  <th className="w-24 px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
@@ -343,9 +343,9 @@ export default function AdminUsersPage() {
                         className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
                       />
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-900">{user.email}</td>
-                    <td className="px-6 py-4 text-sm text-gray-900">{user.displayName || user.name || '-'}</td>
-                    <td className="px-6 py-4 text-sm">
+                    <td className="px-3 py-4 text-sm text-gray-900 truncate">{user.email}</td>
+                    <td className="px-3 py-4 text-sm text-gray-900 truncate">{user.displayName || user.name || '-'}</td>
+                    <td className="px-3 py-4 text-sm">
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                         user.role === 'ADMIN' ? 'bg-purple-100 text-purple-800' :
                         user.role === 'READER' ? 'bg-emerald-100 text-emerald-800' :
@@ -354,14 +354,14 @@ export default function AdminUsersPage() {
                         {user.role}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-sm">
+                    <td className="px-3 py-4 text-sm">
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                         user.isActive ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-800'
                       }`}>
                         {user.isActive ? 'Active' : 'Inactive'}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-sm">
+                    <td className="px-3 py-4 text-sm">
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                         user.subscriptionStatus === 'active' ? 'bg-emerald-100 text-emerald-800' :
                         user.subscriptionStatus === 'inactive' ? 'bg-gray-100 text-gray-800' :
@@ -370,10 +370,10 @@ export default function AdminUsersPage() {
                         {user.subscriptionStatus || 'none'}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">
+                    <td className="px-3 py-4 text-sm text-gray-600">
                       {user.onboardingStep || 'Complete'}
                     </td>
-                    <td className="px-6 py-4 text-sm">
+                    <td className="px-3 py-4 text-sm">
                       <button
                         onClick={() => setEditingUser(user)}
                         className="text-blue-600 hover:text-blue-800 mr-4"
