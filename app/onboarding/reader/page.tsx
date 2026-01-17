@@ -28,6 +28,7 @@ export default function ReaderOnboardingMini() {
   const [specialties, setSpecialties] = useState<string[]>([]);
   const [headshot, setHeadshot] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [bio, setBio] = useState("");
   const [links, setLinks] = useState<LinkItem[]>([{ label: "", url: "" }]);
   const [busy, setBusy] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
@@ -170,6 +171,7 @@ export default function ReaderOnboardingMini() {
         displayName,
         email,
         headshot,
+        bio,
         playableAgeMin: Number(playableAgeMin),
         playableAgeMax: Number(playableAgeMax),
         gender,
@@ -281,6 +283,19 @@ export default function ReaderOnboardingMini() {
               <p className="text-xs text-green-600 mt-1">✓ Uploaded successfully</p>
             </div>
           )}
+        </div>
+
+        {/* Bio */}
+        <div>
+          <label className="block text-sm font-medium">Bio</label>
+          <textarea
+            className="border rounded px-3 py-2 w-full"
+            rows={4}
+            placeholder="Tell actors a bit about yourself and your experience..."
+            value={bio}
+            onChange={(e) => setBio(e.target.value)}
+          />
+          <p className="text-xs text-gray-500 mt-1">Optional - Share your acting experience, training, or what makes you a great reader.</p>
         </div>
 
         {/* Playable Age & Gender */}
