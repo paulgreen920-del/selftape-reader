@@ -170,7 +170,9 @@ export default function ReaderOnboardingMini() {
       const payload = {
         displayName,
         email,
-        headshot,
+        headshotUrl: headshot,
+        phone: '',
+        city: '',
         bio,
         playableAgeMin: Number(playableAgeMin),
         playableAgeMax: Number(playableAgeMax),
