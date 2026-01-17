@@ -1,5 +1,7 @@
 // app/api/uploads/route.ts
 
+export const runtime = 'nodejs';
+export const maxDuration = 60;
 
 // Max upload size in bytes (4MB)
 const MAX_UPLOAD_SIZE = 4 * 1024 * 1024;
@@ -10,14 +12,6 @@ import fs from "fs";
 import path from "path";
 
 
-// Switch to Node.js runtime to support custom body size limit
-export const config = {
-  api: {
-    bodyParser: {
-      sizeLimit: '4mb',
-    },
-  },
-};
 
 export async function POST(req: NextRequest) {
   try {
