@@ -1,3 +1,5 @@
+﻿'use client';
+
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -63,7 +65,7 @@ export default function OnboardingCompletePage() {
         {/* Success Card */}
         <div className="bg-white rounded-2xl shadow-lg p-8 text-center mb-6">
           {/* Celebration emoji */}
-          <div className="text-6xl mb-4">🎉</div>
+          <div className="text-6xl mb-4">ðŸŽ‰</div>
           <h1 className="text-3xl font-bold text-gray-900 mb-3">
             {`You're all set${userName ? ", " + userName.split(' ')[0] : ''}!`}
           </h1>
@@ -80,7 +82,7 @@ export default function OnboardingCompletePage() {
         {/* Reader Upsell Card */}
         <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl shadow-lg p-8 text-white">
           <div className="flex items-center gap-3 mb-4">
-            <span className="text-3xl">💰</span>
+            <span className="text-3xl">ðŸ’°</span>
             <h2 className="text-xl font-bold">Want to earn money too?</h2>
           </div>
           <p className="text-slate-300 mb-6">
@@ -89,19 +91,19 @@ export default function OnboardingCompletePage() {
           </p>
           <div className="space-y-3 mb-8">
             <div className="flex items-center gap-3">
-              <span className="text-emerald-400">✓</span>
-              <span className="text-slate-200">Free to join — keep 80% of every booking</span>
+              <span className="text-emerald-400">âœ“</span>
+              <span className="text-slate-200">Free to join â€” keep 80% of every booking</span>
             </div>
             <div className="flex items-center gap-3">
-              <span className="text-emerald-400">✓</span>
+              <span className="text-emerald-400">âœ“</span>
               <span className="text-slate-200">Set your own rates ($15, $25, $50+ per session)</span>
             </div>
             <div className="flex items-center gap-3">
-              <span className="text-emerald-400">✓</span>
-              <span className="text-slate-200">Work when you want — you control your schedule</span>
+              <span className="text-emerald-400">âœ“</span>
+              <span className="text-slate-200">Work when you want â€” you control your schedule</span>
             </div>
             <div className="flex items-center gap-3">
-              <span className="text-emerald-400">✓</span>
+              <span className="text-emerald-400">âœ“</span>
               <span className="text-slate-200">Help fellow actors land roles</span>
             </div>
           </div>
@@ -115,7 +117,7 @@ export default function OnboardingCompletePage() {
             href="/dashboard"
             className="block text-center text-slate-400 hover:text-slate-300 text-sm transition-colors"
           >
-            Skip for now — I just want to book readers
+            Skip for now â€” I just want to book readers
           </Link>
         </div>
         {/* Reassurance note */}
@@ -126,3 +128,4 @@ export default function OnboardingCompletePage() {
     </div>
   );
 }
+
