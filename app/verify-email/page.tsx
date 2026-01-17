@@ -30,7 +30,7 @@ export default function VerifyEmailPage() {
 
             // Redirect after a moment
             setTimeout(() => {
-              router.push('/onboarding/profile');
+              router.push('/welcome');
             }, 1500);
           }
         }
