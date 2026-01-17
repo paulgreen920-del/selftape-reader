@@ -96,10 +96,10 @@ export default function DashboardPage() {
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div>
                   <h3 className="text-lg font-semibold text-emerald-900 mb-1">
-                    💰 Want to earn money as a reader?
+                    💰 Want to help fellow actors?
                   </h3>
                   <p className="text-sm text-emerald-700">
-                    Set your own rates, manage your availability, and help other actors with their self-tapes.
+                    Support other actors by reading lines for their self-tape auditions. Set your own schedule, work from anywhere—and earn some side money while you're at it.
                   </p>
                 </div>
                 <Link 

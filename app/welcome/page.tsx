@@ -25,7 +25,7 @@ export default function WelcomePage() {
   }, []);
 
   const handleBecomeReader = () => {
-    router.push('/reader/onboarding');
+    router.push('/onboarding/reader');
   };
 
   return (
@@ -56,13 +56,12 @@ export default function WelcomePage() {
           <div className="flex items-center gap-3 mb-4">
             <span className="text-2xl">💰</span>
             <h2 className="text-xl font-bold text-gray-900">
-              Want to earn money too?
+              Want to help fellow actors?
             </h2>
           </div>
           
           <p className="text-gray-700 mb-6">
-            Become a reader and get paid to help other actors with their self-tapes. 
-            Set your own rates, set your own schedule, work from anywhere.
+            Support other actors by reading lines for their self-tape auditions—and earn some side money while you're at it. Set your own rates, set your own schedule, work from anywhere.
           </p>
 
           <ul className="space-y-2 mb-6 text-sm text-gray-600">
