@@ -1,8 +1,6 @@
-
 'use client';
-// import { trackSignUpComplete, trackSignUpClick } from '../../lib/fbpixel';
 
-import { useState, FormEvent, useEffect, Suspense } from 'react';
+import { useState, FormEvent, Suspense } from 'react';
 import { useRecaptcha } from '@/hooks/use-recaptcha';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
@@ -11,17 +9,12 @@ function SignupForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   
-  // Get role from URL (?role=READER or ?role=ACTOR)
-  const roleFromUrl = searchParams.get('role')?.toUpperCase();
-  const initialRole = (roleFromUrl === 'READER' || roleFromUrl === 'ACTOR') ? roleFromUrl : 'ACTOR';
-  
   // Get redirect URL from query parameters
   const redirectUrl = searchParams.get('redirect');
   
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState<'ACTOR' | 'READER'>(initialRole as 'ACTOR' | 'READER');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -42,10 +35,11 @@ function SignupForm() {
         return;
       }
 
+      // Everyone signs up as ACTOR by default
       const res = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password, role, recaptchaToken }),
+        body: JSON.stringify({ name, email, password, role: 'ACTOR', recaptchaToken }),
       });
 
       const data = await res.json();
@@ -56,7 +50,6 @@ function SignupForm() {
         return;
       }
 
-      // ...existing code...
       // Facebook Pixel: Track CompleteRegistration
       if (typeof window !== 'undefined' && typeof window.fbq === 'function') {
         window.fbq('track', 'CompleteRegistration');
@@ -148,43 +141,6 @@ function SignupForm() {
                 className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                 placeholder="••••••••"
               />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                I want to...
-              </label>
-              <div className="space-y-2">
-                <label className="flex items-center p-3 border border-gray-300 rounded-md cursor-pointer hover:bg-gray-50">
-                  <input
-                    type="radio"
-                    name="role"
-                    value="ACTOR"
-                    checked={role === 'ACTOR'}
-                    onChange={(e) => setRole(e.target.value as 'ACTOR')}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500"
-                  />
-                  <span className="ml-3">
-                    <span className="block text-sm font-medium text-gray-900">Book readers</span>
-                    <span className="block text-xs text-gray-500">Free account - find actors to help with your self-tapes</span>
-                  </span>
-                </label>
-
-                <label className="flex items-center p-3 border border-gray-300 rounded-md cursor-pointer hover:bg-gray-50">
-                  <input
-                    type="radio"
-                    name="role"
-                    value="READER"
-                    checked={role === 'READER'}
-                    onChange={(e) => setRole(e.target.value as 'READER')}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500"
-                  />
-                  <span className="ml-3">
-                    <span className="block text-sm font-medium text-gray-900">Become a reader</span>
-                    <span className="block text-xs text-gray-500">FREE for a limited time – get paid to help other actors</span>
-                  </span>
-                </label>
-              </div>
             </div>
           </div>
 
