@@ -17,27 +17,22 @@ export default function Home() {
               Real Readers for Your <span className="text-emerald-600">Self-Tape Auditions</span>
             </h1>
             <p className="mt-6 text-lg sm:text-xl text-gray-600 max-w-2xl mx-auto lg:mx-0">
-              Stop using AI voices or recording your own off-camera lines. Book a real human to read opposite you <strong>while you record</strong>. Natural timing. Authentic reactions. The chemistry casting directors notice.
+              Book a real human to read opposite you while you record. Or become a reader and earn money helping fellow actors nail their auditions.
             </p>
 
-            {/* ACTIONS */}
-            <div className="mt-8 flex flex-wrap justify-center lg:justify-start gap-4">
+            {/* SINGLE CTA */}
+            <div className="mt-8 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
               <Link
-                href="/readers"
-                className="px-8 py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-lg rounded-xl transition shadow-lg hover:shadow-xl"
+                href="/signup"
+                className="px-10 py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-lg rounded-xl transition shadow-lg hover:shadow-xl"
               >
-                Find a Reader Now
+                Get Started
               </Link>
-              <Link
-                href="/signup?role=READER"
-                className="px-8 py-4 bg-white border-2 border-emerald-600 text-emerald-600 font-semibold text-lg rounded-xl transition hover:bg-emerald-50"
-              >
-                Become A Reader
-              </Link>
+              <span className="text-gray-500 text-sm">No membership fees. No credit card required.</span>
             </div>
 
             {/* Anti-AI Message */}
-            <div className="mt-8 bg-gray-900 text-white p-4 rounded-xl max-w-md">
+            <div className="mt-8 bg-gray-900 text-white p-4 rounded-xl max-w-md mx-auto lg:mx-0">
               <p className="text-sm font-medium">
                 ✓ Casting directors can tell the difference between AI and a real scene partner. Give yourself the edge.
               </p>
@@ -124,7 +119,7 @@ export default function Home() {
             How It Works
           </h2>
           <p className="text-xl text-gray-600 text-center mb-12 max-w-3xl mx-auto">
-            From audition notice to submitted tape in four simple steps.
+            Whether you're booking a reader or becoming one, we've made it simple.
           </p>
 
           <div className="grid md:grid-cols-2 gap-16">
@@ -132,7 +127,7 @@ export default function Home() {
             <div>
               <h3 className="text-2xl font-semibold text-emerald-600 mb-8 flex items-center gap-3">
                 <span className="w-8 h-8 bg-emerald-600 text-white rounded-full flex items-center justify-center text-sm font-bold">🎭</span>
-                For Actors
+                Book a Reader
               </h3>
               <div className="space-y-6">
                 {[
@@ -149,12 +144,12 @@ export default function Home() {
                   {
                     step: "3",
                     title: "Record Your Audition",
-                    desc: "Your reader joins via video and delivers the off-camera lines LIVE while you perform and record. Real reactions. Natural timing. No AI. No editing."
+                    desc: "Your reader joins via video and delivers the off-camera lines LIVE while you perform and record. Real reactions. Natural timing. No AI."
                   },
                   {
                     step: "4",
                     title: "Submit & Book the Role",
-                    desc: "Send in a polished self-tape with authentic chemistry. Casting directors notice the difference—and so will you."
+                    desc: "Send in a polished self-tape with authentic chemistry. Casting directors notice the difference."
                   }
                 ].map((item) => (
                   <div key={item.step} className="flex gap-4">
@@ -172,16 +167,16 @@ export default function Home() {
 
             {/* For Readers */}
             <div>
-              <h3 className="text-2xl font-semibold text-orange-600 mb-8 flex items-center gap-3">
-                <span className="w-8 h-8 bg-orange-600 text-white rounded-full flex items-center justify-center text-sm font-bold">📚</span>
-                For Readers
+              <h3 className="text-2xl font-semibold text-emerald-600 mb-8 flex items-center gap-3">
+                <span className="w-8 h-8 bg-emerald-600 text-white rounded-full flex items-center justify-center text-sm font-bold">💰</span>
+                Become a Reader
               </h3>
               <div className="space-y-6">
                 {[
                   {
                     step: "1",
                     title: "Create Your Profile",
-                    desc: "Set your rates, availability, and showcase your experience. FREE for a limited time!"
+                    desc: "Set your rates, availability, and showcase your experience. It takes about 5 minutes."
                   },
                   {
                     step: "2",
@@ -195,12 +190,12 @@ export default function Home() {
                   },
                   {
                     step: "4",
-                    title: "Get Paid (Keep 80%)",
+                    title: "Get Paid",
                     desc: "Automatic payments after each session. You keep 80% of your rate. Build steady income helping actors succeed."
                   }
                 ].map((item) => (
                   <div key={item.step} className="flex gap-4">
-                    <div className="w-8 h-8 bg-orange-100 text-orange-700 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 mt-1">
+                    <div className="w-8 h-8 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 mt-1">
                       {item.step}
                     </div>
                     <div>
@@ -354,94 +349,76 @@ export default function Home() {
         </div>
       </section>
 
-      {/* PRICING OVERVIEW */}
+      {/* SIMPLE PRICING */}
       <section className="max-w-4xl w-full py-20">
         <h2 className="text-4xl font-bold text-center text-gray-900 mb-4">
           Simple, Transparent Pricing
         </h2>
         <p className="text-xl text-gray-600 text-center mb-12">
-          No subscriptions for actors. Pay only when you book.
+          No subscriptions. No monthly fees. We only earn when readers earn.
         </p>
 
-        <div className="grid md:grid-cols-2 gap-8">
-          <div className="bg-white rounded-2xl p-8 shadow-lg border-2 border-emerald-200">
-            <div className="text-center">
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">For Actors</h3>
-              <div className="text-4xl font-bold text-emerald-600 mb-4">Free</div>
-              <p className="text-gray-600 mb-6">to join • pay per session</p>
+        <div className="bg-white rounded-3xl p-8 shadow-lg border-2 border-emerald-200">
+          <div className="grid md:grid-cols-2 gap-8 divide-y md:divide-y-0 md:divide-x divide-gray-200">
+            {/* Actors */}
+            <div className="text-center pb-8 md:pb-0 md:pr-8">
+              <h3 className="text-xl font-bold text-gray-900 mb-4">For Actors</h3>
+              <ul className="space-y-3 text-left max-w-xs mx-auto">
+                <li className="flex items-center gap-3">
+                  <svg className="w-5 h-5 text-emerald-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span className="text-gray-700">Create account for free</span>
+                </li>
+                <li className="flex items-center gap-3">
+                  <svg className="w-5 h-5 text-emerald-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span className="text-gray-700">Browse all readers for free</span>
+                </li>
+                <li className="flex items-center gap-3">
+                  <svg className="w-5 h-5 text-emerald-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span className="text-gray-700">Pay per session ($15-60)</span>
+                </li>
+              </ul>
             </div>
-            <ul className="space-y-3 mb-8">
-              <li className="flex items-center gap-3">
-                <svg className="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                <span className="text-gray-700">Free account creation</span>
-              </li>
-              <li className="flex items-center gap-3">
-                <svg className="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                <span className="text-gray-700">Browse all readers</span>
-              </li>
-              <li className="flex items-center gap-3">
-                <svg className="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                <span className="text-gray-700">Sessions: $15-60 (set by reader)</span>
-              </li>
-              <li className="flex items-center gap-3">
-                <svg className="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                <span className="text-gray-700">Instant booking & video calls</span>
-              </li>
-            </ul>
-            <Link
-              href="/signup"
-              className="block w-full text-center bg-emerald-600 text-white py-3 rounded-xl font-semibold hover:bg-emerald-700 transition"
-            >
-              Sign Up Free
-            </Link>
+
+            {/* Readers */}
+            <div className="text-center pt-8 md:pt-0 md:pl-8">
+              <h3 className="text-xl font-bold text-gray-900 mb-4">For Readers</h3>
+              <ul className="space-y-3 text-left max-w-xs mx-auto">
+                <li className="flex items-center gap-3">
+                  <svg className="w-5 h-5 text-emerald-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span className="text-gray-700">No membership fees</span>
+                </li>
+                <li className="flex items-center gap-3">
+                  <svg className="w-5 h-5 text-emerald-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span className="text-gray-700">Set your own rates</span>
+                </li>
+                <li className="flex items-center gap-3">
+                  <svg className="w-5 h-5 text-emerald-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span className="text-gray-700">Keep 80% of every booking</span>
+                </li>
+              </ul>
+            </div>
           </div>
 
-          <div className="bg-white rounded-2xl p-8 shadow-lg border-2 border-orange-200">
-            <div className="text-center">
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">For Readers</h3>
-              <div className="text-4xl font-bold text-orange-600 mb-1">FREE*</div>
-              <p className="text-gray-600 mb-6">for the first 100 readers • keep 80%</p>
+          {/* Founding Member Note */}
+          <div className="mt-8 pt-8 border-t border-gray-200 text-center">
+            <div className="inline-block bg-emerald-50 text-emerald-800 px-4 py-2 rounded-full text-sm font-medium mb-4">
+              🎉 Founding Member Benefit
             </div>
-            <ul className="space-y-3 mb-8">
-              <li className="flex items-center gap-3">
-                <svg className="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                <span className="text-gray-700">Profile in marketplace</span>
-              </li>
-              <li className="flex items-center gap-3">
-                <svg className="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                <span className="text-gray-700">Set your own rates</span>
-              </li>
-              <li className="flex items-center gap-3">
-                <svg className="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                <span className="text-gray-700">Automatic payments (80% yours)</span>
-              </li>
-              <li className="flex items-center gap-3">
-                <svg className="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                <span className="text-gray-700">Calendar & booking tools</span>
-              </li>
-            </ul>
-            <Link
-              href="/signup?role=READER"
-              className="block w-full text-center bg-orange-600 text-white py-3 rounded-xl font-semibold hover:bg-orange-700 transition"
-            >
-              Become a Reader
-            </Link>
+            <p className="text-gray-600 max-w-2xl mx-auto">
+              Join during our launch period and your account stays free forever—even if we introduce membership fees later. We only earn when you do.
+            </p>
           </div>
         </div>
       </section>
@@ -450,19 +427,30 @@ export default function Home() {
       <section className="max-w-4xl w-full py-20 bg-gradient-to-r from-emerald-600 to-blue-600 rounded-3xl text-white text-center">
         <div className="p-12">
           <h2 className="text-4xl font-bold mb-6">
-            Stop Using AI. Start Booking Roles.
+            Ready to Level Up Your Self-Tapes?
           </h2>
           <p className="text-xl mb-8 opacity-90 max-w-2xl mx-auto">
-            Real readers. Real reactions. Real chemistry. The difference casting directors notice.
+            Join actors who are booking more roles with real scene partners. Or become a reader and start earning.
           </p>
           <Link
-            href="/readers"
-            className="inline-block bg-white text-emerald-600 px-8 py-4 rounded-xl font-semibold text-lg hover:bg-gray-50 transition shadow-lg"
+            href="/signup"
+            className="inline-block bg-white text-emerald-600 px-10 py-4 rounded-xl font-semibold text-lg hover:bg-gray-50 transition shadow-lg"
           >
-            Find Your Reader Now →
+            Get Started
           </Link>
+          <p className="mt-4 text-emerald-100 text-sm">
+            No membership fees. No credit card required.
+          </p>
         </div>
       </section>
+
+      {/* Footer Note */}
+      <footer className="max-w-4xl w-full py-8 text-center text-gray-500 text-sm">
+        <p>
+          Founding members who join during our launch period will never pay membership fees, even if we introduce them later. 
+          Readers keep 80% of every booking—we only earn when you do.
+        </p>
+      </footer>
     </main>
   );
 }
