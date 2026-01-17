@@ -26,7 +26,8 @@ export default function ReaderOnboardingMini() {
   const [unions, setUnions] = useState<string[]>([]);
   const [languages, setLanguages] = useState<string[]>([]);
   const [specialties, setSpecialties] = useState<string[]>([]);
-  // Removed headshot and uploading state
+  const [headshot, setHeadshot] = useState("");
+  const [uploading, setUploading] = useState(false);
   const [links, setLinks] = useState<LinkItem[]>([{ label: "", url: "" }]);
   const [busy, setBusy] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
@@ -43,6 +44,7 @@ export default function ReaderOnboardingMini() {
     rate15Usd !== "" && rate15Usd > 0 &&
     rateUsd !== "" && rateUsd > 0 &&
     rate60Usd !== "" && rate60Usd > 0 &&
+    headshot.trim().length > 0 &&
     acceptedTerms;
 
   useEffect(() => {
@@ -73,7 +75,38 @@ export default function ReaderOnboardingMini() {
     setFn((prev) => (prev.includes(value) ? prev.filter((x) => x !== value) : [...prev, value]));
   }
 
-  // Removed headshot upload handler
+  async function handleHeadshotUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(`Upload failed: ${errorText}`);
+      }
+
+      const data = await res.json();
+      if (data.url) {
+        setHeadshot(data.url);
+      } else {
+        throw new Error("No URL returned from upload");
+      }
+    } catch (err: any) {
+      console.error("Headshot upload error:", err);
+      alert(err?.message || "Failed to upload headshot");
+    } finally {
+      setUploading(false);
+    }
+  }
 
   function updateLink(index: number, key: keyof LinkItem, value: string) {
     setLinks((prev) => prev.map((l, i) => (i === index ? { ...l, [key]: value } : l)));
@@ -88,7 +121,10 @@ export default function ReaderOnboardingMini() {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     
-    // Removed headshot, phone, city, bio validation
+    if (!headshot.trim()) {
+      alert("Please upload a headshot.");
+      return;
+    }
     if (playableAgeMin === "" || playableAgeMax === "") {
       alert("Please enter your playable age range.");
       return;
@@ -133,6 +169,7 @@ export default function ReaderOnboardingMini() {
       const payload = {
         displayName,
         email,
+        headshot,
         playableAgeMin: Number(playableAgeMin),
         playableAgeMax: Number(playableAgeMax),
         gender,
@@ -224,6 +261,26 @@ export default function ReaderOnboardingMini() {
             placeholder="paul@example.com"
           />
           <p className="text-xs text-gray-500 mt-1">Locked - from your account</p>
+        </div>
+
+        {/* Headshot Upload */}
+        <div>
+          <label className="block text-sm font-medium">Headshot <span className="text-red-600">*</span></label>
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleHeadshotUpload}
+            disabled={uploading}
+            className="border rounded px-3 py-2 w-full"
+            required
+          />
+          {uploading && <p className="text-sm text-gray-500 mt-1">Uploading...</p>}
+          {headshot && (
+            <div className="mt-2">
+              <img src={headshot} alt="Headshot preview" className="w-32 h-32 object-cover rounded" />
+              <p className="text-xs text-green-600 mt-1">✓ Uploaded successfully</p>
+            </div>
+          )}
         </div>
 
         {/* Playable Age & Gender */}
