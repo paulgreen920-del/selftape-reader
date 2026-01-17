@@ -450,10 +450,10 @@ export default function ReaderOnboardingMini() {
           <button
             className="bg-emerald-600 text-white rounded px-4 py-2 hover:bg-emerald-700 disabled:opacity-50 flex-1"
             type="submit"
-            disabled={!canSubmit || busy || uploading}
-            title={uploading ? "Please wait for the headshot to finish uploading" : !acceptedTerms ? "Please accept the Terms of Service and Privacy Policy" : ""}
+            disabled={!canSubmit || busy}
+            title={!acceptedTerms ? "Please accept the Terms of Service and Privacy Policy" : ""}
           >
-            {busy ? "Saving..." : uploading ? "Uploading…" : "Save & Continue"}
+            {busy ? "Saving..." : "Save & Continue"}
           </button>
         </div>
       </form>
