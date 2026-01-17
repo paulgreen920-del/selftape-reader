@@ -79,8 +79,8 @@ export async function GET(request: NextRequest) {
     // Determine redirect URL
     const redirectUrl =
       result.user?.role === 'READER' || result.user?.isAdmin === true
-        ? '/onboarding/reader'
-        : '/dashboard';
+        ? '/reader/onboarding'
+        : '/welcome';
 
     // Create session for verified user
     const sessionData = {
