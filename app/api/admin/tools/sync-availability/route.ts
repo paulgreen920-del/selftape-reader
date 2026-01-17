@@ -9,7 +9,7 @@ async function requireAdmin() {
   try {
     const session = JSON.parse(sessionCookie.value);
     const user = await prisma.user.findUnique({ where: { id: session.userId }, select: { role: true } });
-    if (user?.role === "ADMIN") return session.userId;
+    if (user?.isAdmin === true) return session.userId;
   } catch {}
   return null;
 }

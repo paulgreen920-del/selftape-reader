@@ -17,27 +17,6 @@ export default function ReaderOnboardingMini() {
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(true);
-  const [phone, setPhone] = useState("");
-  const [timezone, setTimezone] = useState("America/New_York");
-
-  // Format phone number as user types
-  const formatPhoneNumber = (value: string) => {
-    const numbers = value.replace(/\D/g, '');
-    const limited = numbers.slice(0, 10);
-    
-    if (limited.length === 0) return '';
-    if (limited.length <= 3) return `(${limited}`;
-    if (limited.length <= 6) return `(${limited.slice(0, 3)}) ${limited.slice(3)}`;
-    return `(${limited.slice(0, 3)}) ${limited.slice(3, 6)}-${limited.slice(6)}`;
-  };
-
-  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const formatted = formatPhoneNumber(e.target.value);
-    setPhone(formatted);
-  };
-  
-  const [city, setCity] = useState("");
-  const [bio, setBio] = useState("");
   const [playableAgeMin, setPlayableAgeMin] = useState<number | "">("");
   const [playableAgeMax, setPlayableAgeMax] = useState<number | "">("");
   const [gender, setGender] = useState("");
@@ -47,8 +26,7 @@ export default function ReaderOnboardingMini() {
   const [unions, setUnions] = useState<string[]>([]);
   const [languages, setLanguages] = useState<string[]>([]);
   const [specialties, setSpecialties] = useState<string[]>([]);
-  const [headshotUrl, setHeadshotUrl] = useState<string>("");
-  const [uploading, setUploading] = useState(false);
+  // Removed headshot and uploading state
   const [links, setLinks] = useState<LinkItem[]>([{ label: "", url: "" }]);
   const [busy, setBusy] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
@@ -56,10 +34,6 @@ export default function ReaderOnboardingMini() {
   const canSubmit = 
     displayName.trim().length > 0 && 
     /\S+@\S+\.\S+/.test(email) &&
-    headshotUrl.trim().length > 0 &&
-    phone.trim().length > 0 &&
-    city.trim().length > 0 &&
-    bio.trim().length > 0 &&
     playableAgeMin !== "" &&
     playableAgeMax !== "" &&
     gender.trim().length > 0 &&
@@ -99,24 +73,7 @@ export default function ReaderOnboardingMini() {
     setFn((prev) => (prev.includes(value) ? prev.filter((x) => x !== value) : [...prev, value]));
   }
 
-  async function handleHeadshotChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploading(true);
-    try {
-      const fd = new FormData();
-      fd.append("file", file);
-      const res = await fetch("/api/uploads", { method: "POST", body: fd });
-      const data = await res.json();
-      if (!res.ok || !data?.absoluteUrl) throw new Error(data?.error || "Upload failed");
-      setHeadshotUrl(data.absoluteUrl);
-    } catch (err: any) {
-      alert(err.message || "Upload failed");
-      setHeadshotUrl("");
-    } finally {
-      setUploading(false);
-    }
-  }
+  // Removed headshot upload handler
 
   function updateLink(index: number, key: keyof LinkItem, value: string) {
     setLinks((prev) => prev.map((l, i) => (i === index ? { ...l, [key]: value } : l)));
@@ -131,28 +88,7 @@ export default function ReaderOnboardingMini() {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     
-    if (uploading) {
-      alert("Please wait for the headshot to finish uploading.");
-      return;
-    }
-
-    // Validation
-    if (!headshotUrl) {
-      alert("Please upload a headshot.");
-      return;
-    }
-    if (!phone.trim()) {
-      alert("Please enter your phone number.");
-      return;
-    }
-    if (!city.trim()) {
-      alert("Please enter your city.");
-      return;
-    }
-    if (!bio.trim()) {
-      alert("Please enter a bio.");
-      return;
-    }
+    // Removed headshot, phone, city, bio validation
     if (playableAgeMin === "" || playableAgeMax === "") {
       alert("Please enter your playable age range.");
       return;
@@ -197,14 +133,9 @@ export default function ReaderOnboardingMini() {
       const payload = {
         displayName,
         email,
-        phone,
-        timezone,
-        city,
-        bio,
         playableAgeMin: Number(playableAgeMin),
         playableAgeMax: Number(playableAgeMax),
         gender,
-        headshotUrl,
         rate15Usd: Number(rate15Usd),
         rateUsd: Number(rateUsd),
         rate60Usd: Number(rate60Usd),
@@ -270,36 +201,8 @@ export default function ReaderOnboardingMini() {
       <p className="mb-4 text-sm text-gray-600">
         All fields marked with <span className="text-red-600">*</span> are required. Complete your profile to continue.
       </p>
-      <form onSubmit={submit} className="space-y-4">
-        {/* Headshot */}
-        <div>
-          <label className="block text-sm font-medium">Headshot <span className="text-red-600">*</span></label>
-          <input
-            type="file"
-            accept="image/*"
-            className="block w-full text-sm"
-            onChange={handleHeadshotChange}
-            required
-          />
-          {uploading && <p className="text-xs mt-1">Uploading…</p>}
-          {headshotUrl && (
-            <div className="mt-2">
-              <a href={headshotUrl} target="_blank" rel="noopener noreferrer">
-                <img
-                  src={headshotUrl}
-                  alt="Headshot preview"
-                  className="h-28 w-28 object-cover rounded"
-                />
-              </a>
-              <p className="text-xs text-blue-600 mt-1 break-all">
-                <a href={headshotUrl} target="_blank" rel="noopener noreferrer">
-                  {headshotUrl}
-                </a>
-              </p>
-            </div>
-          )}
-        </div>
 
+      <form onSubmit={submit} className="space-y-4">
         <div>
           <label className="block text-sm font-medium">Display name</label>
           <input
@@ -321,65 +224,6 @@ export default function ReaderOnboardingMini() {
             placeholder="paul@example.com"
           />
           <p className="text-xs text-gray-500 mt-1">Locked - from your account</p>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium">Phone <span className="text-red-600">*</span></label>
-          <input
-            type="tel"
-            className="border rounded px-3 py-2 w-full"
-            value={phone}
-            onChange={handlePhoneChange}
-            placeholder="(555) 555-5555"
-            maxLength={14}
-            required
-          />
-          <p className="text-xs text-gray-500 mt-1">10 digits - auto-formatted</p>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium">Timezone</label>
-          <select
-            className="border rounded px-3 py-2 w-full"
-            value={timezone}
-            onChange={(e) => setTimezone(e.target.value)}
-          >
-            {[
-              "America/New_York",
-              "America/Chicago",
-              "America/Denver",
-              "America/Los_Angeles",
-              "Europe/London",
-              "Europe/Paris",
-              "Asia/Tokyo",
-            ].map((tz) => (
-              <option key={tz} value={tz}>
-                {tz}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium">City <span className="text-red-600">*</span></label>
-          <input
-            className="border rounded px-3 py-2 w-full"
-            value={city}
-            onChange={(e) => setCity(e.target.value)}
-            placeholder="New York, NY"
-            required
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium">Bio <span className="text-red-600">*</span></label>
-          <textarea
-            className="border rounded px-3 py-2 w-full min-h-[100px]"
-            value={bio}
-            onChange={(e) => setBio(e.target.value)}
-            placeholder="Tell actors what it's like to work with you."
-            required
-          />
         </div>
 
         {/* Playable Age & Gender */}

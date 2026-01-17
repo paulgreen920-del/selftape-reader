@@ -10,9 +10,9 @@ async function requireAdmin() {
   if (!sessionCookie?.value) return null;
   try {
     const session = JSON.parse(sessionCookie.value);
-    const user = await prisma.user.findUnique({ where: { id: session.userId }, select: { role: true } });
+    const user = await prisma.user.findUnique({ where: { id: session.userId }, select: { role: true, isAdmin: true } });
     // ADMIN has all reader permissions plus admin dashboard access
-    if (user?.role === "ADMIN" || user?.role === "READER") return session.userId;
+    if (user?.isAdmin === true || user?.role === "READER") return session.userId;
   } catch {}
   return null;
 }

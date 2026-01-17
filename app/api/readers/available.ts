@@ -21,7 +21,7 @@ export async function GET() {
     const fullyOnboarded = users.filter(user => {
       return (
         user.emailVerified === true &&
-        (user.role === "READER" || user.role === "ADMIN") &&
+        (user.role === "READER" || user.isAdmin === true) &&
         user.displayName != null &&
         user.headshotUrl != null &&
         user.ratePer15Min != null &&

@@ -139,6 +139,7 @@ model User {
   password                       String
   name                           String
   role                           Role                    @default(ACTOR)
+  isAdmin                        Boolean                 @default(false) // NEW
   displayName                    String?
   phone                          String?
   timezone                       String?                 @default("America/New_York")

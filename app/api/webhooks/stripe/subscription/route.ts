@@ -1,3 +1,4 @@
+// NOTE: Subscription handlers removed - reader subscriptions are now free. Only booking payments are processed.
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import Stripe from "stripe";
@@ -76,32 +77,31 @@ export async function POST(req: Request) {
         break;
       }
 
-      case "customer.subscription.deleted": {
-        const subscription = event.data.object as Stripe.Subscription;
-        
-        const user = await prisma.user.findFirst({
-          where: { subscriptionId: subscription.id },
-        });
-
-        if (user) {
-          await prisma.user.update({
-            where: { id: user.id },
-            data: {
-              subscriptionStatus: "canceled",
-              isActive: false,
-              role: "ACTOR", // Downgrade back to ACTOR
-            },
-          });
-
-          console.log(`[webhook] Subscription canceled for user ${user.id}, downgraded to ACTOR`);
+      // Handle booking payments only
+      switch (event.type) {
+        case "checkout.session.completed": {
+          const session = event.data.object as Stripe.Checkout.Session;
+          // Only process booking payments
+          if (session.mode === "payment" && session.metadata?.bookingId) {
+            await handleBookingPaymentCompleted(session);
+          }
+          break;
         }
-        break;
+        // case "customer.subscription.updated": {
+        //   // Subscription handler removed
+        //   break;
+        // }
+        // case "customer.subscription.deleted": {
+        //   // Subscription handler removed
+        //   break;
+        // }
+        // case "invoice.payment_failed": {
+        //   // Subscription handler removed
+        //   break;
+        // }
+        // case "invoice.payment_succeeded": {
+        //   // Subscription handler removed
+        //   break;
+        // }
       }
-    }
-
-    return NextResponse.json({ received: true });
-  } catch (err: any) {
-    console.error("[webhook] Error:", err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
-  }
 }

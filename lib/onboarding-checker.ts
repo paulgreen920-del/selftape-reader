@@ -17,6 +17,8 @@ export interface OnboardingStatus {
   isFullyOnboarded: boolean;
   nextStepUrl: string | null;
   canAccessDashboard: boolean;
+  role: 'ACTOR' | 'READER' | 'ADMIN';
+  isAdmin: boolean;
 }
 
 export async function checkReaderOnboardingStatus(userId: string): Promise<OnboardingStatus> {
@@ -36,6 +38,8 @@ export async function checkReaderOnboardingStatus(userId: string): Promise<Onboa
       isFullyOnboarded: false,
       nextStepUrl: null,
       canAccessDashboard: false,
+      role: 'ACTOR',
+      isAdmin: false,
     };
   }
 
@@ -121,6 +125,8 @@ export async function checkReaderOnboardingStatus(userId: string): Promise<Onboa
     isFullyOnboarded: allStepsComplete,
     nextStepUrl,
     canAccessDashboard,
+    role: user.role,
+    isAdmin: user.isAdmin || false,
   };
 }
 

@@ -78,7 +78,7 @@ export async function GET(request: NextRequest) {
 
     // Determine redirect URL
     const redirectUrl =
-      result.user?.role === 'READER' || result.user?.role === 'ADMIN'
+      result.user?.role === 'READER' || result.user?.isAdmin === true
         ? '/onboarding/reader'
         : '/dashboard';
 

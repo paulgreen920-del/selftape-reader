@@ -30,11 +30,7 @@ export default function VerifyEmailPage() {
 
             // Redirect after a moment
             setTimeout(() => {
-              if (data.user.role === 'READER') {
-                router.push(`/onboarding/${data.user.onboardingStep || 'reader'}`);
-              } else {
-                router.push('/dashboard');
-              }
+              router.push('/onboarding/profile');
             }, 1500);
           }
         }
