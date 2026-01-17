@@ -84,7 +84,7 @@ export default function ReaderOnboardingMini() {
       const formData = new FormData();
       formData.append("file", file);
 
-      const res = await fetch("/api/upload", {
+      const res = await fetch("/api/uploads", {
         method: "POST",
         body: formData,
       });
