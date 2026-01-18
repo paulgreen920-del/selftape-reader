@@ -47,7 +47,7 @@ export default function ReaderEarningsPage() {
         }
         const userData = await userRes.json();
         
-        if (userData.user.role !== 'READER' && userData.user.role !== 'ADMIN') {
+        if (userData.user.role !== 'READER' && userData.user.isAdmin !== true) {
           router.push('/dashboard');
           return;
         }

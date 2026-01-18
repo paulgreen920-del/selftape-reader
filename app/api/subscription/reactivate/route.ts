@@ -19,7 +19,7 @@ export async function POST(req: Request) {
 
     const session = JSON.parse(sessionCookie.value);
     
-    if (session.role !== 'READER' && session.role !== 'ADMIN') {
+    if (session.role !== 'READER' && session.isAdmin !== true) {
       return NextResponse.json({ ok: false, error: "Not a reader" }, { status: 403 });
     }
 

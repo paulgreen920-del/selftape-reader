@@ -30,7 +30,7 @@ export async function checkReaderOnboardingStatus(userId: string): Promise<Onboa
     }
   });
 
-  if (!user || (user.role !== 'READER' && user.role !== 'ADMIN')) {
+  if (!user || (user.role !== 'READER' && user.isAdmin !== true)) {
     return {
       currentStep: 'account-created',
       completedSteps: [],

@@ -51,7 +51,7 @@ export default function EditReaderProfile() {
         }
         const userData = await userRes.json();
 
-        if (userData.user.role !== 'READER' && userData.user.role !== 'ADMIN') {
+        if (userData.user.role !== 'READER' && userData.user.isAdmin !== true) {
           alert('You must be a reader to access this page');
           router.push('/dashboard');
           return;

@@ -35,7 +35,7 @@ export default function ReaderBookingsPage() {
         const userData = await userRes.json();
         
         // Allow both READER and ADMIN roles
-        if (userData.user.role !== 'READER' && userData.user.role !== 'ADMIN') {
+        if (userData.user.role !== 'READER' && userData.user.isAdmin !== true) {
           router.push('/dashboard');
           return;
         }

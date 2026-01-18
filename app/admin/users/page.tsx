@@ -347,7 +347,7 @@ export default function AdminUsersPage() {
                     <td className="px-3 py-4 text-sm text-gray-900 truncate">{user.displayName || user.name || '-'}</td>
                     <td className="px-3 py-4 text-sm">
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        user.role === 'ADMIN' ? 'bg-purple-100 text-purple-800' :
+                        user.isAdmin ? 'bg-purple-100 text-purple-800' :
                         user.role === 'READER' ? 'bg-emerald-100 text-emerald-800' :
                         'bg-blue-100 text-blue-800'
                       }`}>

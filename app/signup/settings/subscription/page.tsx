@@ -103,7 +103,7 @@ export default function SubscriptionPage() {
     );
   }
 
-  if (user?.role !== 'READER' && user?.role !== 'ADMIN') {
+  if (user?.role !== 'READER' && user?.isAdmin !== true) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">

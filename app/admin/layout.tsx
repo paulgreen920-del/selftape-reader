@@ -19,7 +19,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         }
         const data = await res.json();
         
-        if (data.user.role !== 'ADMIN') {
+        if (data.user.isAdmin !== true) {
           router.push('/dashboard');
           return;
         }

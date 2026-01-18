@@ -9,6 +9,7 @@ interface User {
   name: string;
   email: string;
   role: 'READER' | 'ADMIN' | 'USER';
+  isAdmin?: boolean;
   timezone?: string;
 }
 
@@ -130,7 +131,7 @@ export default function ManageAvailabilityPage() {
         setTimezone(userData.user.timezone);
       }
 
-      if (userData.user.role !== 'READER' && userData.user.role !== 'ADMIN') {
+      if (userData.user.role !== 'READER' && userData.user.isAdmin !== true) {
         alert('You must be a reader or admin to access this page');
         router.push('/dashboard');
         return;
@@ -411,7 +412,7 @@ export default function ManageAvailabilityPage() {
     );
   }
 
-  if (!user || (user.role !== 'READER' && user.role !== 'ADMIN')) {
+  if (!user || (user.role !== 'READER' && user.isAdmin !== true)) {
     return (
       <div className="min-h-screen bg-gray-50">
         <header className="bg-white shadow">
