@@ -132,7 +132,7 @@ export default function ActorBookingsPage() {
                     <div className="text-sm text-gray-600">{start.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })} - {end.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</div>
                   </div>
 
-                  {booking.meetingUrl && (
+                  {booking.meetingUrl && (booking.status === 'PAID' || booking.status === 'CONFIRMED') && (
                     <div>
                       <div className="text-xs text-gray-500 uppercase mb-1">Meeting Link</div>
                       <a href={booking.meetingUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-700 font-medium text-sm underline">Join Session</a>
@@ -142,6 +142,15 @@ export default function ActorBookingsPage() {
 
                 <div className="flex gap-3">
                   <Link href={`/reader/${booking.readerId}`} className="text-sm text-gray-600 hover:text-gray-900">View Reader Profile →</Link>
+                  
+                  {booking.status === 'PENDING' && (
+                    <Link 
+                      href={`/bookings/${booking.id}`}
+                      className="px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition"
+                    >
+                      Complete Payment
+                    </Link>
+                  )}
                 </div>
               </div>
             );

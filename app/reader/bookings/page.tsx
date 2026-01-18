@@ -240,7 +240,7 @@ export default function ReaderBookingsPage() {
                       </div>
                     </div>
 
-                    {booking.meetingUrl && (
+                    {booking.meetingUrl && (booking.status === 'PAID' || booking.status === 'CONFIRMED') && (
                       <div>
                         <div className="text-xs text-gray-500 uppercase mb-1">Meeting</div>
                         <a 

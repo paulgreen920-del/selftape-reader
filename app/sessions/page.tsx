@@ -174,7 +174,7 @@ export default function ActorSessionsPage() {
                     <div className="text-sm text-gray-600">{start.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })} - {end.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</div>
                   </div>
 
-                  {session.meetingUrl && (
+                  {session.meetingUrl && (session.status === 'PAID' || session.status === 'CONFIRMED') && (
                     <div>
                       <div className="text-xs text-gray-500 uppercase mb-1">Meeting Link</div>
                       <a href={session.meetingUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-700 font-medium text-sm underline">Join Session</a>
