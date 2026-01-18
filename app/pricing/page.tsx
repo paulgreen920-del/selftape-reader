@@ -20,7 +20,7 @@ export default function PricingPage() {
               Simple, Transparent Pricing
             </h1>
             <p className="mt-4 text-xl text-gray-600 max-w-2xl mx-auto">
-              No subscription for actors. Readers set their own rates. Everyone wins.
+              No membership fees for anyone. Readers set their own rates. We only earn when you do.
             </p>
           </div>
         </div>
@@ -39,7 +39,7 @@ export default function PricingPage() {
           <div className="bg-white rounded-lg shadow-lg p-8 border-2 border-blue-500">
             <div className="text-center mb-8">
               <h3 className="text-2xl font-bold text-gray-900 mb-2">Free Account</h3>
-              <p className="text-gray-600">Sign up free, pay only when you book</p>
+              <p className="text-gray-600">Pay only when you book a session</p>
             </div>
 
             <div className="mb-8 p-6 bg-blue-50 rounded-lg">
@@ -92,20 +92,16 @@ export default function PricingPage() {
                 <CheckIcon className="w-5 h-5 text-green-500 mt-0.5 mr-3 flex-shrink-0" />
                 <span className="text-gray-700">Session history and receipts</span>
               </li>
-              <li className="flex items-start">
-                <CheckIcon className="w-5 h-5 text-green-500 mt-0.5 mr-3 flex-shrink-0" />
-                <span className="text-gray-700">No monthly subscription required</span>
-              </li>
             </ul>
 
             <Link
               href="/signup"
               className="block w-full text-center bg-blue-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-blue-700 transition-colors"
             >
-              Sign Up Free
+              Get Started
             </Link>
             <p className="text-center text-sm text-gray-500 mt-3">
-              No credit card required to create an account
+              No credit card required
             </p>
           </div>
         </div>
@@ -123,15 +119,16 @@ export default function PricingPage() {
 
           <div className="max-w-4xl mx-auto">
             <div className="bg-gradient-to-r from-emerald-50 to-blue-50 rounded-lg p-8 border-2 border-emerald-200">
+              {/* Founding Member Badge */}
               <div className="text-center mb-8">
                 <div className="inline-block bg-emerald-600 text-white px-4 py-1 rounded-full text-sm font-medium mb-4">
-                  $9.99/month subscription
+                  Founding Member Benefit
                 </div>
                 <h3 className="text-2xl font-bold text-gray-900">
-                  Professional Reader Membership
+                  Free to Join
                 </h3>
                 <p className="text-gray-600 mt-2">
-                  Join our marketplace and start earning immediately
+                  No membership fees. We only earn when you do.
                 </p>
               </div>
 
@@ -144,8 +141,8 @@ export default function PricingPage() {
                         <span className="text-2xl font-bold text-emerald-600">80%</span>
                       </div>
                       <div>
-                        <p className="font-semibold text-gray-900">Keep 80% of earnings</p>
-                        <p className="text-gray-600 text-sm">We only take a 20% platform fee</p>
+                        <p className="font-semibold text-gray-900">Keep 80% of every booking</p>
+                        <p className="text-gray-600 text-sm">20% platform fee covers payment processing & support</p>
                       </div>
                     </div>
                     
@@ -174,7 +171,7 @@ export default function PricingPage() {
                     </li>
                     <li className="flex items-start">
                       <CheckIcon className="w-5 h-5 text-emerald-500 mt-0.5 mr-3 flex-shrink-0" />
-                      <span className="text-gray-700">Set your own hourly rates</span>
+                      <span className="text-gray-700">Set your own rates</span>
                     </li>
                     <li className="flex items-start">
                       <CheckIcon className="w-5 h-5 text-emerald-500 mt-0.5 mr-3 flex-shrink-0" />
@@ -204,15 +201,22 @@ export default function PricingPage() {
                 </div>
               </div>
 
+              {/* Founding Member Note */}
+              <div className="bg-white/70 rounded-lg p-4 mb-6 border border-emerald-200">
+                <p className="text-sm text-gray-700 text-center">
+                  <span className="font-semibold">Founding Member Guarantee:</span> Join during our launch period and your account stays free forever—even if we introduce membership fees later.
+                </p>
+              </div>
+
               <div className="text-center">
                 <Link
                   href="/signup?role=READER"
                   className="inline-block bg-emerald-600 text-white px-8 py-3 rounded-lg font-medium hover:bg-emerald-700 transition-colors"
                 >
-                  Become a Reader - $9.99/month
+                  Become a Reader
                 </Link>
                 <p className="text-sm text-gray-600 mt-3">
-                  Cancel anytime • Keep 80% of all earnings
+                  No credit card required • Keep 80% of all earnings
                 </p>
               </div>
             </div>
@@ -239,6 +243,16 @@ export default function PricingPage() {
 
           <div>
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              Do readers pay a subscription fee?
+            </h3>
+            <p className="text-gray-600">
+              No! Readers join for free and keep 80% of every booking. We only take a 20% platform fee 
+              when you earn money—we only succeed when you do.
+            </p>
+          </div>
+
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
               How do readers set their rates?
             </h3>
             <p className="text-gray-600">
@@ -252,19 +266,20 @@ export default function PricingPage() {
               When do readers get paid?
             </h3>
             <p className="text-gray-600">
-               Readers receive 80% of each session fee. After an actor completes payment, funds are 
-    transferred to your Stripe Connect account and paid out according to Stripe's standard 
-    payout schedule (typically 2-7 business days, depending on your bank).
+              Readers receive 80% of each session fee. After an actor completes payment, funds are 
+              transferred to your Stripe Connect account and paid out according to Stripe's standard 
+              payout schedule (typically 2-7 business days, depending on your bank).
             </p>
           </div>
 
           <div>
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              Can readers cancel their subscription?
+              What is the "Founding Member" benefit?
             </h3>
             <p className="text-gray-600">
-              Yes, readers can cancel their $9.99/month subscription at any time. Your profile will 
-              remain active until the end of your current billing period.
+              Readers who join during our launch period are guaranteed free membership forever. 
+              If we ever introduce subscription fees in the future, founding members will be grandfathered 
+              in and never have to pay them.
             </p>
           </div>
 
@@ -304,15 +319,18 @@ export default function PricingPage() {
               href="/signup"
               className="inline-block bg-blue-600 text-white px-8 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"
             >
-              Sign Up as Actor - Free
+              Get Started as Actor
             </Link>
             <Link
               href="/signup?role=READER"
               className="inline-block bg-emerald-600 text-white px-8 py-3 rounded-lg font-medium hover:bg-emerald-700 transition-colors"
             >
-              Become a Reader - $9.99/mo
+              Become a Reader
             </Link>
           </div>
+          <p className="text-sm text-gray-400 mt-4">
+            No membership fees. No credit card required.
+          </p>
         </div>
       </div>
     </div>
