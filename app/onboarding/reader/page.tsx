@@ -339,21 +339,21 @@ export default function ReaderOnboardingMini() {
         {/* Headshot Upload */}
         <div>
           <label className="block text-sm font-medium">Headshot <span className="text-red-600">*</span></label>
+          {headshot && (
+            <div className="mb-2">
+              <img src={headshot} alt="Headshot preview" className="w-32 h-32 object-cover rounded" />
+              <p className="text-xs text-green-600 mt-1">✓ Headshot ready</p>
+            </div>
+          )}
           <input
             type="file"
             accept="image/*"
             onChange={handleHeadshotUpload}
             disabled={uploading}
             className="border rounded px-3 py-2 w-full"
-            required
           />
           {uploading && <p className="text-sm text-gray-500 mt-1">Uploading...</p>}
-          {headshot && (
-            <div className="mt-2">
-              <img src={headshot} alt="Headshot preview" className="w-32 h-32 object-cover rounded" />
-              <p className="text-xs text-green-600 mt-1">✓ Uploaded successfully</p>
-            </div>
-          )}
+          {!headshot && <p className="text-xs text-gray-500 mt-1">Please upload a professional headshot.</p>}
         </div>
 
         {/* Bio */}
