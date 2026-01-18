@@ -23,7 +23,7 @@ export async function POST(req: Request) {
       where: { id: sessionData.userId },
     });
 
-    if (!user || (user.role !== 'READER' && user.role !== 'ADMIN')) {
+    if (!user || (user.role !== 'READER' && user.role !== 'ADMIN' && !user.onboardingStep)) {
       return NextResponse.json(
         { error: "Not authorized" },
         { status: 403 }
