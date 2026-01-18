@@ -187,35 +187,17 @@ export default function ReaderBookingsPage() {
               const earnings = booking.status === 'PAID' ? (booking.priceCents * 0.8) / 100 : 0;
 
               return (
-                <div key={booking.id} className="bg-white border rounded-lg p-6 hover:shadow-md transition">
-                  <div className="flex items-start justify-between mb-4">
-                    <div>
-                      <h3 className="text-xl font-semibold mb-1">Session with {booking.actorName}</h3>
-                      <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
-                        <span className={`px-2 py-1 rounded text-xs font-medium ${
-                          booking.status === 'PAID' ? 'bg-emerald-100 text-emerald-700' :
-                          booking.status === 'PENDING' ? 'bg-yellow-100 text-yellow-700' :
-                          booking.status === 'CANCELLED' ? 'bg-red-100 text-red-700' :
-                          'bg-gray-100 text-gray-700'
-                        }`}>
-                          {booking.status}
-                        </span>
-                        <span>•</span>
-                        <span>{booking.durationMinutes} min</span>
-                        <span>•</span>
-                        <span>${(booking.priceCents / 100).toFixed(2)}</span>
-                        {earnings > 0 && (
-                          <>
-                            <span>•</span>
-                            <span className={`font-medium ${isPast ? 'text-green-600' : 'text-blue-600'}`}>
-                              {isPast ? 'You earned:' : 'You will earn:'} ${earnings.toFixed(2)}
-                            </span>
-                          </>
-                        )}
-                      </div>
-                      <p className="text-sm text-gray-500">Actor: {booking.actorEmail}</p>
-                    </div>
-                    
+                <div key={booking.id} className="bg-white border rounded-lg p-4 sm:p-6 hover:shadow-md transition">
+                  {/* Status Badge Row */}
+                  <div className="flex items-center justify-between mb-3">
+                    <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${
+                      booking.status === 'PAID' ? 'bg-emerald-100 text-emerald-700' :
+                      booking.status === 'PENDING' ? 'bg-yellow-100 text-yellow-700' :
+                      booking.status === 'CANCELLED' ? 'bg-red-100 text-red-700' :
+                      'bg-gray-100 text-gray-700'
+                    }`}>
+                      {booking.status}
+                    </span>
                     {isPast && (
                       <span className="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded">
                         Completed
@@ -223,67 +205,105 @@ export default function ReaderBookingsPage() {
                     )}
                   </div>
 
-                  <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
-                    <div>
-                      <div className="text-xs text-gray-500 uppercase mb-1">Date & Time</div>
-                      <div className="font-medium">
-                        {start.toLocaleDateString('en-US', { 
-                          weekday: 'short', 
-                          month: 'short', 
-                          day: 'numeric', 
-                          year: 'numeric' 
-                        })}
-                      </div>
-                      <div className="text-sm text-gray-600">
-                        {start.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })} - 
-                        {end.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
-                      </div>
+                  {/* Title, Duration, Price, Earnings */}
+                  <div className="mb-3">
+                    <h3 className="text-lg sm:text-xl font-semibold mb-2">Session with {booking.actorName}</h3>
+                    <div className="flex flex-wrap items-center gap-3 text-sm text-gray-600 mb-2">
+                      <span className="flex items-center gap-1">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        {booking.durationMinutes} min
+                      </span>
+                      <span className="flex items-center gap-1 font-semibold text-gray-900">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        ${(booking.priceCents / 100).toFixed(2)}
+                      </span>
+                      {earnings > 0 && (
+                        <span className={`flex items-center gap-1 font-semibold ${isPast ? 'text-green-600' : 'text-blue-600'}`}>
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                          </svg>
+                          {isPast ? 'Earned:' : 'Will earn:'} ${earnings.toFixed(2)}
+                        </span>
+                      )}
                     </div>
+                    <p className="text-sm text-gray-500">
+                      <span className="inline-flex items-center gap-1">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                        {booking.actorEmail}
+                      </span>
+                    </p>
+                  </div>
 
-                    {booking.meetingUrl && (booking.status === 'PAID' || booking.status === 'CONFIRMED') && (
+                  {/* Date & Time */}
+                  <div className="mb-4 pb-4 border-b">
+                    <div className="flex items-start gap-2 text-sm">
+                      <svg className="w-5 h-5 text-gray-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
                       <div>
-                        <div className="text-xs text-gray-500 uppercase mb-1">Meeting</div>
-                        <a 
-                          href={booking.meetingUrl} 
-                          target="_blank" 
-                          rel="noopener noreferrer" 
-                          className={`inline-block px-4 py-2 rounded-md text-sm font-medium transition ${
-                            isPast 
-                              ? 'bg-gray-100 text-gray-500 cursor-not-allowed'
-                              : 'bg-blue-600 hover:bg-blue-700 text-white'
-                          }`}
-                          onClick={isPast ? (e) => e.preventDefault() : undefined}
-                        >
-                          {isPast ? 'Session Ended' : 'Join Session'}
-                        </a>
-                      </div>
-                    )}
-
-                    <div>
-                      <div className="text-xs text-gray-500 uppercase mb-1">Status</div>
-                      <div className="text-sm">
-                        {booking.status === 'PAID' && isPast && (
-                          <span className="text-green-600">✓ Completed & Paid</span>
-                        )}
-                        {booking.status === 'PAID' && !isPast && (
-                          <span className="text-emerald-600">✓ Confirmed</span>
-                        )}
-                        {booking.status === 'PENDING' && (
-                          <span className="text-yellow-600">⏳ Awaiting Payment</span>
-                        )}
-                        {booking.status === 'CANCELLED' && (
-                          <span className="text-red-600">✗ Cancelled</span>
-                        )}
+                        <div className="font-medium text-gray-900">
+                          {start.toLocaleDateString('en-US', { 
+                            weekday: 'short', 
+                            month: 'short', 
+                            day: 'numeric', 
+                            year: 'numeric' 
+                          })}
+                        </div>
+                        <div className="text-gray-600">
+                          {start.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })} - 
+                          {end.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                        </div>
                       </div>
                     </div>
                   </div>
 
+                  {/* Status Info */}
                   {booking.status === 'PAID' && !isPast && (
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
                       <p className="text-sm text-blue-700">
                         💡 <strong>Tip:</strong> Test your camera and microphone before the session. 
                         The actor is counting on you for professional feedback!
                       </p>
+                    </div>
+                  )}
+
+                  {booking.status === 'PENDING' && (
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+                      <p className="text-sm text-yellow-700">
+                        ⏳ <strong>Awaiting Payment:</strong> The actor hasn't completed payment yet. You'll be notified once confirmed.
+                      </p>
+                    </div>
+                  )}
+
+                  {booking.status === 'CANCELLED' && (
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
+                      <p className="text-sm text-red-700">
+                        ✗ <strong>Cancelled:</strong> This booking has been cancelled.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Action Button */}
+                  {booking.meetingUrl && (booking.status === 'PAID' || booking.status === 'CONFIRMED') && !isPast && (
+                    <a 
+                      href={booking.meetingUrl} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="block w-full px-4 py-3 bg-blue-600 text-white text-center text-sm font-semibold rounded-lg hover:bg-blue-700 transition"
+                    >
+                      Join Session
+                    </a>
+                  )}
+
+                  {isPast && (
+                    <div className="text-center py-2 text-sm text-gray-500">
+                      Session ended
                     </div>
                   )}
                 </div>
