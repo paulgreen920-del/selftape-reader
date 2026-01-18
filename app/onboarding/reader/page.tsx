@@ -16,6 +16,8 @@ export default function ReaderOnboardingMini() {
   const router = useRouter();
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [city, setCity] = useState("");
   const [loading, setLoading] = useState(true);
   const [playableAgeMin, setPlayableAgeMin] = useState<number | "">("");
   const [playableAgeMax, setPlayableAgeMax] = useState<number | "">("");
@@ -36,6 +38,8 @@ export default function ReaderOnboardingMini() {
   const canSubmit = 
     displayName.trim().length > 0 && 
     /\S+@\S+\.\S+/.test(email) &&
+    phone.trim().length > 0 &&
+    city.trim().length > 0 &&
     playableAgeMin !== "" &&
     playableAgeMax !== "" &&
     gender.trim().length > 0 &&
@@ -171,8 +175,8 @@ export default function ReaderOnboardingMini() {
         displayName,
         email,
         headshotUrl: headshot,
-        phone: '',
-        city: '',
+        phone,
+        city,
         bio,
         playableAgeMin: Number(playableAgeMin),
         playableAgeMax: Number(playableAgeMax),
@@ -265,6 +269,34 @@ export default function ReaderOnboardingMini() {
             placeholder="paul@example.com"
           />
           <p className="text-xs text-gray-500 mt-1">Locked - from your account</p>
+        </div>
+
+        {/* Phone */}
+        <div>
+          <label className="block text-sm font-medium">Phone <span className="text-red-600">*</span></label>
+          <input
+            type="tel"
+            className="border rounded px-3 py-2 w-full"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="(555) 123-4567"
+            required
+          />
+          <p className="text-xs text-gray-500 mt-1">Your contact number for booking coordination.</p>
+        </div>
+
+        {/* City */}
+        <div>
+          <label className="block text-sm font-medium">City <span className="text-red-600">*</span></label>
+          <input
+            type="text"
+            className="border rounded px-3 py-2 w-full"
+            value={city}
+            onChange={(e) => setCity(e.target.value)}
+            placeholder="Los Angeles, CA"
+            required
+          />
+          <p className="text-xs text-gray-500 mt-1">Your location helps actors find local readers.</p>
         </div>
 
         {/* Headshot Upload */}
