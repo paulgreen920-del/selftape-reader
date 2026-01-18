@@ -63,8 +63,45 @@ export default function ReaderOnboardingMini() {
               window.location.href = '/verify-email';
               return;
             }
+            
+            // Set basic user info
             setDisplayName(data.user.name || "");
             setEmail(data.user.email || "");
+            
+            // Pre-fill existing reader profile data if available
+            if (data.user.headshotUrl) setHeadshot(data.user.headshotUrl);
+            if (data.user.bio) setBio(data.user.bio);
+            if (data.user.phone) setPhone(data.user.phone);
+            if (data.user.city) setCity(data.user.city);
+            if (data.user.playableAgeMin) setPlayableAgeMin(data.user.playableAgeMin);
+            if (data.user.playableAgeMax) setPlayableAgeMax(data.user.playableAgeMax);
+            if (data.user.gender) setGender(data.user.gender);
+            
+            // Pre-fill rates (convert from cents to dollars)
+            if (data.user.ratePer15Min) setRate15Usd(data.user.ratePer15Min / 100);
+            if (data.user.ratePer30Min) setRateUsd(data.user.ratePer30Min / 100);
+            if (data.user.ratePer60Min) setRate60Usd(data.user.ratePer60Min / 100);
+            
+            // Pre-fill arrays (parse JSON if needed)
+            if (data.user.unions) {
+              const unionsArray = Array.isArray(data.user.unions) ? data.user.unions : JSON.parse(data.user.unions);
+              setUnions(unionsArray);
+            }
+            if (data.user.languages) {
+              const languagesArray = Array.isArray(data.user.languages) ? data.user.languages : JSON.parse(data.user.languages);
+              setLanguages(languagesArray);
+            }
+            if (data.user.specialties) {
+              const specialtiesArray = Array.isArray(data.user.specialties) ? data.user.specialties : JSON.parse(data.user.specialties);
+              setSpecialties(specialtiesArray);
+            }
+            if (data.user.links && Array.isArray(data.user.links) && data.user.links.length > 0) {
+              const linksArray = Array.isArray(data.user.links) ? data.user.links : JSON.parse(data.user.links);
+              setLinks(linksArray);
+            }
+            
+            // Pre-check terms if previously accepted
+            if (data.user.acceptsTerms) setAcceptedTerms(true);
           }
         }
       } catch (err) {

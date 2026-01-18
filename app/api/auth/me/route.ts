@@ -37,6 +37,18 @@ async function GET() {
         emailVerifiedAt: true,
         stripeAccountId: true,
         stripeCustomerId: true,
+        // Reader profile fields for onboarding pre-fill
+        phone: true,
+        city: true,
+        bio: true,
+        playableAgeMin: true,
+        playableAgeMax: true,
+        gender: true,
+        unions: true,
+        languages: true,
+        specialties: true,
+        links: true,
+        acceptsTerms: true,
       },
     });
 
