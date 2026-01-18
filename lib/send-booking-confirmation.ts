@@ -116,8 +116,7 @@ export async function sendBookingConfirmation(booking: any) {
               Your reliability score affects your visibility on the platform. Maintain 95%+ attendance rate to stay in good standing.
             </p>
             <p style="margin:12px 0 0 0;">
-              <a href="${rescheduleUrl}" style="display:inline-block;background:#047857;color:white;padding:8px 16px;text-decoration:none;border-radius:4px;margin:4px 4px 4px 0;">Reschedule Session</a>
-              <a href="${cancelUrl}" style="display:inline-block;background:#dc2626;color:white;padding:8px 16px;text-decoration:none;border-radius:4px;margin:4px;">Cancel Booking</a>
+              <a href="${cancelUrl}" style="display:inline-block;background:#dc2626;color:white;padding:12px 24px;text-decoration:none;border-radius:4px;">Cancel Booking (Full Refund to Actor)</a>
             </p>
           </div>
           
