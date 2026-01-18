@@ -257,16 +257,8 @@ export default function CalendarBooking({
     const hour12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
     const ampm = h < 12 ? "AM" : "PM";
     
-    if (selectedDate && actorTimezone) {
-      const [year, month, day] = selectedDate.split('-').map(Number);
-      const slotTime = new Date(year, month - 1, day, h, m);
-      return slotTime.toLocaleTimeString('en-US', { 
-        hour: 'numeric', 
-        minute: '2-digit', 
-        timeZone: actorTimezone 
-      });
-    }
-    
+    // The API returns minutes already converted to actor's timezone,
+    // so we just display them directly without any timezone conversion
     return `${hour12}:${m.toString().padStart(2, "0")} ${ampm}`;
   };
 
