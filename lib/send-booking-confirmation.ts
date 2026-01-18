@@ -87,7 +87,6 @@ export async function sendBookingConfirmation(booking: any) {
       html: `
         <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">
           <h2 style="color:#047857;">New Reading Session Confirmed</h2>
-          <p style="color:red;font-size:10px;">[v2-reader]</p>
           <p>Hi ${reader.displayName || reader.name},</p>
           <p>You have a new reading session booked:</p>
           
