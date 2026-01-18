@@ -10,7 +10,8 @@ export async function sendBookingConfirmation(booking: any) {
     console.log('[Email] FROM_EMAIL:', fromEmail);
   
   try {
-    const { reader, actor } = booking;
+    const reader = booking.reader || booking.User_Booking_readerIdToUser;
+    const actor = booking.actor || booking.User_Booking_actorIdToUser;
     
     // Build action links
     const baseUrl = process.env.NEXT_PUBLIC_URL || 'http://localhost:3000';
