@@ -62,8 +62,8 @@ export default function Header() {
                 onClick={() => setOpen((v) => !v)}
               >
                 <span className="sr-only">Open user menu</span>
-                {user.headshotUrl ? (
-                  <img src={user.headshotUrl} alt="Profile" className="w-9 h-9 rounded-full object-cover" />
+                {user.headshotUrl?.trim() ? (
+                  <img src={user.headshotUrl.trim()} alt="Profile" className="w-9 h-9 rounded-full object-cover" />
                 ) : (
                   <span className="text-sm font-medium text-gray-600">{getInitials(user.name || user.displayName)}</span>
                 )}
