@@ -48,23 +48,8 @@ async function POST(req: Request) {
       },
     });
 
-    // Update session cookie
-    const updatedSession = {
-      ...session,
-      role: "ACTOR",
-    };
-
-    const response = NextResponse.json({ ok: true, message: "Downgraded to actor" });
-
-    response.cookies.set("session", JSON.stringify(updatedSession), {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 60 * 60 * 24 * 7, // 7 days
-      path: "/",
-    });
-
-    return response;
+    // Note: User will need to log out and back in for role change to reflect in session
+    return NextResponse.json({ ok: true, message: "Downgraded to actor" });
   } catch (err: any) {
     console.error("[subscription/downgrade] Error:", err);
     return NextResponse.json(
