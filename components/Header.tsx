@@ -9,18 +9,26 @@ export default function Header() {
 
   useEffect(() => {
     async function fetchUser() {
+      console.log('[Header] Fetching user...');
       try {
         const res = await fetch('/api/auth/me', { cache: 'no-store' });
+        console.log('[Header] Response status:', res.status);
         if (res.ok) {
           const data = await res.json();
+          console.log('[Header] Response data:', data);
           if (data.ok) {
             console.log('[Header] User data:', data.user);
             console.log('[Header] headshotUrl:', data.user.headshotUrl);
+            console.log('[Header] headshotUrl type:', typeof data.user.headshotUrl);
+            console.log('[Header] headshotUrl length:', data.user.headshotUrl?.length);
             console.log('[Header] headshotUrl trimmed:', data.user.headshotUrl?.trim());
+            console.log('[Header] headshotUrl trimmed length:', data.user.headshotUrl?.trim().length);
             setUser(data.user);
           }
         }
-      } catch {}
+      } catch (err) {
+        console.error('[Header] Fetch error:', err);
+      }
     }
     fetchUser();
   }, []);
