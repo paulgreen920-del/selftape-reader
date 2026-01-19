@@ -14,11 +14,13 @@ interface CancellationEmailParams {
     email: string;
     name: string | null;
     displayName: string | null;
+    timezone?: string | null;
   };
   actor: {
     id: string;
     email: string;
     name: string | null;
+    timezone?: string | null;
   };
   canceledBy: "ACTOR" | "READER";
   refundAmount: number;
@@ -29,17 +31,22 @@ interface CancellationEmailParams {
 export async function sendCancellationEmails(params: CancellationEmailParams) {
   const { booking, reader, actor, canceledBy, refundAmount, refundType, readerWarning } = params;
 
+  // Use actor's timezone, fall back to reader's, then default to Eastern
+  const timezone = actor.timezone || reader.timezone || "America/New_York";
+
   const sessionDate = new Date(booking.startTime);
   const dateStr = sessionDate.toLocaleDateString("en-US", {
     weekday: "long",
     month: "long",
     day: "numeric",
     year: "numeric",
+    timeZone: timezone,
   });
   const timeStr = sessionDate.toLocaleTimeString("en-US", {
     hour: "numeric",
     minute: "2-digit",
     hour12: true,
+    timeZone: timezone,
   });
 
   const readerName = reader.displayName || reader.name || "Reader";
