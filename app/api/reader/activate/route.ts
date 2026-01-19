@@ -36,7 +36,6 @@ export async function POST() {
 
     return NextResponse.json({ ok: true, message: "Profile activated!" });
 
-    return response;
   } catch (err: any) {
     console.error("[reader/activate] Error:", err);
     return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
