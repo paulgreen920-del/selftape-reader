@@ -167,11 +167,11 @@ async function createGoogleCalendarEvent(booking: any) {
       console.log(`[dev-webhook] ✅ Created event ${event.id} for booking ${booking.id}`);
       console.log(`[dev-webhook] Event URL: ${event.htmlLink}`);
       
-      // Store calendar event ID in booking
+      // Store Google calendar event ID in booking
       await prisma.booking.update({
         where: { id: booking.id },
         data: { 
-          notes: JSON.stringify({ calendarEventId: event.id })
+          googleEventId: event.id
         }
       });
       

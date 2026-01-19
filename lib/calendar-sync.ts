@@ -223,3 +223,153 @@ async function createMicrosoftCalendarEvent(
     return { success: false, error: error.message };
   }
 }
+
+export async function deleteCalendarEventForBooking(
+  userId: string,
+  eventId: string,
+  provider: 'GOOGLE' | 'MICROSOFT'
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    // Get user's calendar connection
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: { CalendarConnection: true }
+    });
+
+    if (!user?.CalendarConnection) {
+      console.log(`[calendar-sync] No calendar connection for user ${userId}`);
+      return { success: false, error: 'No calendar connected' };
+    }
+
+    if (provider === 'GOOGLE') {
+      return await deleteGoogleCalendarEvent(user.CalendarConnection, eventId);
+    } else if (provider === 'MICROSOFT') {
+      return await deleteMicrosoftCalendarEvent(user.CalendarConnection, eventId);
+    }
+
+    return { success: false, error: `Unsupported provider: ${provider}` };
+  } catch (error: any) {
+    console.error('[calendar-sync] Error deleting calendar event:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+async function deleteGoogleCalendarEvent(
+  connection: any,
+  eventId: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    let accessToken = connection.accessToken;
+
+    // Refresh token if needed
+    if (connection.refreshToken) {
+      try {
+        const refreshResponse = await fetch('https://oauth2.googleapis.com/token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({
+            client_id: process.env.GOOGLE_CLIENT_ID!,
+            client_secret: process.env.GOOGLE_CLIENT_SECRET!,
+            refresh_token: connection.refreshToken,
+            grant_type: 'refresh_token',
+          }),
+        });
+
+        if (refreshResponse.ok) {
+          const tokenData = await refreshResponse.json();
+          accessToken = tokenData.access_token;
+          
+          await prisma.calendarConnection.update({
+            where: { id: connection.id },
+            data: { accessToken: tokenData.access_token }
+          });
+        }
+      } catch (refreshError) {
+        console.error('[calendar-sync] Google token refresh failed:', refreshError);
+      }
+    }
+
+    // Delete the event
+    const response = await fetch(
+      `https://www.googleapis.com/calendar/v3/calendars/primary/events/${eventId}`,
+      {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+        },
+      }
+    );
+
+    if (response.ok || response.status === 204 || response.status === 410) {
+      console.log(`[calendar-sync] Deleted Google Calendar event: ${eventId}`);
+      return { success: true };
+    } else {
+      const error = await response.text();
+      console.error('[calendar-sync] Failed to delete Google Calendar event:', error);
+      return { success: false, error: `Google API error: ${response.status}` };
+    }
+  } catch (error: any) {
+    console.error('[calendar-sync] Error in deleteGoogleCalendarEvent:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+async function deleteMicrosoftCalendarEvent(
+  connection: any,
+  eventId: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    let accessToken = connection.accessToken;
+
+    // Refresh token if needed
+    if (connection.refreshToken) {
+      try {
+        const refreshResponse = await fetch('https://login.microsoftonline.com/common/oauth2/v2.0/token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({
+            client_id: process.env.MS_CLIENT_ID!,
+            client_secret: process.env.MS_CLIENT_SECRET!,
+            refresh_token: connection.refreshToken,
+            grant_type: 'refresh_token',
+          }),
+        });
+
+        if (refreshResponse.ok) {
+          const tokenData = await refreshResponse.json();
+          accessToken = tokenData.access_token;
+          
+          await prisma.calendarConnection.update({
+            where: { id: connection.id },
+            data: { accessToken: tokenData.access_token }
+          });
+        }
+      } catch (refreshError) {
+        console.error('[calendar-sync] Microsoft token refresh failed:', refreshError);
+      }
+    }
+
+    // Delete the event
+    const response = await fetch(
+      `https://graph.microsoft.com/v1.0/me/events/${eventId}`,
+      {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+        },
+      }
+    );
+
+    if (response.ok || response.status === 204) {
+      console.log(`[calendar-sync] Deleted Microsoft Calendar event: ${eventId}`);
+      return { success: true };
+    } else {
+      const error = await response.text();
+      console.error('[calendar-sync] Failed to delete Microsoft Calendar event:', error);
+      return { success: false, error: `Microsoft API error: ${response.status}` };
+    }
+  } catch (error: any) {
+    console.error('[calendar-sync] Error in deleteMicrosoftCalendarEvent:', error);
+    return { success: false, error: error.message };
+  }
+}

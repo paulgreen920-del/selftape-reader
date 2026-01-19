@@ -267,7 +267,7 @@ async function createGoogleCalendarEvent(booking: any) {
       await prisma.booking.update({
         where: { id: booking.id },
         data: {
-          notes: JSON.stringify({ calendarEventId: event.id }),
+          googleEventId: event.id,
         },
       });
     } else {
@@ -390,11 +390,10 @@ async function createMicrosoftCalendarEvent(booking: any) {
       const event = await calendarResponse.json();
       console.log(`[Microsoft Calendar] ✅ Created event ${event.id} for booking ${booking.id}`);
 
-      const existingNotes = booking.notes ? JSON.parse(booking.notes) : {};
       await prisma.booking.update({
         where: { id: booking.id },
         data: {
-          notes: JSON.stringify({ ...existingNotes, calendarEventId: event.id }),
+          microsoftEventId: event.id,
         },
       });
     } else {

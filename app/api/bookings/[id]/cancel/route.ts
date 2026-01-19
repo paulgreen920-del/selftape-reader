@@ -44,6 +44,7 @@ export async function POST(
             displayName: true,
             canceledSessions: true,
             lastWarningAt: true,
+            CalendarConnection: true,
           },
         },
         User_Booking_actorIdToUser: {
@@ -204,8 +205,27 @@ export async function POST(
 
     console.log(`[cancel] Booking updated to CANCELLED status`);
 
-    // Send cancellation emails to both parties
+    // Delete calendar event if it exists
     const reader = booking.User_Booking_readerIdToUser;
+    if (reader.CalendarConnection) {
+      try {
+        const { deleteCalendarEventForBooking } = await import("@/lib/calendar-sync");
+        
+        if (booking.googleEventId) {
+          console.log(`[cancel] Deleting Google Calendar event: ${booking.googleEventId}`);
+          await deleteCalendarEventForBooking(reader.id, booking.googleEventId, 'GOOGLE');
+        }
+        
+        if (booking.microsoftEventId) {
+          console.log(`[cancel] Deleting Microsoft Calendar event: ${booking.microsoftEventId}`);
+          await deleteCalendarEventForBooking(reader.id, booking.microsoftEventId, 'MICROSOFT');
+        }
+      } catch (calendarError: any) {
+        console.error(`[cancel] Failed to delete calendar event:`, calendarError.message);
+      }
+    }
+
+    // Send cancellation emails to both parties
     const actor = booking.User_Booking_actorIdToUser;
 
     try {

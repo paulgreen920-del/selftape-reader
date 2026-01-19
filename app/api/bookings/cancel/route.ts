@@ -33,7 +33,11 @@ export async function POST(req: Request) {
     const booking = await prisma.booking.findUnique({
       where: { id: bookingId },
       include: {
-        User_Booking_readerIdToUser: true,
+        User_Booking_readerIdToUser: {
+          include: {
+            CalendarConnection: true,
+          },
+        },
         User_Booking_actorIdToUser: true,
       },
     });
@@ -209,6 +213,26 @@ export async function POST(req: Request) {
 
     // Calculate reader reliability score
     await updateReaderReliabilityScore(booking.readerId);
+
+    // Delete calendar event if it exists
+    const reader = booking.User_Booking_readerIdToUser;
+    if (reader.CalendarConnection) {
+      try {
+        const { deleteCalendarEventForBooking } = await import("@/lib/calendar-sync");
+        
+        if (updatedBooking.googleEventId) {
+          console.log(`[cancel] Deleting Google Calendar event: ${updatedBooking.googleEventId}`);
+          await deleteCalendarEventForBooking(reader.id, updatedBooking.googleEventId, 'GOOGLE');
+        }
+        
+        if (updatedBooking.microsoftEventId) {
+          console.log(`[cancel] Deleting Microsoft Calendar event: ${updatedBooking.microsoftEventId}`);
+          await deleteCalendarEventForBooking(reader.id, updatedBooking.microsoftEventId, 'MICROSOFT');
+        }
+      } catch (calendarError: any) {
+        console.error(`[cancel] Failed to delete calendar event:`, calendarError.message);
+      }
+    }
 
     // TODO: Send cancellation emails to both parties
     // await sendCancellationEmails(booking, canceledBy, refundPolicy);

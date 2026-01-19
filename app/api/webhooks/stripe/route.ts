@@ -314,13 +314,10 @@ async function createGoogleCalendarEvent(booking: any) {
       const event = await calendarResponse.json();
       console.log(`[Google Calendar] ✅ Created event ${event.id} for booking ${booking.id}`);
       
-      // Store calendar event ID in booking for future reference
+      // Store Google calendar event ID
       await prisma.booking.update({
         where: { id: booking.id },
-        data: { 
-          // Add calendarEventId field if it exists in schema, or use a JSON field
-          notes: JSON.stringify({ calendarEventId: event.id })
-        }
+        data: { googleEventId: event.id }
       });
       
     } else {
@@ -442,13 +439,10 @@ async function createMicrosoftCalendarEvent(booking: any) {
       const event = await calendarResponse.json();
       console.log(`[Microsoft Calendar] ✅ Created event ${event.id} for booking ${booking.id}`);
       
-      // Store calendar event ID in booking
-      const existingNotes = booking.notes ? JSON.parse(booking.notes) : {};
+      // Store Microsoft calendar event ID
       await prisma.booking.update({
         where: { id: booking.id },
-        data: { 
-          notes: JSON.stringify({ ...existingNotes, calendarEventId: event.id })
-        }
+        data: { microsoftEventId: event.id }
       });
       
     } else {

@@ -3,11 +3,11 @@ import { Resend } from 'resend';
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function sendBookingConfirmation(booking: any) {
-  const fromEmail = process.env.FROM_EMAIL || 'Reader Marketplace <booking@selftapereader.com>';
+  const fromAddress = process.env.FROM_EMAIL?.match(/<(.+)>/)?.[1] || process.env.FROM_EMAIL || 'booking@selftapereader.com';
   
     console.log('[Email] Starting to send confirmation emails for booking:', booking.id);
     console.log('[Email] RESEND_API_KEY present:', !!process.env.RESEND_API_KEY);
-    console.log('[Email] FROM_EMAIL:', fromEmail);
+    console.log('[Email] FROM_EMAIL:', fromAddress);
   
   try {
     const reader = booking.reader || booking.User_Booking_readerIdToUser;
@@ -81,7 +81,7 @@ export async function sendBookingConfirmation(booking: any) {
     // Email to Reader
     console.log('[Email] Sending email to reader:', reader.email);
     const readerEmailResult = await resend.emails.send({
-      from: fromEmail,
+      from: `Self-Tape Reader <${fromAddress}>`,
       to: reader.email,
       subject: `New Reading Session Booked - ${actor.name}`,
       html: `
@@ -140,7 +140,7 @@ export async function sendBookingConfirmation(booking: any) {
     // Email to Actor
     console.log('[Email] Sending email to actor:', actor.email);
     const actorEmailResult = await resend.emails.send({
-      from: fromEmail,
+      from: `Self-Tape Reader <${fromAddress}>`,
       to: actor.email,
       subject: `Reading Session Confirmed with ${reader.displayName || reader.name}`,
       html: `

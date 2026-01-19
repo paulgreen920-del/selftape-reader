@@ -1,15 +1,3 @@
-
-model ICalConnection {
-  id        String   @id @default(cuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name      String   // User-provided label like "Work" or "Personal"
-  url       String   // The iCal URL
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([userId])
-}
 generator client {
   provider = "prisma-client-js"
 }
@@ -17,6 +5,18 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+model ICalConnection {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  url       String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model AvailabilitySlot {
@@ -60,6 +60,8 @@ model Booking {
   endTime                     DateTime
   status                      BookingStatus @default(PENDING)
   meetingUrl                  String?
+  googleEventId               String?
+  microsoftEventId            String?
   notes                       String?
   actorId                     String
   cancelReason                String?
@@ -91,6 +93,8 @@ model Booking {
   sessionEndedAt              DateTime?
   sessionStartedAt            DateTime?
   stripeRefundId              String?
+  reminder1hSent              Boolean       @default(false)
+  reminder24hSent             Boolean       @default(false)
   User_Booking_actorIdToUser  User          @relation("Booking_actorIdToUser", fields: [actorId], references: [id], onDelete: Cascade)
   User_Booking_readerIdToUser User          @relation("Booking_readerIdToUser", fields: [readerId], references: [id], onDelete: Cascade)
 
@@ -122,9 +126,8 @@ model PasswordResetToken {
   token     String   @unique
   expiresAt DateTime
   createdAt DateTime @default(now())
-  
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@index([token])
   @@index([userId])
 }
@@ -139,7 +142,7 @@ model User {
   password                       String
   name                           String
   role                           Role                    @default(ACTOR)
-  isAdmin                        Boolean                 @default(false) // NEW
+  isAdmin                        Boolean                 @default(false)
   displayName                    String?
   phone                          String?
   timezone                       String?                 @default("America/New_York")
@@ -176,15 +179,15 @@ model User {
   suspendedUntil                 DateTime?
   suspensionReason               String?
   totalSessions                  Int                     @default(0)
+  skippedOnboardingSteps         String[]                @default([])
   AvailabilitySlot               AvailabilitySlot[]
   AvailabilityTemplate           AvailabilityTemplate[]
   Booking_Booking_actorIdToUser  Booking[]               @relation("Booking_actorIdToUser")
   Booking_Booking_readerIdToUser Booking[]               @relation("Booking_readerIdToUser")
   CalendarConnection             CalendarConnection?
   ICalConnections                ICalConnection[]
-  email_change_requests          email_change_requests[]
   passwordResetTokens            PasswordResetToken[]
-  skippedOnboardingSteps         String[]                @default([])
+  email_change_requests          email_change_requests[]
 
   @@index([email])
   @@index([isActive])
@@ -204,6 +207,19 @@ model email_change_requests {
 
   @@index([token])
   @@index([userId])
+}
+
+model EmailVerification {
+  id         String    @id
+  createdAt  DateTime  @default(now())
+  email      String
+  token      String    @unique
+  expiresAt  DateTime
+  verified   Boolean   @default(false)
+  verifiedAt DateTime?
+
+  @@index([email])
+  @@index([token])
 }
 
 enum BookingStatus {
@@ -228,17 +244,4 @@ enum Role {
   ACTOR
   READER
   ADMIN
-}
-
-model EmailVerification {
-  id         String    @id
-  createdAt  DateTime  @default(now())
-  email      String
-  token      String    @unique
-  expiresAt  DateTime
-  verified   Boolean   @default(false)
-  verifiedAt DateTime?
-
-  @@index([email])
-  @@index([token])
 }
