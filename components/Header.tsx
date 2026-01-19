@@ -14,6 +14,9 @@ export default function Header() {
         if (res.ok) {
           const data = await res.json();
           if (data.ok) {
+            console.log('[Header] User data:', data.user);
+            console.log('[Header] headshotUrl:', data.user.headshotUrl);
+            console.log('[Header] headshotUrl trimmed:', data.user.headshotUrl?.trim());
             setUser(data.user);
           }
         }
