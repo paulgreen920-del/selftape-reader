@@ -69,12 +69,8 @@ export async function GET(req: NextRequest) {
     });
 
     // Note: NextAuth session will be updated automatically on next request
-        // Non-critical error, email change was successful
-      }
-    }
 
-    // Return a success page redirect or JSON response
-    // You could redirect to a success page here
+    // Redirect to success page
     return NextResponse.redirect(
       new URL('/settings?email-changed=success', req.url),
       { status: 302 }
