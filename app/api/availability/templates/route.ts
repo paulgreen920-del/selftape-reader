@@ -1,404 +1,189 @@
 import { NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
-import { randomUUID } from "crypto";
 
-/**
- * Convert a local time in a specific timezone to a UTC Date object.
- * 
- * Example: localTimeToUTC(2025, 11, 25, 9, 0, "America/New_York")
- * Returns: Date object representing 9am EST as UTC (which is 14:00 UTC)
- */
+type TimeSlot = {
+  dayOfWeek: number;
+  startMin: number;
+  endMin: number;
+};
+
+// Convert local time to UTC
 function localTimeToUTC(
-  year: number, 
-  month: number, 
-  day: number, 
-  hour: number, 
-  minute: number, 
+  year: number,
+  month: number,
+  day: number,
+  hour: number,
+  minute: number,
   timezone: string
 ): Date {
-  // Create a date string in ISO format
-  const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}T${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00`;
-  
-  // Method: Use the fact that toLocaleString can format a UTC date into a timezone,
-  // then we can calculate the offset by comparing
-  
-  // Create a reference point: Jan 1, 2000 00:00:00 UTC
-  const referenceUTC = new Date(Date.UTC(year, month - 1, day, hour, minute, 0));
-  
-  // Format this UTC time as if it were in the target timezone
-  const inTargetTZ = new Intl.DateTimeFormat('en-US', {
+  // Create a date at noon UTC on the target day to get timezone offset
+  const noonUTC = new Date(Date.UTC(year, month - 1, day, 12, 0, 0, 0));
+
+  // Format this UTC time in the target timezone
+  const formatter = new Intl.DateTimeFormat("en-US", {
     timeZone: timezone,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false
-  }).formatToParts(referenceUTC);
-  
-  const tzParts: Record<string, number> = {};
-  inTargetTZ.forEach(part => {
-    if (part.type !== 'literal') {
-      tzParts[part.type] = parseInt(part.value);
-    }
+    hour: "numeric",
+    minute: "numeric",
+    hour12: false,
   });
+
+  const parts = formatter.formatToParts(noonUTC);
+  const getPart = (type: string) => {
+    const part = parts.find((p) => p.type === type);
+    return part ? parseInt(part.value) : 0;
+  };
+
+  const tzHour = getPart("hour");
   
-  // Calculate offset in minutes between UTC and target timezone at this point in time
-  // If UTC shows 14:00 and timezone shows 09:00, offset is -5 hours (EST)
-  const utcTotalMinutes = referenceUTC.getUTCHours() * 60 + referenceUTC.getUTCMinutes();
-  const tzTotalMinutes = tzParts.hour * 60 + tzParts.minute;
+  // Calculate offset: if noon UTC shows as 7:00 in EST, offset is -5 hours
+  const offsetHours = tzHour - 12;
+  const offsetMinutes = offsetHours * 60;
+
+  // Create the local time as if it were UTC
+  const localAsUTC = new Date(Date.UTC(year, month - 1, day, hour, minute, 0, 0));
   
-  // Handle day wraparound
-  let dayDiff = 0;
-  if (tzParts.day > referenceUTC.getUTCDate()) {
-    dayDiff = 1;
-  } else if (tzParts.day < referenceUTC.getUTCDate()) {
-    dayDiff = -1;
-  }
-  
-  const offsetMinutes = (tzTotalMinutes + dayDiff * 24 * 60) - utcTotalMinutes;
-  
-  // Now: if we want "9:00 in timezone X" to be stored as UTC,
-  // and the timezone is at offset -300 (EST = UTC-5),
-  // then 9:00 EST = 9:00 + 5 hours = 14:00 UTC
-  // So we SUBTRACT the offset (which is negative for EST, so subtracting -300 = adding 300)
-  
-  const resultUTC = new Date(Date.UTC(year, month - 1, day, hour, minute, 0));
-  resultUTC.setUTCMinutes(resultUTC.getUTCMinutes() - offsetMinutes);
-  
-  return resultUTC;
-}
+  // Subtract offset to get actual UTC time
+  // If offset is -5 (EST), we add 5 hours to get UTC
+  localAsUTC.setUTCMinutes(localAsUTC.getUTCMinutes() - offsetMinutes);
 
-export async function GET(req: Request) {
-  try {
-    const currentUser = await getCurrentUser();
-
-    if (!currentUser) {
-      return NextResponse.json(
-        { error: "Not authenticated" },
-        { status: 401 }
-      );
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { id: currentUser.id },
-    });
-
-    if (!user || (user.role !== 'READER' && !user.isAdmin && !user.onboardingStep)) {
-      return NextResponse.json(
-        { error: "Not authorized" },
-        { status: 403 }
-      );
-    }
-
-    const templates = await prisma.availabilityTemplate.findMany({
-      where: { userId: user.id }
-    });
-
-    // AUTO-SYNC: Ensure templates and slots are synchronized
-    console.log(`🚀 [GET] Checking template-slot sync for user ${user.id}`);
-    const slotCount = await prisma.availabilitySlot.count({
-      where: { userId: user.id }
-    });
-    
-    console.log(`🚀 [GET] Found ${templates.length} templates and ${slotCount} slots for user ${user.id}`);
-    
-    // Force sync if user has templates but no slots (indicates desync)
-    const needsSync = templates.length > 0 && slotCount === 0;
-    
-    if (needsSync) {
-      console.log(`🔥🔥🔥 [GET-AUTO-SYNC] TRIGGERING SYNC: ${templates.length} templates but ${slotCount} slots 🔥🔥🔥`);
-      try {
-        await regenerateAvailabilitySlots(user.id, user.timezone || 'America/New_York');
-        console.log(`✅ [GET] Successfully synced templates to slots for user ${user.id}`);
-      } catch (error) {
-        console.error(`❌ [GET] Failed to sync templates for user ${user.id}:`, error);
-      }
-    } else {
-      console.log(`✅ [GET] Sync check: ${templates.length} templates, ${slotCount} slots - OK`);
-    }
-
-    // Sort templates to show Monday-Sunday order (1,2,3,4,5,6,0) with earliest start times
-    const sortedTemplates = templates.sort((a: any, b: any) => {
-      const dayOrderA = a.dayOfWeek === 0 ? 7 : a.dayOfWeek;
-      const dayOrderB = b.dayOfWeek === 0 ? 7 : b.dayOfWeek;
-      
-      if (dayOrderA !== dayOrderB) {
-        return dayOrderA - dayOrderB;
-      }
-      
-      return a.startTime.localeCompare(b.startTime);
-    });
-
-    return NextResponse.json({ ok: true, templates: sortedTemplates });
-  } catch (error: any) {
-    console.error("[GET /api/availability/templates] Error:", error);
-    return NextResponse.json({ 
-      ok: false, 
-      error: error.message || "Failed to fetch availability templates" 
-    }, { status: 500 });
-  }
+  return localAsUTC;
 }
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { templates } = body;
+    const { userId, slots, timezone } = body as { 
+      userId: string; 
+      slots: TimeSlot[]; 
+      timezone?: string;
+    };
 
-    const currentUser = await getCurrentUser();
-
-    if (!currentUser) {
-      return NextResponse.json(
-        { error: "Not authenticated" },
-        { status: 401 }
-      );
+    if (!userId) {
+      return NextResponse.json({ ok: false, error: "Missing userId" }, { status: 400 });
     }
 
+    if (!Array.isArray(slots) || slots.length === 0) {
+      return NextResponse.json({ ok: false, error: "No availability slots provided" }, { status: 400 });
+    }
+
+    // Get user's timezone from database if not provided
     const user = await prisma.user.findUnique({
-      where: { id: currentUser.id },
+      where: { id: userId },
+      select: { timezone: true },
     });
-
-    if (!user || (user.role !== 'READER' && !user.isAdmin && !user.onboardingStep)) {
-      return NextResponse.json(
-        { error: "Not authorized" },
-        { status: 403 }
-      );
-    }
-
-    // Delete existing templates
-    await prisma.availabilityTemplate.deleteMany({
-      where: { userId: user.id }
-    });
-
-    // Create new templates
-    if (templates && templates.length > 0) {
-      await prisma.availabilityTemplate.createMany({
-        data: templates.map((template: any) => ({
-          userId: user.id,
-          dayOfWeek: template.dayOfWeek,
-          startTime: template.startTime,
-          endTime: template.endTime,
-          isActive: true
-        }))
-      });
-    }
-
-    // Regenerate availability slots from the new templates
-    await regenerateAvailabilitySlots(user.id, user.timezone || 'America/New_York');
-
-    return NextResponse.json({ ok: true });
-  } catch (error: any) {
-    console.error("[POST /api/availability/templates] Error:", error);
-    return NextResponse.json({ 
-      ok: false, 
-      error: error.message || "Failed to create availability template" 
-    }, { status: 500 });
-  }
-}
-
-export async function PUT(req: Request) {
-  try {
-    const body = await req.json();
-    const { templates } = body;
-
-    if (!Array.isArray(templates)) {
-      return NextResponse.json({ 
-        ok: false, 
-        error: "Templates must be an array" 
-      }, { status: 400 });
-    }
-
-    const currentUser = await getCurrentUser();
-
-    if (!currentUser) {
-      return NextResponse.json(
-        { error: "Not authenticated" },
-        { status: 401 }
-      );
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { id: currentUser.id },
-    });
-
-    if (!user || (user.role !== 'READER' && !user.isAdmin && !user.onboardingStep)) {
-      return NextResponse.json(
-        { error: "Not authorized" },
-        { status: 403 }
-      );
-    }
-
-    // Delete existing templates for this user
-    await prisma.availabilityTemplate.deleteMany({
-      where: { userId: user.id }
-    });
-
-    // Create new templates
-    if (templates.length > 0) {
-      const createData = templates.map(template => ({
-        userId: user.id,
-        dayOfWeek: template.dayOfWeek,
-        startTime: template.startTime,
-        endTime: template.endTime,
-        isActive: true
-      }));
-
-      await prisma.availabilityTemplate.createMany({
-        data: createData.map((item: any, index: number) => ({
-          ...item,
-          id: `template_${Date.now()}_${index}`,
-          updatedAt: new Date(),
-        }))
-      });
-    }
-
-    // Regenerate availability slots from the new templates
-    const readerTimezone = user.timezone || 'America/New_York';
-    console.log(`[PUT] About to regenerate slots for user ${user.id} in timezone ${readerTimezone}`);
     
-    try {
-      await regenerateAvailabilitySlots(user.id, readerTimezone);
-      console.log(`[PUT] Successfully regenerated slots for user ${user.id}`);
-    } catch (regenerationError) {
-      console.error(`[PUT] Failed to regenerate slots for user ${user.id}:`, regenerationError);
-    }
+    const userTimezone = timezone || user?.timezone || "America/New_York";
+    console.log(`[availability] Using timezone: ${userTimezone}`);
 
-    return NextResponse.json({ ok: true, message: "Templates updated successfully" });
-  } catch (error: any) {
-    console.error("[PUT /api/availability/templates] Error:", error);
-    return NextResponse.json({ 
-      ok: false, 
-      error: error.message || "Failed to update availability templates" 
-    }, { status: 500 });
-  }
-}
-
-/**
- * Regenerate availability slots from templates.
- * Templates store times in reader's local timezone (e.g., "09:00" means 9am in reader's TZ).
- * Slots are stored as UTC in the database.
- */
-async function regenerateAvailabilitySlots(userId: string, readerTimezone: string) {
-  console.log(`🔥 [REGEN] Starting for user ${userId} with timezone ${readerTimezone}`);
-  
-  try {
-    // Delete existing NON-BOOKED slots (preserve booked slots)
-    const deleteResult = await prisma.availabilitySlot.deleteMany({
-      where: { 
-        userId,
-        isBooked: false 
+    // Validate slots
+    for (const slot of slots) {
+      if (slot.dayOfWeek < 0 || slot.dayOfWeek > 6) {
+        return NextResponse.json({ ok: false, error: "Invalid day of week" }, { status: 400 });
       }
-    });
-    console.log(`[REGEN] Deleted ${deleteResult.count} existing slots`);
-
-    // Get the user's templates
-    const templates = await prisma.availabilityTemplate.findMany({
-      where: { userId, isActive: true }
-    });
-
-    if (templates.length === 0) {
-      console.log(`[REGEN] No templates found for user ${userId}`);
-      return;
+      if (slot.startMin < 0 || slot.startMin >= 1440) {
+        return NextResponse.json({ ok: false, error: "Invalid start time" }, { status: 400 });
+      }
+      if (slot.endMin < 0 || slot.endMin > 1440) {
+        return NextResponse.json({ ok: false, error: "Invalid end time" }, { status: 400 });
+      }
+      if (slot.startMin >= slot.endMin) {
+        return NextResponse.json({ ok: false, error: "Start time must be before end time" }, { status: 400 });
+      }
     }
 
-    console.log(`[REGEN] Found ${templates.length} templates`);
-
-    // Get existing booked slots to avoid duplicates
-    const existingBookedSlots = await prisma.availabilitySlot.findMany({
-      where: { userId, isBooked: true },
-      select: { startTime: true }
+    // Delete existing slots AND templates for this user
+    await prisma.availabilitySlot.deleteMany({
+      where: { userId },
     });
-    const bookedSlotTimes = new Set(
-      existingBookedSlots.map(slot => slot.startTime.getTime())
-    );
+    
+    await prisma.availabilityTemplate.deleteMany({
+      where: { userId },
+    });
 
-    // Use Map to deduplicate slots by their UTC start time
-    const slotMap = new Map<number, any>();
+    // Create templates from the slots
+    const templatesToCreate = slots.map((slot, index) => ({
+      id: `template_${Date.now()}_${userId}_${index}`,
+      userId,
+      dayOfWeek: slot.dayOfWeek,
+      startTime: `${Math.floor(slot.startMin / 60).toString().padStart(2, '0')}:${(slot.startMin % 60).toString().padStart(2, '0')}`,
+      endTime: `${Math.floor(slot.endMin / 60).toString().padStart(2, '0')}:${(slot.endMin % 60).toString().padStart(2, '0')}`,
+      isActive: true,
+      updatedAt: new Date(),
+    }));
+
+    await prisma.availabilityTemplate.createMany({
+      data: templatesToCreate,
+    });
+
+    // Convert each slot to actual date/time for the next 30 days
+    // Use the user's timezone for proper conversion
     const now = new Date();
+    const slotsToCreate: any[] = [];
+    let slotCounter = 0;
 
-    // Generate slots for the next 30 days
+    // Get current date in user's timezone
+    const dateFormatter = new Intl.DateTimeFormat("en-CA", {
+      timeZone: userTimezone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    });
+
     for (let daysAhead = 0; daysAhead < 30; daysAhead++) {
-      const targetDate = new Date(now);
-      targetDate.setDate(targetDate.getDate() + daysAhead);
+      // Calculate target date in user's timezone
+      const futureDate = new Date(now.getTime() + daysAhead * 24 * 60 * 60 * 1000);
+      const dateStr = dateFormatter.format(futureDate);
+      const [year, month, day] = dateStr.split("-").map(Number);
       
-      // Get the date components in the reader's timezone
-      const dateFormatter = new Intl.DateTimeFormat('en-CA', {
-        timeZone: readerTimezone,
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
+      // Get day of week for this date
+      const targetDate = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+      const dayFormatter = new Intl.DateTimeFormat("en-US", {
+        timeZone: userTimezone,
+        weekday: "short",
       });
-      const dateStr = dateFormatter.format(targetDate);
-      const [year, month, day] = dateStr.split('-').map(Number);
-      
-      // Get day of week in reader's timezone
-      const dowFormatter = new Intl.DateTimeFormat('en-US', {
-        timeZone: readerTimezone,
-        weekday: 'short',
-      });
-      const dowStr = dowFormatter.format(targetDate);
-      const dayOfWeekMap: Record<string, number> = {
-        'Sun': 0, 'Mon': 1, 'Tue': 2, 'Wed': 3, 'Thu': 4, 'Fri': 5, 'Sat': 6
+      const dayName = dayFormatter.format(targetDate);
+      const dayOfWeekMap: { [key: string]: number } = {
+        Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6,
       };
-      const targetDayOfWeek = dayOfWeekMap[dowStr];
-      
-      // Check each template
-      for (const template of templates) {
-        if (targetDayOfWeek !== template.dayOfWeek) continue;
-        
-        // Parse template times (e.g., "09:00" to "17:00")
-        const [startHour, startMinute] = (template.startTime as string).split(':').map(Number);
-        const [endHour, endMinute] = (template.endTime as string).split(':').map(Number);
-        
-        const startTotalMinutes = startHour * 60 + startMinute;
-        const endTotalMinutes = endHour * 60 + endMinute;
-        
-        // Create 30-minute slots
-        for (let currentMin = startTotalMinutes; currentMin < endTotalMinutes; currentMin += 30) {
-          const slotHour = Math.floor(currentMin / 60);
-          const slotMinute = currentMin % 60;
-          
-          // Convert reader's local time to UTC
-          const slotStartUTC = localTimeToUTC(year, month, day, slotHour, slotMinute, readerTimezone);
-          const slotEndUTC = new Date(slotStartUTC.getTime() + 30 * 60 * 1000);
-          
-          const slotKey = slotStartUTC.getTime();
-          
-          // Skip if already booked or already added
-          if (bookedSlotTimes.has(slotKey)) continue;
-          if (slotMap.has(slotKey)) continue;
-          
-          slotMap.set(slotKey, {
-            id: randomUUID(),
+      const dayOfWeek = dayOfWeekMap[dayName];
+
+      slots.forEach((slot) => {
+        if (dayOfWeek === slot.dayOfWeek) {
+          const startHour = Math.floor(slot.startMin / 60);
+          const startMinute = slot.startMin % 60;
+          const endHour = Math.floor(slot.endMin / 60);
+          const endMinute = slot.endMin % 60;
+
+          // Convert local time to UTC
+          const startTimeUTC = localTimeToUTC(year, month, day, startHour, startMinute, userTimezone);
+          const endTimeUTC = localTimeToUTC(year, month, day, endHour, endMinute, userTimezone);
+
+          console.log(`[availability] Slot: ${year}-${month}-${day} ${startHour}:${startMinute} ${userTimezone} -> ${startTimeUTC.toISOString()} UTC`);
+
+          slotsToCreate.push({
+            id: `slot_${Date.now()}_${userId}_${slotCounter++}`,
             userId,
-            startTime: slotStartUTC,
-            endTime: slotEndUTC,
+            startTime: startTimeUTC,
+            endTime: endTimeUTC,
             isBooked: false,
             updatedAt: new Date(),
           });
         }
-      }
+      });
     }
 
-    const slotsToCreate = Array.from(slotMap.values());
-
+    // Create new slots
     if (slotsToCreate.length > 0) {
       await prisma.availabilitySlot.createMany({
         data: slotsToCreate,
       });
-      
-      // Log sample for debugging
-      const sample = slotsToCreate[0];
-      console.log(`[REGEN] Created ${slotsToCreate.length} slots`);
-      console.log(`[REGEN] Sample slot UTC: ${sample.startTime.toISOString()}`);
-      console.log(`[REGEN] Sample in ${readerTimezone}: ${sample.startTime.toLocaleString('en-US', { timeZone: readerTimezone })}`);
-    } else {
-      console.log(`[REGEN] No slots to create`);
     }
 
-  } catch (error) {
-    console.error(`[REGEN] Error:`, error);
-    throw error;
+    console.log(`[availability] Created ${slotsToCreate.length} slots for user ${userId}`);
+
+    return NextResponse.json({ ok: true }, { status: 200 });
+  } catch (err: any) {
+    console.error("[availability] Error:", err);
+    return NextResponse.json({ ok: false, error: err.message || "Failed to save" }, { status: 500 });
   }
 }
