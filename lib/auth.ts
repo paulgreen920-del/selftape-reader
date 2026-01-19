@@ -12,6 +12,7 @@ declare module "next-auth" {
       name: string;
       role: string;
       isAdmin: boolean;
+      headshotUrl?: string;
     };
   }
 }
@@ -23,6 +24,7 @@ declare module "next-auth/jwt" {
     name: string;
     role: string;
     isAdmin: boolean;
+    headshotUrl?: string;
   }
 }
 
@@ -48,6 +50,7 @@ export const authOptions: NextAuthOptions = {
             password: true,
             role: true,
             isAdmin: true,
+            headshotUrl: true,
           },
         });
 
@@ -71,6 +74,7 @@ export const authOptions: NextAuthOptions = {
           name: user.name,
           role: user.role,
           isAdmin: user.isAdmin,
+          headshotUrl: user.headshotUrl,
         };
       },
     }),
@@ -95,6 +99,7 @@ export const authOptions: NextAuthOptions = {
         token.name = user.name as string;
         token.role = (user as any).role;
         token.isAdmin = (user as any).isAdmin;
+        token.headshotUrl = (user as any).headshotUrl;
       }
       return token;
     },
@@ -107,6 +112,7 @@ export const authOptions: NextAuthOptions = {
         name: token.name as string,
         role: token.role as string,
         isAdmin: token.isAdmin as boolean,
+        headshotUrl: token.headshotUrl as string | undefined,
       };
       return session;
     },

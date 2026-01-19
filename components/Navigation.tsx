@@ -45,15 +45,26 @@ export default function Navigation() {
   }
 
   if (user) {
+    // Get headshot URL from user object (added by NextAuth callbacks)
+    const headshotUrl = (user as any).headshotUrl?.trim();
+    
     return (
       <div className="relative" ref={dropdownRef}>
         <button
           onClick={() => setDropdownOpen(!dropdownOpen)}
           className="flex items-center gap-2 text-gray-700 hover:text-emerald-700 transition-colors"
         >
-          <div className="w-8 h-8 bg-emerald-600 text-white rounded-full flex items-center justify-center text-sm font-semibold">
-            {user.name?.charAt(0)?.toUpperCase() || user.email?.charAt(0)?.toUpperCase() || 'U'}
-          </div>
+          {headshotUrl ? (
+            <img 
+              src={headshotUrl} 
+              alt="Profile" 
+              className="w-8 h-8 rounded-full object-cover"
+            />
+          ) : (
+            <div className="w-8 h-8 bg-emerald-600 text-white rounded-full flex items-center justify-center text-sm font-semibold">
+              {user.name?.charAt(0)?.toUpperCase() || user.email?.charAt(0)?.toUpperCase() || 'U'}
+            </div>
+          )}
           <span className="hidden sm:inline text-sm font-medium">{user.name || 'Account'}</span>
           <svg
             className={`w-4 h-4 transition-transform ${dropdownOpen ? 'rotate-180' : ''}`}
