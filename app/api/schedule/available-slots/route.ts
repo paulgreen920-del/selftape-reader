@@ -74,6 +74,27 @@ function getDayBoundsInTimezone(dateStr: string, timezone: string): { startUTC: 
   return { startUTC, endUTC };
 }
 
+// Helper to get hours and minutes from a UTC date in a specific timezone
+function getTimeInTimezone(utcDate: Date, timezone: string): { hour: number; minute: number } {
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone,
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+  
+  const parts = formatter.formatToParts(utcDate);
+  const getPart = (type: string) => {
+    const part = parts.find(p => p.type === type);
+    return part ? parseInt(part.value) : 0;
+  };
+  
+  return {
+    hour: getPart('hour'),
+    minute: getPart('minute'),
+  };
+}
+
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
@@ -174,19 +195,13 @@ export async function GET(req: Request) {
       const startUTC = new Date(slot.startTime);
       const endUTC = new Date(slot.endTime);
       
-      // Convert to actor's timezone
-      const startInActorTZ = new Date(startUTC.toLocaleString('en-US', { timeZone: actorTimezone }));
-      const endInActorTZ = new Date(endUTC.toLocaleString('en-US', { timeZone: actorTimezone }));
-      
-      // Get hours and minutes in actor's timezone
-      const startHour = startInActorTZ.getHours();
-      const startMinute = startInActorTZ.getMinutes();
-      const endHour = endInActorTZ.getHours();
-      const endMinute = endInActorTZ.getMinutes();
+      // Get hours and minutes directly in actor's timezone using Intl
+      const startTime = getTimeInTimezone(startUTC, actorTimezone);
+      const endTime = getTimeInTimezone(endUTC, actorTimezone);
       
       return {
-        startMin: startHour * 60 + startMinute,
-        endMin: endHour * 60 + endMinute,
+        startMin: startTime.hour * 60 + startTime.minute,
+        endMin: endTime.hour * 60 + endTime.minute,
         startTimeUTC: startUTC,
         endTimeUTC: endUTC,
         originalSlot: slot
