@@ -1,31 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
+import { getCurrentUser } from '@/lib/auth-helpers';
 import { sendVerificationEmail } from '@/lib/email-verification';
 import { prisma } from '@/lib/prisma';
 
 export async function POST(request: NextRequest) {
   try {
-    const cookieStore = await cookies();
-    const sessionCookie = cookieStore.get('session');
+    const currentUser = await getCurrentUser();
 
-    if (!sessionCookie) {
+    if (!currentUser) {
       return NextResponse.json(
         { error: 'Not authenticated' },
         { status: 401 }
       );
     }
 
-    let session;
-    try {
-      session = JSON.parse(sessionCookie.value);
-    } catch (e) {
-      return NextResponse.json(
-        { error: 'Invalid session' },
-        { status: 401 }
-      );
-    }
-
-    const userId = session.userId;
+    const userId = currentUser.id;
     if (!userId) {
       return NextResponse.json(
         { error: 'Invalid session' },

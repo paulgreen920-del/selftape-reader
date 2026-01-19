@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
+import { getCurrentUser } from "@/lib/auth-helpers";
 
 /**
  * POST /api/onboarding/skip-step
@@ -8,19 +8,13 @@ import { cookies } from "next/headers";
  */
 export async function POST(req: Request) {
   try {
-    const cookieStore = await cookies();
-    const sessionCookie = cookieStore.get('session');
+    const currentUser = await getCurrentUser();
     
-    if (!sessionCookie) {
+    if (!currentUser) {
       return NextResponse.json({ ok: false, error: "Not authenticated" }, { status: 401 });
     }
 
-    const session = JSON.parse(sessionCookie.value);
-    const userId = session.userId;
-
-    if (!userId) {
-      return NextResponse.json({ ok: false, error: "Invalid session" }, { status: 401 });
-    }
+    const userId = currentUser.id;
 
     const { step } = await req.json();
     

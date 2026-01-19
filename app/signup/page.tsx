@@ -3,6 +3,7 @@
 import { useState, FormEvent, Suspense } from 'react';
 import { useRecaptcha } from '@/hooks/use-recaptcha';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { signIn } from 'next-auth/react';
 import Link from 'next/link';
 
 function SignupForm() {
@@ -35,7 +36,7 @@ function SignupForm() {
         return;
       }
 
-      // Everyone signs up as ACTOR by default
+      // Create account via API
       const res = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -47,6 +48,19 @@ function SignupForm() {
       if (!res.ok) {
         setError(data.error || 'Signup failed');
         setLoading(false);
+        return;
+      }
+
+      // Sign in with NextAuth
+      const signInResult = await signIn('credentials', {
+        email,
+        password,
+        redirect: false,
+      });
+
+      if (signInResult?.error) {
+        // Account created but sign in failed - redirect to login
+        router.push('/login');
         return;
       }
 

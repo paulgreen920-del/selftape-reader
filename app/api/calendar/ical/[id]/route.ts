@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
+import { getCurrentUser } from '@/lib/auth-helpers';
 import { prisma } from '@/lib/prisma';
 
 export async function DELETE(
@@ -7,25 +7,13 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Get user from session cookie
-    const cookieStore = await cookies();
-    const sessionCookie = cookieStore.get("session");
+    const currentUser = await getCurrentUser();
 
-    if (!sessionCookie?.value) {
+    if (!currentUser) {
       return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
     }
 
-    let userId: string;
-    try {
-      const session = JSON.parse(sessionCookie.value);
-      userId = session.userId;
-    } catch {
-      return NextResponse.json({ ok: false, error: 'Invalid session' }, { status: 401 });
-    }
-
-    if (!userId) {
-      return NextResponse.json({ ok: false, error: 'No user in session' }, { status: 401 });
-    }
+    const userId = currentUser.id;
 
     const { id } = await params;
     if (!id) {

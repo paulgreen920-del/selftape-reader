@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getCurrentUser } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { randomUUID } from "crypto";
 
@@ -71,24 +72,20 @@ function localTimeToUTC(
 
 export async function GET(req: Request) {
   try {
-    // Get user from session
-    const { cookies } = await import('next/headers');
-    const cookieStore = await cookies();
-    const sessionCookie = cookieStore.get("session");
+    const currentUser = await getCurrentUser();
 
-    if (!sessionCookie?.value) {
+    if (!currentUser) {
       return NextResponse.json(
         { error: "Not authenticated" },
         { status: 401 }
       );
     }
 
-    const sessionData = JSON.parse(sessionCookie.value);
     const user = await prisma.user.findUnique({
-      where: { id: sessionData.userId },
+      where: { id: currentUser.id },
     });
 
-    if (!user || (user.role !== 'READER' && user.isAdmin !== true && !user.onboardingStep)) {
+    if (!user || (user.role !== 'READER' && !user.isAdmin && !user.onboardingStep)) {
       return NextResponse.json(
         { error: "Not authorized" },
         { status: 403 }
@@ -149,23 +146,20 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { templates } = body;
 
-    const { cookies } = await import('next/headers');
-    const cookieStore = await cookies();
-    const sessionCookie = cookieStore.get("session");
+    const currentUser = await getCurrentUser();
 
-    if (!sessionCookie?.value) {
+    if (!currentUser) {
       return NextResponse.json(
         { error: "Not authenticated" },
         { status: 401 }
       );
     }
 
-    const sessionData = JSON.parse(sessionCookie.value);
     const user = await prisma.user.findUnique({
-      where: { id: sessionData.userId },
+      where: { id: currentUser.id },
     });
 
-    if (!user || (user.role !== 'READER' && user.isAdmin !== true && !user.onboardingStep)) {
+    if (!user || (user.role !== 'READER' && !user.isAdmin && !user.onboardingStep)) {
       return NextResponse.json(
         { error: "Not authorized" },
         { status: 403 }
@@ -215,23 +209,20 @@ export async function PUT(req: Request) {
       }, { status: 400 });
     }
 
-    const { cookies } = await import('next/headers');
-    const cookieStore = await cookies();
-    const sessionCookie = cookieStore.get("session");
+    const currentUser = await getCurrentUser();
 
-    if (!sessionCookie?.value) {
+    if (!currentUser) {
       return NextResponse.json(
         { error: "Not authenticated" },
         { status: 401 }
       );
     }
 
-    const sessionData = JSON.parse(sessionCookie.value);
     const user = await prisma.user.findUnique({
-      where: { id: sessionData.userId },
+      where: { id: currentUser.id },
     });
 
-    if (!user || (user.role !== 'READER' && user.isAdmin !== true && !user.onboardingStep)) {
+    if (!user || (user.role !== 'READER' && !user.isAdmin && !user.onboardingStep)) {
       return NextResponse.json(
         { error: "Not authorized" },
         { status: 403 }

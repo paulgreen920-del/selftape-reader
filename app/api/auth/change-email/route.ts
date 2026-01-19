@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
+import { getCurrentUser } from "@/lib/auth-helpers";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { Resend } from 'resend';
@@ -96,20 +96,17 @@ export async function POST(req: Request) {
       );
     }
 
-    // Get user from session
-    const cookieStore = await cookies();
-    const sessionCookie = cookieStore.get("session");
+    const currentUser = await getCurrentUser();
 
-    if (!sessionCookie?.value) {
+    if (!currentUser) {
       return NextResponse.json(
         { error: "Not authenticated" },
         { status: 401 }
       );
     }
 
-    const sessionData = JSON.parse(sessionCookie.value);
     const user = await prisma.user.findUnique({
-      where: { id: sessionData.userId },
+      where: { id: currentUser.id },
     });
 
     if (!user) {

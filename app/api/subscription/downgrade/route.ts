@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
+import { getCurrentUser } from "@/lib/auth-helpers";
 import Stripe from "stripe";
 import { prisma } from "@/lib/prisma";
 
@@ -9,23 +9,19 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 
 async function POST(req: Request) {
   try {
-    // Get current user from session
-    const cookieStore = await cookies();
-    const sessionCookie = cookieStore.get("session");
+    const currentUser = await getCurrentUser();
 
-    if (!sessionCookie) {
+    if (!currentUser) {
       return NextResponse.json({ ok: false, error: "Not authenticated" }, { status: 401 });
     }
-
-    const session = JSON.parse(sessionCookie.value);
     
-    if (session.role !== 'READER') {
+    if (currentUser.role !== 'READER') {
       return NextResponse.json({ ok: false, error: "Not a reader" }, { status: 403 });
     }
 
     // Get user from database
     const user = await prisma.user.findUnique({
-      where: { id: session.userId },
+      where: { id: currentUser.id },
     });
 
     if (!user) {

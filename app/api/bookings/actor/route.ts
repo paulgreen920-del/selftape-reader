@@ -1,21 +1,18 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
+import { getCurrentUser } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 
 export async function GET() {
   try {
-    const cookieStore = await cookies();
-    const sessionCookie = cookieStore.get("session");
+    const currentUser = await getCurrentUser();
 
-    if (!sessionCookie) {
+    if (!currentUser) {
       return NextResponse.json({ ok: false, error: "Not authenticated" }, { status: 401 });
     }
 
-    const session = JSON.parse(sessionCookie.value);
-
     // Get all bookings for this actor
     const bookings = await prisma.booking.findMany({
-      where: { actorId: session.userId },
+      where: { actorId: currentUser.id },
       include: {
         User_Booking_readerIdToUser: {
           select: {

@@ -1,22 +1,19 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
+import { getCurrentUser } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 
 export async function POST() {
   try {
-    // Get userId from session
-    const cookieStore = await cookies();
-    const sessionCookie = cookieStore.get("session");
+    const currentUser = await getCurrentUser();
     
-    if (!sessionCookie) {
+    if (!currentUser) {
       return NextResponse.json({ 
         ok: false, 
         error: "Not authenticated" 
       }, { status: 401 });
     }
     
-    const session = JSON.parse(sessionCookie.value);
-    const userId = session.userId;
+    const userId = currentUser.id;
 
     // Delete calendar connection for this user
     await prisma.calendarConnection.deleteMany({

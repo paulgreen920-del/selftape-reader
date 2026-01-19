@@ -3,54 +3,20 @@
 import Link from "next/link";
 import { useEffect, useState, useRef } from "react";
 import { usePathname } from "next/navigation";
-
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  role?: string;
-  headshotUrl?: string | null;
-}
+import { useSession, signOut } from "next-auth/react";
 
 export default function Navigation() {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { data: session, status } = useSession();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
 
-  async function checkAuth() {
-    try {
-      const response = await fetch('/api/auth/me');
-      if (response.ok) {
-        const data = await response.json();
-        if (data.ok && data.user) {
-          setUser(data.user);
-        } else {
-          setUser(null);
-        }
-      } else {
-        setUser(null);
-      }
-    } catch (error) {
-      console.error('Auth check failed:', error);
-      setUser(null);
-    } finally {
-      setLoading(false);
-    }
-  }
+  const loading = status === "loading";
+  const user = session?.user;
 
   async function handleLogout() {
-    try {
-      await fetch('/api/auth/logout', { method: 'POST' });
-      setUser(null);
-      setDropdownOpen(false);
-      window.dispatchEvent(new CustomEvent('auth-change'));
-      window.location.href = '/';
-    } catch (err) {
-      console.error('Logout failed:', err);
-      window.location.href = '/';
-    }
+    setDropdownOpen(false);
+    await signOut({ callbackUrl: '/' });
   }
 
   // Close dropdown when clicking outside
@@ -70,44 +36,6 @@ export default function Navigation() {
     setDropdownOpen(false);
   }, [pathname]);
 
-  useEffect(() => {
-    checkAuth();
-
-    const handleAuthChange = () => {
-      setLoading(true);
-      setTimeout(() => {
-        checkAuth();
-      }, 50);
-    };
-
-    window.addEventListener('focus', handleAuthChange);
-    window.addEventListener('storage', handleAuthChange);
-    window.addEventListener('auth-change', handleAuthChange);
-
-    return () => {
-      window.removeEventListener('focus', handleAuthChange);
-      window.removeEventListener('storage', handleAuthChange);
-      window.removeEventListener('auth-change', handleAuthChange);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (pathname === '/' || pathname === '/dashboard' || pathname === '/login') {
-      setLoading(true);
-      checkAuth();
-    }
-  }, [pathname]);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (!loading) {
-        checkAuth();
-      }
-    }, 100);
-
-    return () => clearTimeout(timer);
-  }, [pathname, loading]);
-
   if (loading) {
     return (
       <div className="flex items-center gap-2">
@@ -123,17 +51,9 @@ export default function Navigation() {
           onClick={() => setDropdownOpen(!dropdownOpen)}
           className="flex items-center gap-2 text-gray-700 hover:text-emerald-700 transition-colors"
         >
-          {user.headshotUrl ? (
-            <img
-              src={user.headshotUrl}
-              alt={user.name || 'User'}
-              className="w-8 h-8 rounded-full object-cover border-2 border-emerald-600"
-            />
-          ) : (
-            <div className="w-8 h-8 bg-emerald-600 text-white rounded-full flex items-center justify-center text-sm font-semibold">
-              {user.name?.charAt(0)?.toUpperCase() || user.email?.charAt(0)?.toUpperCase() || 'U'}
-            </div>
-          )}
+          <div className="w-8 h-8 bg-emerald-600 text-white rounded-full flex items-center justify-center text-sm font-semibold">
+            {user.name?.charAt(0)?.toUpperCase() || user.email?.charAt(0)?.toUpperCase() || 'U'}
+          </div>
           <span className="hidden sm:inline text-sm font-medium">{user.name || 'Account'}</span>
           <svg
             className={`w-4 h-4 transition-transform ${dropdownOpen ? 'rotate-180' : ''}`}

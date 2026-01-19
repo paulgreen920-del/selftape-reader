@@ -2,6 +2,7 @@
 
 import { useState, FormEvent, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { signIn } from 'next-auth/react';
 import Link from 'next/link';
 
 function LoginForm() {
@@ -12,8 +13,8 @@ function LoginForm() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   
-  // Get redirect URL from query parameters
-  const redirectUrl = searchParams.get('redirect') || '/dashboard';
+  // Get redirect URL from query parameters (supports both 'redirect' and 'callbackUrl')
+  const redirectUrl = searchParams.get('callbackUrl') || searchParams.get('redirect') || '/dashboard';
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -21,16 +22,14 @@ function LoginForm() {
     setLoading(true);
 
     try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+      const result = await signIn('credentials', {
+        email,
+        password,
+        redirect: false,
       });
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error || 'Login failed');
+      if (result?.error) {
+        setError(result.error);
         setLoading(false);
         return;
       }
@@ -70,7 +69,6 @@ function LoginForm() {
               <div className="text-sm text-red-800">{error}</div>
             </div>
           )}
-
 
           <div className="rounded-md shadow-sm -space-y-px">
             <div>

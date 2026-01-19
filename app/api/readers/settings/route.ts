@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getCurrentUser } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 
 export async function POST(req: Request) {
@@ -6,24 +7,20 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { maxAdvanceBooking, minAdvanceHours, bookingBuffer, timezone } = body;
 
-    // Get user from session
-    const { cookies } = await import('next/headers');
-    const cookieStore = await cookies();
-    const sessionCookie = cookieStore.get("session");
+    const currentUser = await getCurrentUser();
 
-    if (!sessionCookie?.value) {
+    if (!currentUser) {
       return NextResponse.json(
         { error: "Not authenticated" },
         { status: 401 }
       );
     }
 
-    const sessionData = JSON.parse(sessionCookie.value);
     const user = await prisma.user.findUnique({
-      where: { id: sessionData.userId },
+      where: { id: currentUser.id },
     });
 
-    if (!user || (user.role !== 'READER' && user.isAdmin !== true && !user.onboardingStep)) {
+    if (!user || (user.role !== 'READER' && !user.isAdmin && !user.onboardingStep)) {
       return NextResponse.json(
         { error: "Not authorized" },
         { status: 403 }

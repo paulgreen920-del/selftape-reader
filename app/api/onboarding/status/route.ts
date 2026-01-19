@@ -1,28 +1,19 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
+import { getCurrentUser } from '@/lib/auth-helpers';
 import { checkReaderOnboardingStatus } from '@/lib/onboarding-checker';
 
 export async function GET() {
   try {
-    const cookieStore = await cookies();
-    const sessionCookie = cookieStore.get('session');
+    const currentUser = await getCurrentUser();
 
-    if (!sessionCookie) {
+    if (!currentUser) {
       return NextResponse.json(
         { error: 'Not authenticated' },
         { status: 401 }
       );
     }
 
-    const session = JSON.parse(sessionCookie.value);
-    const userId = session.userId;
-
-    if (!userId) {
-      return NextResponse.json(
-        { error: 'Invalid session' },
-        { status: 401 }
-      );
-    }
+    const userId = currentUser.id;
 
     const status = await checkReaderOnboardingStatus(userId);
 

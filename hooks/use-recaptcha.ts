@@ -1,5 +1,4 @@
 "use client";
-
 import { useCallback, useEffect } from 'react';
 
 declare global {
@@ -12,9 +11,13 @@ declare global {
 }
 
 const SITE_KEY = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY!;
+const IS_DEV = process.env.NODE_ENV === 'development';
 
 export function useRecaptcha() {
   useEffect(() => {
+    // Skip loading reCAPTCHA in development
+    if (IS_DEV) return;
+
     // Load the reCAPTCHA script if not already loaded
     if (typeof window !== 'undefined' && !document.querySelector('#recaptcha-script')) {
       const script = document.createElement('script');
@@ -26,6 +29,12 @@ export function useRecaptcha() {
   }, []);
 
   const getToken = useCallback(async (action: string): Promise<string | null> => {
+    // Return dummy token in development
+    if (IS_DEV) {
+      console.log('[useRecaptcha] Development mode - returning dummy token');
+      return 'dev-bypass-token';
+    }
+
     try {
       if (typeof window === 'undefined' || !window.grecaptcha) {
         console.warn('reCAPTCHA not loaded');

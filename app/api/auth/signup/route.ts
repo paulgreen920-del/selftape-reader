@@ -2,9 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { sendVerificationEmail } from "@/lib/email-verification";
-
 import { verifyRecaptcha } from '@/lib/recaptcha';
-
 
 async function POST(req: Request) {
   try {
@@ -44,7 +42,7 @@ async function POST(req: Request) {
     const randomId = crypto.randomBytes(12).toString('base64url');
     const userId = `user_${Date.now()}_${randomId}`;
 
-    // Create user (email verification will be added after Prisma regenerates)
+    // Create user
     const user = await prisma.user.create({
       data: {
         id: userId,
@@ -71,29 +69,11 @@ async function POST(req: Request) {
       // Continue with signup even if email fails
     }
 
-    // Create session object (auto-login after signup)
-    const sessionData = {
-      userId: user.id,
-      email: user.email,
-      name: user.name,
-      role: user.role,
-    };
-
-    const response = NextResponse.json({ 
+    // Return success - NextAuth signIn will be called on the client side
+    return NextResponse.json({ 
       ok: true, 
       user,
     });
-
-    // Set session cookie
-    response.cookies.set("session", JSON.stringify(sessionData), {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 60 * 60 * 24 * 7, // 7 days
-      path: "/",
-    });
-
-    return response;
   } catch (err: any) {
     console.error("[signup] Error:", err);
     return NextResponse.json(

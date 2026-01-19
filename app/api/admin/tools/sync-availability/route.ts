@@ -1,15 +1,13 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { cookies } from "next/headers";
+import { getCurrentUser } from "@/lib/auth-helpers";
 
 async function requireAdmin() {
-  const cookieStore = await cookies();
-  const sessionCookie = cookieStore.get("session");
-  if (!sessionCookie?.value) return null;
+  const currentUser = await getCurrentUser();
+  if (!currentUser) return null;
   try {
-    const session = JSON.parse(sessionCookie.value);
-    const user = await prisma.user.findUnique({ where: { id: session.userId }, select: { role: true, isAdmin: true } });
-    if (user?.isAdmin === true) return session.userId;
+    const user = await prisma.user.findUnique({ where: { id: currentUser.id }, select: { role: true, isAdmin: true } });
+    if (user?.isAdmin === true) return currentUser.id;
   } catch {}
   return null;
 }

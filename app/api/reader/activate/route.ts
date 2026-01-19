@@ -1,21 +1,18 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
+import { getCurrentUser } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 
 export async function POST() {
   try {
-    const cookieStore = await cookies();
-    const sessionCookie = cookieStore.get("session");
+    const currentUser = await getCurrentUser();
 
-    if (!sessionCookie) {
+    if (!currentUser) {
       return NextResponse.json({ ok: false, error: "Not authenticated" }, { status: 401 });
     }
 
-    const session = JSON.parse(sessionCookie.value);
-
     // Get user from database
     const user = await prisma.user.findUnique({
-      where: { id: session.userId },
+      where: { id: currentUser.id },
     });
 
     if (!user) {
@@ -29,7 +26,7 @@ export async function POST() {
 
     // Activate as reader - set role to READER and isActive to true
     await prisma.user.update({
-      where: { id: session.userId },
+      where: { id: currentUser.id },
       data: { 
         role: 'READER',
         isActive: true,
@@ -37,16 +34,7 @@ export async function POST() {
       },
     });
 
-    // Update session cookie with new role
-    const newSession = { ...session, role: 'READER' };
-    const response = NextResponse.json({ ok: true, message: "Profile activated!" });
-    response.cookies.set("session", JSON.stringify(newSession), {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 60 * 60 * 24 * 7,
-      path: "/",
-    });
+    return NextResponse.json({ ok: true, message: "Profile activated!" });
 
     return response;
   } catch (err: any) {

@@ -1,7 +1,7 @@
 // app/api/calendar/ical/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { cookies } from 'next/headers';
+import { getCurrentUser } from '@/lib/auth-helpers';
 
 // Helper to validate iCal URLs
 function isValidIcalUrl(url: string): boolean {
@@ -15,12 +15,9 @@ function isValidIcalUrl(url: string): boolean {
 
 
 export async function GET(req: NextRequest) {
-  const cookieStore = await cookies();
-  const sessionCookie = cookieStore.get('session');
-  if (!sessionCookie) return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
-  const session = JSON.parse(sessionCookie.value);
-  const userId = session.userId;
-  if (!userId) return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
+  const currentUser = await getCurrentUser();
+  if (!currentUser) return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
+  const userId = currentUser.id;
 
   const connections = await prisma.iCalConnection.findMany({
     where: { userId },
@@ -30,12 +27,9 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const cookieStore = await cookies();
-  const sessionCookie = cookieStore.get('session');
-  if (!sessionCookie) return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
-  const session = JSON.parse(sessionCookie.value);
-  const userId = session.userId;
-  if (!userId) return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
+  const currentUser = await getCurrentUser();
+  if (!currentUser) return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
+  const userId = currentUser.id;
 
   const body = await req.json();
   const { name, url } = body;

@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { cookies } from "next/headers";
 
 export async function GET(req: NextRequest) {
   try {
@@ -69,25 +68,7 @@ export async function GET(req: NextRequest) {
       where: { id: changeRequest.id }
     });
 
-    // Update session cookie if this is the current user
-    const cookieStore = await cookies();
-    const sessionCookie = cookieStore.get("session");
-    
-    if (sessionCookie?.value) {
-      try {
-        const sessionData = JSON.parse(sessionCookie.value);
-        if (sessionData.userId === changeRequest.userId) {
-          // Update email in session data
-          sessionData.email = changeRequest.newEmail;
-          cookieStore.set("session", JSON.stringify(sessionData), {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "lax",
-            maxAge: 30 * 24 * 60 * 60, // 30 days
-          });
-        }
-      } catch (sessionError) {
-        console.error("Failed to update session:", sessionError);
+    // Note: NextAuth session will be updated automatically on next request
         // Non-critical error, email change was successful
       }
     }

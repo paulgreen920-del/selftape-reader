@@ -1,21 +1,20 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 async function GET() {
   try {
-    const cookieStore = await cookies();
-    const sessionCookie = cookieStore.get("session");
+    // Use NextAuth session instead of cookie
+    const session = await getServerSession(authOptions);
 
-    if (!sessionCookie) {
+    if (!session?.user?.id) {
       return NextResponse.json({ ok: false, error: "Not authenticated" }, { status: 401 });
     }
 
-    const session = JSON.parse(sessionCookie.value);
-
     // Fetch full user data from database to include all settings
     const user = await prisma.user.findUnique({
-      where: { id: session.userId },
+      where: { id: session.user.id },
       select: {
         id: true,
         email: true,
@@ -37,6 +36,7 @@ async function GET() {
         emailVerifiedAt: true,
         stripeAccountId: true,
         stripeCustomerId: true,
+        isAdmin: true,
         // Reader profile fields for onboarding pre-fill
         phone: true,
         city: true,

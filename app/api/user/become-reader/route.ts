@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
+import { getCurrentUser } from '@/lib/auth-helpers';
 import { prisma } from '@/lib/prisma';
 
 /**
@@ -9,19 +9,13 @@ import { prisma } from '@/lib/prisma';
  */
 export async function POST() {
   try {
-    const cookieStore = await cookies();
-    const sessionCookie = cookieStore.get('session');
+    const currentUser = await getCurrentUser();
 
-    if (!sessionCookie) {
+    if (!currentUser) {
       return NextResponse.json({ ok: false, error: 'Not authenticated' }, { status: 401 });
     }
 
-    const session = JSON.parse(sessionCookie.value);
-    const userId = session.userId;
-
-    if (!userId) {
-      return NextResponse.json({ ok: false, error: 'Invalid session' }, { status: 401 });
-    }
+    const userId = currentUser.id;
 
     // Get current user
     const user = await prisma.user.findUnique({

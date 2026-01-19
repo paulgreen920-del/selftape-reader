@@ -21,6 +21,12 @@ export async function verifyRecaptcha(
   minScore: number = 0.5
 ): Promise<RecaptchaVerifyResult> {
   try {
+    // Bypass reCAPTCHA in development
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[verifyRecaptcha] Development mode - bypassing verification');
+      return { success: true, score: 1, action: expectedAction };
+    }
+
     if (!token) {
       return { success: false, score: 0, action: '', error: 'No token provided' };
     }
