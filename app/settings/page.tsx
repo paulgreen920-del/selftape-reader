@@ -39,7 +39,7 @@ export default function SettingsPage() {
     );
   }
 
-  const isReader = user?.role === 'READER' || user?.isAdmin;
+  const isReader = user?.role === 'READER';
 
   return (
     <div className="max-w-2xl mx-auto p-6">
