@@ -60,8 +60,6 @@ model Booking {
   endTime                     DateTime
   status                      BookingStatus @default(PENDING)
   meetingUrl                  String?
-  googleEventId               String?
-  microsoftEventId            String?
   notes                       String?
   actorId                     String
   cancelReason                String?
@@ -95,6 +93,8 @@ model Booking {
   stripeRefundId              String?
   reminder1hSent              Boolean       @default(false)
   reminder24hSent             Boolean       @default(false)
+  googleEventId               String?
+  microsoftEventId            String?
   User_Booking_actorIdToUser  User          @relation("Booking_actorIdToUser", fields: [actorId], references: [id], onDelete: Cascade)
   User_Booking_readerIdToUser User          @relation("Booking_readerIdToUser", fields: [readerId], references: [id], onDelete: Cascade)
 
