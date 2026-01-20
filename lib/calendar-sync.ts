@@ -16,7 +16,7 @@ interface CalendarEventData {
 export async function createCalendarEventForBooking(
   userId: string,
   eventData: CalendarEventData
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ success: boolean; error?: string; eventId?: string }> {
   try {
     // Get user's calendar connection
     const user = await prisma.user.findUnique({

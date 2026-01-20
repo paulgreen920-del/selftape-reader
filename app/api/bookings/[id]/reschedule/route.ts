@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { createCalendarEventForBooking, deleteCalendarEventForBooking } from "@/lib/calendar-sync";
 
 export async function POST(
   req: Request,
@@ -20,7 +21,7 @@ export async function POST(
 
     const userId = session.user.id;
 
-    // Get booking
+    // Get booking with calendar event IDs
     const booking = await prisma.booking.findUnique({
       where: { id: bookingId },
       include: {
@@ -31,6 +32,7 @@ export async function POST(
             displayName: true,
             name: true,
             timezone: true,
+            CalendarConnection: true,
           },
         },
         User_Booking_actorIdToUser: {
@@ -39,6 +41,7 @@ export async function POST(
             email: true,
             name: true,
             timezone: true,
+            CalendarConnection: true,
           },
         },
       },
@@ -105,7 +108,7 @@ export async function POST(
     const conflictingBooking = await prisma.booking.findFirst({
       where: {
         readerId: booking.readerId,
-        id: { not: bookingId }, // Exclude current booking
+        id: { not: bookingId },
         status: { in: ["CONFIRMED", "PENDING"] },
         OR: [
           {
@@ -133,12 +136,24 @@ export async function POST(
       },
     });
 
-    // Note: We allow rescheduling even if no exact slot match, 
-    // as long as there's no conflict. Reader can manage their calendar.
-
-    // Store old time for email
+    // Store old time for email and old event IDs for calendar
     const oldStartTime = booking.startTime;
     const oldEndTime = booking.endTime;
+    const oldGoogleEventId = booking.googleEventId;
+    const oldMicrosoftEventId = booking.microsoftEventId;
+
+    const reader = booking.User_Booking_readerIdToUser;
+    const actor = booking.User_Booking_actorIdToUser;
+
+    // Delete old calendar events
+    if (oldGoogleEventId && reader.CalendarConnection?.provider === 'GOOGLE') {
+      console.log(`[reschedule] Deleting old Google Calendar event: ${oldGoogleEventId}`);
+      await deleteCalendarEventForBooking(reader.id, oldGoogleEventId, 'GOOGLE');
+    }
+    if (oldMicrosoftEventId && reader.CalendarConnection?.provider === 'MICROSOFT') {
+      console.log(`[reschedule] Deleting old Microsoft Calendar event: ${oldMicrosoftEventId}`);
+      await deleteCalendarEventForBooking(reader.id, oldMicrosoftEventId, 'MICROSOFT');
+    }
 
     // Update the booking
     const updatedBooking = await prisma.booking.update({
@@ -146,6 +161,8 @@ export async function POST(
       data: {
         startTime: newStart,
         endTime: newEnd,
+        googleEventId: null, // Clear old event IDs
+        microsoftEventId: null,
         updatedAt: new Date(),
       },
     });
@@ -170,19 +187,56 @@ export async function POST(
       });
     }
 
+    // Create new calendar events for reader
+    if (reader.CalendarConnection) {
+      const readerName = reader.displayName || reader.name || 'Reader';
+      const actorName = actor.name || 'Actor';
+      
+      const eventData = {
+        bookingId: booking.id,
+        summary: `Self-Tape Session with ${actorName}`,
+        description: `${booking.durationMinutes}-minute self-tape reading session.\n\nMeeting URL: ${booking.meetingUrl || 'TBD'}`,
+        startTime: newStart,
+        endTime: newEnd,
+        attendees: [actor.email],
+        meetingUrl: booking.meetingUrl || undefined,
+      };
+
+      const calendarResult = await createCalendarEventForBooking(reader.id, eventData);
+      
+      if (calendarResult.success && calendarResult.eventId) {
+        const provider = reader.CalendarConnection.provider;
+        const updateData: any = {};
+        
+        if (provider === 'GOOGLE') {
+          updateData.googleEventId = calendarResult.eventId;
+        } else if (provider === 'MICROSOFT') {
+          updateData.microsoftEventId = calendarResult.eventId;
+        }
+        
+        if (Object.keys(updateData).length > 0) {
+          await prisma.booking.update({
+            where: { id: bookingId },
+            data: updateData,
+          });
+        }
+        
+        console.log(`[reschedule] Created new calendar event: ${calendarResult.eventId}`);
+      }
+    }
+
     // Send reschedule notification emails
     try {
       await sendRescheduleEmails({
         booking: updatedBooking,
-        reader: booking.User_Booking_readerIdToUser,
-        actor: booking.User_Booking_actorIdToUser,
+        reader,
+        actor,
         oldStartTime,
         newStartTime: newStart,
         rescheduledBy: userId === booking.actorId ? "ACTOR" : "READER",
       });
     } catch (emailError) {
       console.error("[reschedule] Failed to send emails:", emailError);
-      // Don't fail the request if emails fail
     }
 
     console.log(`[reschedule] Booking ${bookingId} rescheduled from ${oldStartTime} to ${newStart}`);
@@ -211,7 +265,6 @@ async function sendRescheduleEmails(params: {
 }) {
   const { booking, reader, actor, oldStartTime, newStartTime, rescheduledBy } = params;
 
-  // Use Resend if available
   const resendApiKey = process.env.RESEND_API_KEY;
   if (!resendApiKey) {
     console.log("[reschedule] No RESEND_API_KEY, skipping emails");
@@ -270,7 +323,6 @@ async function sendRescheduleEmails(params: {
     </div>
   `;
 
-  // Email to actor
   await resend.emails.send({
     from: `Self-Tape Reader <${fromEmail}>`,
     to: actor.email,
@@ -278,7 +330,6 @@ async function sendRescheduleEmails(params: {
     html: emailHtml.replace("Your self-tape reading session", `Your session with ${readerName}`),
   });
 
-  // Email to reader
   await resend.emails.send({
     from: `Self-Tape Reader <${fromEmail}>`,
     to: reader.email,
