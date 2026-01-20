@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 
 type TimeSlot = {
   startMin: number;
@@ -358,15 +359,15 @@ export default function CalendarBooking({
     <div className="bg-white rounded-2xl border shadow-sm p-6">
       {/* Back Navigation */}
       <div className="mb-6">
-        <button
-          onClick={() => window.history.back()}
+        <Link
+          href="/readers"
           className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
-          <span className="text-sm font-medium">Choose another reader</span>
-        </button>
+          <span className="text-sm font-medium">Browse Other Readers</span>
+        </Link>
       </div>
 
       {/* Reader Profile Header */}
