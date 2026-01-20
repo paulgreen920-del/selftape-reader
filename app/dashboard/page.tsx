@@ -76,7 +76,7 @@ export default function DashboardPage() {
               href="/sessions" 
               className="bg-white rounded-lg shadow p-6 hover:shadow-md transition border border-gray-100"
             >
-              <h3 className="text-lg font-semibold mb-2 text-blue-700">📅 My Bookings</h3>
+              <h3 className="text-lg font-semibold mb-2 text-blue-700">📅 My Sessions</h3>
               <p className="text-sm text-gray-600">View your upcoming and past sessions</p>
             </Link>
             <Link 
@@ -135,7 +135,7 @@ export default function DashboardPage() {
                 href="/reader/bookings" 
                 className="bg-white rounded-lg shadow p-6 hover:shadow-md transition border border-gray-100"
               >
-                <h3 className="text-lg font-semibold mb-2 text-emerald-700">📅 Reader Bookings</h3>
+                <h3 className="text-lg font-semibold mb-2 text-emerald-700">📅 My Bookings</h3>
                 <p className="text-sm text-gray-600">Sessions where you're the reader</p>
               </Link>
               <Link 
