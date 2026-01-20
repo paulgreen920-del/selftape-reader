@@ -29,6 +29,9 @@ interface TimeSlot {
   endTime: string;
 }
 
+const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
 export default function RescheduleBookingPage() {
   const params = useParams();
   const router = useRouter();
@@ -40,12 +43,15 @@ export default function RescheduleBookingPage() {
   const [success, setSuccess] = useState(false);
 
   // Calendar state
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [slots, setSlots] = useState<TimeSlot[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
   const [rescheduling, setRescheduling] = useState(false);
   const [actorTimezone, setActorTimezone] = useState("America/New_York");
+  const [availableDays, setAvailableDays] = useState<string[]>([]);
+  const [loadingAvailability, setLoadingAvailability] = useState(true);
 
   // Load booking details
   useEffect(() => {
@@ -86,11 +92,36 @@ export default function RescheduleBookingPage() {
     setActorTimezone(tz);
   }, [bookingId]);
 
+  // Load available days when booking is loaded
+  useEffect(() => {
+    if (!booking) return;
+
+    const currentBooking = booking;
+
+    async function fetchAvailableDays() {
+      setLoadingAvailability(true);
+      try {
+        const res = await fetch(
+          `/api/schedule/available-days?readerId=${currentBooking.reader.id}&duration=${currentBooking.durationMinutes}`
+        );
+        const data = await res.json();
+        if (data.ok) {
+          setAvailableDays(data.availableDays || []);
+        }
+      } catch (err) {
+        console.error("Failed to load available days:", err);
+        setAvailableDays([]);
+      } finally {
+        setLoadingAvailability(false);
+      }
+    }
+    fetchAvailableDays();
+  }, [booking, currentMonth]);
+
   // Load available slots when date is selected
   useEffect(() => {
     if (!selectedDate || !booking) return;
 
-    // Capture values to avoid null checks in async function
     const currentDate = selectedDate;
     const currentBooking = booking;
 
@@ -100,9 +131,8 @@ export default function RescheduleBookingPage() {
       setSelectedSlot(null);
 
       try {
-        const dateStr = currentDate.toISOString().split("T")[0];
         const res = await fetch(
-          `/api/schedule/available-slots?readerId=${currentBooking.reader.id}&date=${dateStr}&duration=${currentBooking.durationMinutes}&timezone=${encodeURIComponent(actorTimezone)}`
+          `/api/schedule/available-slots?readerId=${currentBooking.reader.id}&date=${currentDate}&duration=${currentBooking.durationMinutes}&timezone=${encodeURIComponent(actorTimezone)}`
         );
         const data = await res.json();
         if (data.ok) {
@@ -117,6 +147,72 @@ export default function RescheduleBookingPage() {
     loadSlots();
   }, [selectedDate, booking, actorTimezone]);
 
+  // Calendar helpers
+  const getDaysInMonth = () => {
+    const year = currentMonth.getFullYear();
+    const month = currentMonth.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const daysInMonth = lastDay.getDate();
+    const startingDayOfWeek = firstDay.getDay();
+
+    const days: Array<Date | null> = [];
+    for (let i = 0; i < startingDayOfWeek; i++) {
+      days.push(null);
+    }
+
+    for (let day = 1; day <= daysInMonth; day++) {
+      days.push(new Date(year, month, day));
+    }
+
+    return days;
+  };
+
+  const days = getDaysInMonth();
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const maxDate = new Date(today);
+  maxDate.setDate(maxDate.getDate() + 30);
+
+  const isDateAvailable = (date: Date | null) => {
+    if (!date) return false;
+    const compareDate = new Date(date);
+    compareDate.setHours(0, 0, 0, 0);
+    
+    if (compareDate < today || compareDate > maxDate) return false;
+    
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const dateStr = `${year}-${month}-${day}`;
+    
+    return availableDays.includes(dateStr);
+  };
+
+  const goToPreviousMonth = () => {
+    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1));
+    setSelectedDate(null);
+    setSelectedSlot(null);
+  };
+
+  const goToNextMonth = () => {
+    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1));
+    setSelectedDate(null);
+    setSelectedSlot(null);
+  };
+
+  const selectDate = (date: Date | null) => {
+    if (!date || !isDateAvailable(date)) return;
+
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const dateStr = `${year}-${month}-${day}`;
+    setSelectedDate(dateStr);
+    setSelectedSlot(null);
+  };
+
   // Format time from minutes
   const formatTime = (min: number) => {
     const h = Math.floor(min / 60);
@@ -124,18 +220,6 @@ export default function RescheduleBookingPage() {
     const hour12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
     const ampm = h < 12 ? "AM" : "PM";
     return `${hour12}:${m.toString().padStart(2, "0")} ${ampm}`;
-  };
-
-  // Generate next 30 days for date picker
-  const getAvailableDates = () => {
-    const dates: Date[] = [];
-    const today = new Date();
-    for (let i = 1; i <= 30; i++) {
-      const date = new Date(today);
-      date.setDate(today.getDate() + i);
-      dates.push(date);
-    }
-    return dates;
   };
 
   // Handle reschedule
@@ -214,7 +298,6 @@ export default function RescheduleBookingPage() {
   if (!booking) return null;
 
   const currentStartTime = new Date(booking.startTime);
-  const availableDates = getAvailableDates();
 
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4">
@@ -252,32 +335,86 @@ export default function RescheduleBookingPage() {
             <div className="bg-red-50 text-red-700 p-4 rounded-lg mb-6">{error}</div>
           )}
 
-          {/* Date Selection */}
+          {/* Calendar */}
           <div className="mb-6">
             <h2 className="font-semibold text-gray-700 mb-3">Select New Date</h2>
-            <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-7 gap-2">
-              {availableDates.map((date) => {
-                const isSelected = selectedDate?.toDateString() === date.toDateString();
-                return (
+            
+            {loadingAvailability ? (
+              <div className="flex flex-col items-center justify-center py-12">
+                <div className="bg-gray-200 rounded-2xl px-6 py-4 shadow-sm">
+                  <div className="flex space-x-2">
+                    <div className="w-3 h-3 bg-gray-600 rounded-full animate-bounce" style={{ animationDelay: '0ms', animationDuration: '1s' }}></div>
+                    <div className="w-3 h-3 bg-gray-600 rounded-full animate-bounce" style={{ animationDelay: '150ms', animationDuration: '1s' }}></div>
+                    <div className="w-3 h-3 bg-gray-600 rounded-full animate-bounce" style={{ animationDelay: '300ms', animationDuration: '1s' }}></div>
+                  </div>
+                </div>
+                <div className="mt-4 text-center">
+                  <p className="text-base text-gray-700 font-medium">Loading available dates...</p>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center justify-between mb-4">
                   <button
-                    key={date.toISOString()}
-                    onClick={() => setSelectedDate(date)}
-                    className={`p-2 rounded-lg text-center text-sm transition-colors ${
-                      isSelected
-                        ? "bg-emerald-600 text-white"
-                        : "bg-gray-100 hover:bg-gray-200 text-gray-700"
-                    }`}
+                    type="button"
+                    className="flex items-center justify-center w-10 h-10 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                    onClick={goToPreviousMonth}
                   >
-                    <div className="font-medium">
-                      {date.toLocaleDateString("en-US", { weekday: "short" })}
-                    </div>
-                    <div>
-                      {date.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                    </div>
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    </svg>
                   </button>
-                );
-              })}
-            </div>
+                  <h3 className="text-lg font-semibold">
+                    {MONTHS[currentMonth.getMonth()]} {currentMonth.getFullYear()}
+                  </h3>
+                  <button
+                    type="button"
+                    className="flex items-center justify-center w-10 h-10 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                    onClick={goToNextMonth}
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-7 gap-2">
+                  {DAYS.map((day) => (
+                    <div key={day} className="text-center text-sm font-medium text-gray-600 py-2">
+                      {day}
+                    </div>
+                  ))}
+                  {days.map((date, idx) => {
+                    const available = isDateAvailable(date);
+                    const year = date?.getFullYear();
+                    const month = String((date?.getMonth() ?? 0) + 1).padStart(2, '0');
+                    const day = String(date?.getDate() ?? 0).padStart(2, '0');
+                    const dateStr = date ? `${year}-${month}-${day}` : '';
+                    const isSelected = date && selectedDate === dateStr;
+
+                    return (
+                      <button
+                        key={idx}
+                        type="button"
+                        className={`aspect-square rounded p-2 text-sm ${
+                          !date
+                            ? "invisible"
+                            : isSelected
+                            ? "bg-emerald-600 text-white font-semibold"
+                            : available
+                            ? "border-2 border-emerald-200 bg-emerald-50 hover:bg-emerald-100 cursor-pointer font-medium"
+                            : "bg-gray-50 text-gray-400 cursor-not-allowed border border-gray-200"
+                        }`}
+                        onClick={() => selectDate(date)}
+                        disabled={!date || !available}
+                      >
+                        {date?.getDate()}
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
           </div>
 
           {/* Time Slots */}
@@ -285,18 +422,32 @@ export default function RescheduleBookingPage() {
             <div className="mb-6">
               <h2 className="font-semibold text-gray-700 mb-3">
                 Available Times for{" "}
-                {selectedDate.toLocaleDateString("en-US", {
-                  weekday: "long",
-                  month: "long",
-                  day: "numeric",
-                })}
+                {(() => {
+                  const [year, month, day] = selectedDate.split('-').map(Number);
+                  const date = new Date(year, month - 1, day);
+                  return date.toLocaleDateString('en-US', { 
+                    weekday: 'long', 
+                    month: 'long', 
+                    day: 'numeric' 
+                  });
+                })()}
               </h2>
 
               {loadingSlots ? (
-                <div className="text-center py-8 text-gray-500">Loading available times...</div>
+                <div className="flex flex-col items-center justify-center py-8">
+                  <div className="bg-gray-200 rounded-2xl px-6 py-4 shadow-sm">
+                    <div className="flex space-x-2">
+                      <div className="w-3 h-3 bg-gray-600 rounded-full animate-bounce" style={{ animationDelay: '0ms', animationDuration: '1s' }}></div>
+                      <div className="w-3 h-3 bg-gray-600 rounded-full animate-bounce" style={{ animationDelay: '150ms', animationDuration: '1s' }}></div>
+                      <div className="w-3 h-3 bg-gray-600 rounded-full animate-bounce" style={{ animationDelay: '300ms', animationDuration: '1s' }}></div>
+                    </div>
+                  </div>
+                  <p className="mt-4 text-gray-600">Loading available times...</p>
+                </div>
               ) : slots.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  No available times on this date. Please select another date.
+                <div className="text-center py-8 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+                  <p className="text-gray-600">No available times on this date.</p>
+                  <p className="text-sm text-gray-500 mt-1">Please select another date.</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
@@ -309,7 +460,7 @@ export default function RescheduleBookingPage() {
                         className={`py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
                           isSelected
                             ? "bg-emerald-600 text-white"
-                            : "bg-gray-100 hover:bg-emerald-100 text-gray-700"
+                            : "bg-gray-100 hover:bg-emerald-100 hover:border-emerald-300 text-gray-700 border border-gray-200"
                         }`}
                       >
                         {formatTime(slot.startMin)}
@@ -326,12 +477,17 @@ export default function RescheduleBookingPage() {
             <div className="bg-emerald-50 p-4 rounded-lg mb-6 border border-emerald-200">
               <h2 className="font-semibold text-emerald-800 mb-2">New Time</h2>
               <p className="text-emerald-700">
-                {selectedDate?.toLocaleDateString("en-US", {
-                  weekday: "long",
-                  month: "long",
-                  day: "numeric",
-                  year: "numeric",
-                })}{" "}
+                {(() => {
+                  if (!selectedDate) return '';
+                  const [year, month, day] = selectedDate.split('-').map(Number);
+                  const date = new Date(year, month - 1, day);
+                  return date.toLocaleDateString('en-US', { 
+                    weekday: 'long', 
+                    month: 'long', 
+                    day: 'numeric',
+                    year: 'numeric'
+                  });
+                })()}{" "}
                 at {formatTime(selectedSlot.startMin)}
               </p>
             </div>
