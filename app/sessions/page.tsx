@@ -359,7 +359,7 @@ export default function ActorSessionsPage() {
                   )}
                   
                   <Link 
-                    href={`/reader/${session.readerId}`} 
+                    href={`/reader/${session.readerId}/profile`} 
                     className="block text-center text-sm text-gray-600 hover:text-gray-900 py-2 transition"
                   >
                     View Reader Profile →

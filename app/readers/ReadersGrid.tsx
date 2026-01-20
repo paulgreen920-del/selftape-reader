@@ -423,13 +423,20 @@ export default function ReadersGrid({
                 </div>
               </div>
 
-              <div className="mt-5">
+              {/* Action Buttons */}
+              <div className="mt-5 space-y-2">
                 <button
                   onClick={() => checkAuthAndRoute(r.id)}
                   className="inline-flex w-full items-center justify-center rounded-xl bg-emerald-600 px-4 py-2 text-white font-semibold transition hover:bg-emerald-700"
                 >
                   Book {r.displayName || r.name}
                 </button>
+                <Link
+                  href={`/reader/${r.id}/profile`}
+                  className="inline-flex w-full items-center justify-center rounded-xl border border-gray-300 bg-white px-4 py-2 text-gray-700 font-medium transition hover:bg-gray-50"
+                >
+                  View Full Profile
+                </Link>
               </div>
             </li>
           ))}
