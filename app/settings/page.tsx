@@ -39,6 +39,8 @@ export default function SettingsPage() {
     );
   }
 
+  const isReader = user?.role === 'READER' || user?.isAdmin;
+
   return (
     <div className="max-w-2xl mx-auto p-6">
       <h1 className="text-3xl font-bold mb-6">Settings</h1>
@@ -57,7 +59,7 @@ export default function SettingsPage() {
             </div>
             <div className="flex justify-between items-center">
               <dt className="text-gray-600">Account Type:</dt>
-              <dd className="font-medium">{user?.role === 'READER' ? '📖 Reader' : '🎬 Actor'}</dd>
+              <dd className="font-medium">{isReader ? '📖 Reader' : '🎬 Actor'}</dd>
             </div>
             <div className="flex justify-between items-center">
               <dt className="text-gray-600">Timezone:</dt>
@@ -67,7 +69,7 @@ export default function SettingsPage() {
         </div>
 
         {/* Reader-specific settings */}
-        {(user?.role === 'READER' || user?.isAdmin) && (
+        {isReader ? (
           <>
             <div className="bg-white border rounded-lg p-6">
               <h2 className="text-xl font-semibold mb-4">Reader Profile</h2>
@@ -78,8 +80,8 @@ export default function SettingsPage() {
             </div>
 
             <div className="bg-white border rounded-lg p-6">
-              <h2 className="text-xl font-semibold mb-4">Availability</h2>
-              <p className="text-sm text-gray-600 mb-4">Set your weekly availability schedule</p>
+              <h2 className="text-xl font-semibold mb-4">Availability & Calendar</h2>
+              <p className="text-sm text-gray-600 mb-4">Set your weekly availability and connect your calendar</p>
               <Link href="/reader/availability" className="inline-block bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700">
                 Manage Availability
               </Link>
@@ -93,16 +95,19 @@ export default function SettingsPage() {
               </Link>
             </div>
           </>
+        ) : (
+          /* Actor - show become a reader CTA */
+          <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-lg p-6">
+            <h2 className="text-xl font-semibold mb-2">Become a Reader</h2>
+            <p className="text-sm text-gray-600 mb-4">
+              Want to help fellow actors with their self-tapes? Join as a reader and earn money 
+              while helping others prepare for auditions.
+            </p>
+            <Link href="/onboarding/reader" className="inline-block bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700">
+              Start Reader Onboarding
+            </Link>
+          </div>
         )}
-
-        {/* Calendar Connection */}
-        <div className="bg-white border rounded-lg p-6">
-          <h2 className="text-xl font-semibold mb-4">Calendar Integration</h2>
-          <p className="text-sm text-gray-600 mb-4">Connect your calendar to avoid double bookings</p>
-          <Link href="/reader/calendar" className="inline-block bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700">
-            Manage Calendar
-          </Link>
-        </div>
 
         {/* Notifications - Coming Soon */}
         <div className="bg-white border rounded-lg p-6">
