@@ -16,12 +16,16 @@ type Booking = {
   durationMinutes: number;
 };
 
+type SortOption = 'soonest' | 'furthest';
+
 export default function ReaderBookingsPage() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'upcoming' | 'past'>('upcoming');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortBy, setSortBy] = useState<SortOption>('soonest');
 
   useEffect(() => {
     async function loadData() {
@@ -62,11 +66,29 @@ export default function ReaderBookingsPage() {
   }, [router]);
 
   const now = new Date();
-  const filteredBookings = bookings.filter(b => {
+  
+  // Filter by tab (upcoming/past/all)
+  let filteredBookings = bookings.filter(b => {
     const start = new Date(b.startTime);
     if (filter === 'upcoming') return start >= now;
     if (filter === 'past') return start < now;
     return true;
+  });
+
+  // Filter by search term
+  if (searchTerm.trim()) {
+    const term = searchTerm.toLowerCase();
+    filteredBookings = filteredBookings.filter(b =>
+      b.actorName.toLowerCase().includes(term) ||
+      b.actorEmail.toLowerCase().includes(term)
+    );
+  }
+
+  // Sort
+  filteredBookings.sort((a, b) => {
+    const dateA = new Date(a.startTime).getTime();
+    const dateB = new Date(b.startTime).getTime();
+    return sortBy === 'soonest' ? dateA - dateB : dateB - dateA;
   });
 
   // Calculate earnings
@@ -161,22 +183,66 @@ export default function ReaderBookingsPage() {
               </button>
             ))}
           </div>
+
+          {/* Search and Sort Toolbar */}
+          <div className="flex flex-col sm:flex-row gap-3 p-4">
+            {/* Search */}
+            <div className="relative flex-1">
+              <svg 
+                className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input
+                type="text"
+                placeholder="Search by actor name or email..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+              />
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+
+            {/* Sort */}
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as SortOption)}
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white"
+            >
+              <option value="soonest">Soonest first</option>
+              <option value="furthest">Furthest first</option>
+            </select>
+          </div>
         </div>
 
         {/* Bookings List */}
         {filteredBookings.length === 0 ? (
           <div className="bg-white rounded-lg shadow p-8 text-center">
             <p className="text-gray-600 mb-4">
-              {filter === 'upcoming' 
-                ? "You don't have any upcoming sessions."
-                : filter === 'past'
-                ? "You don't have any past sessions yet."
-                : "You haven't received any bookings yet."
+              {searchTerm
+                ? `No bookings found matching "${searchTerm}"`
+                : filter === 'upcoming' 
+                  ? "You don't have any upcoming sessions."
+                  : filter === 'past'
+                    ? "You don't have any past sessions yet."
+                    : "You haven't received any bookings yet."
               }
             </p>
-            <Link href="/reader/availability" className="inline-block bg-emerald-600 text-white px-6 py-2 rounded-lg hover:bg-emerald-700 transition">
-              Manage Availability
-            </Link>
+            {!searchTerm && (
+              <Link href="/reader/availability" className="inline-block bg-emerald-600 text-white px-6 py-2 rounded-lg hover:bg-emerald-700 transition">
+                Manage Availability
+              </Link>
+            )}
           </div>
         ) : (
           <div className="space-y-4">

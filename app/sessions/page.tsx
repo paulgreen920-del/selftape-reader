@@ -16,12 +16,16 @@ type Session = {
   durationMinutes: number;
 };
 
+type SortOption = 'soonest' | 'furthest';
+
 export default function ActorSessionsPage() {
   const router = useRouter();
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'upcoming' | 'past'>('upcoming');
   const [paymentLoading, setPaymentLoading] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortBy, setSortBy] = useState<SortOption>('soonest');
 
   useEffect(() => {
     async function loadSessions() {
@@ -78,11 +82,28 @@ export default function ActorSessionsPage() {
   }
 
   const now = new Date();
-  const filteredSessions = sessions.filter(s => {
+  
+  // Filter by tab (upcoming/past/all)
+  let filteredSessions = sessions.filter(s => {
     const start = new Date(s.startTime);
     if (filter === 'upcoming') return start >= now;
     if (filter === 'past') return start < now;
     return true;
+  });
+
+  // Filter by search term
+  if (searchTerm.trim()) {
+    const term = searchTerm.toLowerCase();
+    filteredSessions = filteredSessions.filter(s =>
+      s.readerName.toLowerCase().includes(term)
+    );
+  }
+
+  // Sort
+  filteredSessions.sort((a, b) => {
+    const dateA = new Date(a.startTime).getTime();
+    const dateB = new Date(b.startTime).getTime();
+    return sortBy === 'soonest' ? dateA - dateB : dateB - dateA;
   });
 
   if (loading) {
@@ -112,7 +133,8 @@ export default function ActorSessionsPage() {
         <p className="text-gray-600">View your upcoming and past reader sessions</p>
       </div>
 
-      <div className="flex gap-2 mb-6 border-b">
+      {/* Filter Tabs */}
+      <div className="flex gap-2 mb-4 border-b">
         {(['upcoming', 'past', 'all'] as const).map(f => (
           <button
             key={f}
@@ -128,19 +150,63 @@ export default function ActorSessionsPage() {
         ))}
       </div>
 
+      {/* Search and Sort Toolbar */}
+      <div className="flex flex-col sm:flex-row gap-3 mb-6">
+        {/* Search */}
+        <div className="relative flex-1">
+          <svg 
+            className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" 
+            fill="none" 
+            stroke="currentColor" 
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <input
+            type="text"
+            placeholder="Search by reader name..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+          />
+          {searchTerm && (
+            <button
+              onClick={() => setSearchTerm('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            >
+              ✕
+            </button>
+          )}
+        </div>
+
+        {/* Sort */}
+        <select
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value as SortOption)}
+          className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white"
+        >
+          <option value="soonest">Soonest first</option>
+          <option value="furthest">Furthest first</option>
+        </select>
+      </div>
+
       {filteredSessions.length === 0 ? (
         <div className="bg-gray-50 rounded-lg p-8 text-center">
           <p className="text-gray-600 mb-4">
-            {filter === 'upcoming' 
-              ? "You don't have any upcoming sessions."
-              : filter === 'past'
-              ? "You don't have any past sessions."
-              : "You haven't booked any sessions yet."
+            {searchTerm
+              ? `No sessions found matching "${searchTerm}"`
+              : filter === 'upcoming' 
+                ? "You don't have any upcoming sessions."
+                : filter === 'past'
+                  ? "You don't have any past sessions."
+                  : "You haven't booked any sessions yet."
             }
           </p>
-          <Link href="/readers" className="inline-block bg-emerald-600 text-white px-6 py-2 rounded-lg hover:bg-emerald-700">
-            Find a Reader
-          </Link>
+          {!searchTerm && (
+            <Link href="/readers" className="inline-block bg-emerald-600 text-white px-6 py-2 rounded-lg hover:bg-emerald-700">
+              Find a Reader
+            </Link>
+          )}
         </div>
       ) : (
         <div className="space-y-4">
