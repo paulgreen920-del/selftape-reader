@@ -24,6 +24,7 @@ export default function ActorSessionsPage() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'upcoming' | 'past'>('upcoming');
   const [paymentLoading, setPaymentLoading] = useState<string | null>(null);
+  const [cancelLoading, setCancelLoading] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('soonest');
 
@@ -81,6 +82,47 @@ export default function ActorSessionsPage() {
     }
   }
 
+  async function cancelSession(sessionId: string) {
+    const session = sessions.find(s => s.id === sessionId);
+    if (!session) return;
+
+    const confirmed = window.confirm(
+      `Are you sure you want to cancel your session with ${session.readerName}?\n\nThis action cannot be undone.`
+    );
+
+    if (!confirmed) return;
+
+    setCancelLoading(sessionId);
+    try {
+      const res = await fetch(`/api/bookings/${sessionId}/cancel`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || 'Failed to cancel session');
+      }
+
+      // Update the session status locally
+      setSessions(prev => 
+        prev.map(s => 
+          s.id === sessionId ? { ...s, status: 'CANCELLED' } : s
+        )
+      );
+
+      alert('Session cancelled successfully.');
+    } catch (err: any) {
+      console.error('Cancel error:', err);
+      alert(err.message || 'Failed to cancel session. Please try again.');
+    } finally {
+      setCancelLoading(null);
+    }
+  }
+
   const now = new Date();
   
   // Filter by tab (upcoming/past/all)
@@ -105,6 +147,13 @@ export default function ActorSessionsPage() {
     const dateB = new Date(b.startTime).getTime();
     return sortBy === 'soonest' ? dateA - dateB : dateB - dateA;
   });
+
+  // Helper to check if session can be cancelled/rescheduled (more than 2 hours away)
+  function canModify(session: Session): boolean {
+    const start = new Date(session.startTime);
+    const hoursUntil = (start.getTime() - now.getTime()) / (1000 * 60 * 60);
+    return hoursUntil >= 2 && (session.status === 'PAID' || session.status === 'CONFIRMED');
+  }
 
   if (loading) {
     return (
@@ -213,14 +262,17 @@ export default function ActorSessionsPage() {
           {filteredSessions.map(session => {
             const start = new Date(session.startTime);
             const end = new Date(session.endTime);
+            const isPast = start < now;
+            const modifiable = canModify(session);
 
             return (
               <div key={session.id} className="bg-white border rounded-lg p-4 sm:p-6 hover:shadow-md transition">
                 {/* Status Badge */}
                 <div className="mb-3">
                   <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${
-                    session.status === 'PAID' ? 'bg-emerald-100 text-emerald-700' :
+                    session.status === 'PAID' || session.status === 'CONFIRMED' ? 'bg-emerald-100 text-emerald-700' :
                     session.status === 'PENDING' ? 'bg-yellow-100 text-yellow-700' :
+                    session.status === 'CANCELLED' ? 'bg-red-100 text-red-700' :
                     'bg-gray-100 text-gray-700'
                   }`}>{session.status}</span>
                 </div>
@@ -269,7 +321,7 @@ export default function ActorSessionsPage() {
                     </button>
                   )}
                   
-                  {session.meetingUrl && (session.status === 'PAID' || session.status === 'CONFIRMED') && (
+                  {session.meetingUrl && (session.status === 'PAID' || session.status === 'CONFIRMED') && !isPast && (
                     <a 
                       href={session.meetingUrl} 
                       target="_blank" 
@@ -279,6 +331,32 @@ export default function ActorSessionsPage() {
                       Join Session
                     </a>
                   )}
+
+                  {/* Reschedule & Cancel Buttons */}
+                  {modifiable && (
+                    <div className="flex gap-2 pt-2">
+                      <Link
+                        href={`/bookings/${session.id}/reschedule`}
+                        className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 text-center text-sm font-medium rounded-lg hover:bg-gray-200 transition"
+                      >
+                        Reschedule
+                      </Link>
+                      <button
+                        onClick={() => cancelSession(session.id)}
+                        disabled={cancelLoading === session.id}
+                        className="flex-1 px-4 py-2 bg-red-50 text-red-600 text-center text-sm font-medium rounded-lg hover:bg-red-100 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {cancelLoading === session.id ? 'Cancelling...' : 'Cancel'}
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Info message for sessions within 2 hours */}
+                  {!isPast && (session.status === 'PAID' || session.status === 'CONFIRMED') && !modifiable && (
+                    <p className="text-xs text-gray-500 text-center pt-2">
+                      Sessions cannot be modified within 2 hours of start time
+                    </p>
+                  )}
                   
                   <Link 
                     href={`/reader/${session.readerId}`} 
@@ -287,6 +365,20 @@ export default function ActorSessionsPage() {
                     View Reader Profile →
                   </Link>
                 </div>
+
+                {/* Cancelled status */}
+                {session.status === 'CANCELLED' && (
+                  <div className="mt-2 text-center py-2 text-sm text-red-500">
+                    This session has been cancelled
+                  </div>
+                )}
+
+                {/* Past session indicator */}
+                {isPast && session.status !== 'CANCELLED' && (
+                  <div className="mt-2 text-center py-2 text-sm text-gray-500">
+                    Session completed
+                  </div>
+                )}
               </div>
             );
           })}
