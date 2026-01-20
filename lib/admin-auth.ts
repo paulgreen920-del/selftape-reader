@@ -1,24 +1,22 @@
 import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 /**
- * Middleware to check if user is authenticated and has ADMIN role
+ * Middleware to check if user is authenticated and has isAdmin flag
  * Usage: const adminCheck = await checkAdminAuth(req);
  *        if (!adminCheck.isAdmin) return adminCheck.response;
  */
 export async function checkAdminAuth(req: Request) {
   try {
-    const cookies = req.headers.get("cookie") || "";
-    
-    // Look for session cookie (format: session={"userId":"...","email":"..."})
-    const sessionMatch = cookies.match(/session=([^;]+)/);
-    
+    const session = await getServerSession(authOptions);
+
     console.log('[admin-auth] Checking admin auth...');
-    console.log('[admin-auth] Cookie header present:', !!cookies);
-    console.log('[admin-auth] session found in cookie:', !!sessionMatch);
-    
-    if (!sessionMatch) {
-      console.log('[admin-auth] ❌ No session cookie');
+    console.log('[admin-auth] Session present:', !!session);
+
+    if (!session?.user?.id) {
+      console.log('[admin-auth] ❌ No session');
       return {
         isAdmin: false,
         response: NextResponse.json(
@@ -28,47 +26,19 @@ export async function checkAdminAuth(req: Request) {
       };
     }
 
-    // Decode and parse session cookie
-    let session;
-    try {
-      const sessionValue = decodeURIComponent(sessionMatch[1]);
-      session = JSON.parse(sessionValue);
-      console.log('[admin-auth] Session parsed, userId:', session.userId);
-    } catch (parseErr) {
-      console.error('[admin-auth] Failed to parse session cookie:', parseErr);
-      return {
-        isAdmin: false,
-        response: NextResponse.json(
-          { ok: false, error: "Invalid session" },
-          { status: 401 }
-        ),
-      };
-    }
-
-    if (!session.userId) {
-      console.log('[admin-auth] ❌ No userId in session');
-      return {
-        isAdmin: false,
-        response: NextResponse.json(
-          { ok: false, error: "Invalid session" },
-          { status: 401 }
-        ),
-      };
-    }
-
-    const userId = session.userId;
+    const userId = session.user.id;
     console.log('[admin-auth] Looking up user:', userId);
-    
+
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, email: true, role: true },
+      select: { id: true, email: true, role: true, isAdmin: true },
     });
 
     console.log('[admin-auth] User found:', !!user);
-    console.log('[admin-auth] User role:', user?.role);
+    console.log('[admin-auth] User isAdmin:', user?.isAdmin);
 
-    if (!user || user.role !== "ADMIN") {
-      console.log('[admin-auth] ❌ User is not ADMIN');
+    if (!user || !user.isAdmin) {
+      console.log('[admin-auth] ❌ User is not admin');
       return {
         isAdmin: false,
         response: NextResponse.json(
