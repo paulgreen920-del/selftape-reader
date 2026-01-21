@@ -23,7 +23,7 @@ export default function BecomeAReaderPage() {
 
         {/* Main CTA */}
         <Link
-          href="/signup"
+          href="/"
           className="inline-block px-10 py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xl rounded-xl transition shadow-lg hover:shadow-xl mb-4"
         >
           Start Earning Today →
@@ -173,10 +173,10 @@ export default function BecomeAReaderPage() {
           </p>
           
           <Link
-            href="/signup"
+            href="/"
             className="inline-block px-10 py-4 bg-white text-emerald-600 font-semibold text-xl rounded-xl transition shadow-lg hover:shadow-xl hover:bg-gray-50"
           >
-            Create Your Profile →
+            Get Started →
           </Link>
           
           <p className="mt-4 text-emerald-200 text-sm">
