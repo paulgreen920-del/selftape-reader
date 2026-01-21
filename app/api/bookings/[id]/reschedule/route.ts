@@ -155,7 +155,7 @@ export async function POST(
       await deleteCalendarEventForBooking(reader.id, oldMicrosoftEventId, 'MICROSOFT');
     }
 
-    // Update the booking
+    // Update the booking - reset reminder flags so new reminders get sent
     const updatedBooking = await prisma.booking.update({
       where: { id: bookingId },
       data: {
@@ -163,6 +163,8 @@ export async function POST(
         endTime: newEnd,
         googleEventId: null, // Clear old event IDs
         microsoftEventId: null,
+        reminder24hSent: false, // Reset so new 24h reminder gets sent
+        reminder1hSent: false,  // Reset so new 1h reminder gets sent
         updatedAt: new Date(),
       },
     });
