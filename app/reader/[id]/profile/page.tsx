@@ -2,10 +2,50 @@
 import Link from 'next/link';
 import { notFound } from "next/navigation";
 import { prisma } from "../../../../lib/prisma";
+import { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
 
 type Params = { id: string };
+type MetadataParams = { params: Promise<{ id: string }> };
+
+export async function generateMetadata({ params }: MetadataParams): Promise<Metadata> {
+  const { id } = await params;
+  
+  const reader = await prisma.user.findUnique({
+    where: { id },
+    select: {
+      name: true,
+      displayName: true,
+      bio: true,
+      gender: true,
+      specialties: true,
+    },
+  });
+
+  if (!reader) {
+    return { title: "Reader Not Found | Self Tape Reader" };
+  }
+
+  const displayName = reader.displayName || reader.name || "Reader";
+  const specialtiesText = reader.specialties && Array.isArray(reader.specialties) && reader.specialties.length > 0
+    ? ` Specializes in ${(reader.specialties as string[]).slice(0, 3).join(", ")}.`
+    : "";
+  
+  const description = reader.bio 
+    ? reader.bio.slice(0, 150) + (reader.bio.length > 150 ? "..." : "")
+    : `Book ${displayName} as your self-tape reader.${specialtiesText} Professional actor available for audition help.`;
+
+  return {
+    title: `${displayName} | Self Tape Reader — Book a Session`,
+    description,
+    openGraph: {
+      title: `${displayName} | Self Tape Reader`,
+      description,
+      url: `https://www.selftapereader.com/reader/${id}/profile`,
+    },
+  };
+}
 
 export default async function ReaderProfilePage(
   props: { params: Params } | { params: Promise<Params> }
