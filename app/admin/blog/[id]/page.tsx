@@ -14,13 +14,13 @@ export default function EditBlogPostPage() {
   const [error, setError] = useState('');
   const [uploading, setUploading] = useState(false);
   
-  const [form, setForm] = useState({
-    title: '',
+  const [form, setForm] = useState({    title: '',
     slug: '',
     excerpt: '',
     content: '',
     imageUrl: '',
     published: false,
+    scheduledAt: '',
   });
 
   useEffect(() => {
@@ -29,6 +29,9 @@ export default function EditBlogPostPage() {
         const res = await fetch(`/api/admin/blog/${id}`);
         const data = await res.json();
         if (data.ok) {
+          const scheduledAtValue = data.post.scheduledAt 
+            ? new Date(data.post.scheduledAt).toISOString().slice(0, 16)
+            : '';
           setForm({
             title: data.post.title || '',
             slug: data.post.slug || '',
@@ -36,6 +39,7 @@ export default function EditBlogPostPage() {
             content: data.post.content || '',
             imageUrl: data.post.imageUrl || '',
             published: data.post.published || false,
+            scheduledAt: scheduledAtValue,
           });
         } else {
           setError('Post not found');
@@ -84,10 +88,15 @@ export default function EditBlogPostPage() {
     setError('');
 
     try {
+      const payload = {
+        ...form,
+        scheduledAt: form.scheduledAt ? new Date(form.scheduledAt).toISOString() : null,
+      };
+
       const res = await fetch(`/api/admin/blog/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
       
@@ -247,18 +256,70 @@ export default function EditBlogPostPage() {
             />
           </div>
 
-          {/* Published */}
-          <div className="flex items-center gap-3">
-            <input
-              type="checkbox"
-              id="published"
-              checked={form.published}
-              onChange={(e) => setForm({ ...form, published: e.target.checked })}
-              className="h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-gray-300 rounded"
-            />
-            <label htmlFor="published" className="text-sm font-medium text-gray-700">
-              Published
+          {/* Publishing Options */}
+          <div className="space-y-4">
+            <label className="block text-sm font-medium text-gray-700">
+              Publishing
             </label>
+            
+            <div className="space-y-3">
+              {/* Publish Now */}
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="radio"
+                  name="publishType"
+                  checked={form.published && !form.scheduledAt}
+                  onChange={() => setForm({ ...form, published: true, scheduledAt: '' })}
+                  className="mt-1 h-4 w-4 text-emerald-600 focus:ring-emerald-500"
+                />
+                <div>
+                  <div className="text-sm font-medium text-gray-900">Published</div>
+                  <div className="text-xs text-gray-500">Post is visible now</div>
+                </div>
+              </label>
+
+              {/* Schedule */}
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="radio"
+                  name="publishType"
+                  checked={!!form.scheduledAt}
+                  onChange={() => {
+                    const defaultTime = form.scheduledAt || new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 16);
+                    setForm({ ...form, published: false, scheduledAt: defaultTime });
+                  }}
+                  className="mt-1 h-4 w-4 text-emerald-600 focus:ring-emerald-500"
+                />
+                <div className="flex-1">
+                  <div className="text-sm font-medium text-gray-900">Schedule for later</div>
+                  <div className="text-xs text-gray-500 mb-2">Post will be published automatically at the scheduled time</div>
+                  {form.scheduledAt && (
+                    <input
+                      type="datetime-local"
+                      value={form.scheduledAt}
+                      onChange={(e) => setForm({ ...form, scheduledAt: e.target.value })}
+                      min={new Date().toISOString().slice(0, 16)}
+                      className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
+                    />
+                  )}
+                </div>
+              </label>
+
+              {/* Draft */}
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="radio"
+                  name="publishType"
+                  checked={!form.published && !form.scheduledAt}
+                  onChange={() => setForm({ ...form, published: false, scheduledAt: '' })}
+                  className="mt-1 h-4 w-4 text-emerald-600 focus:ring-emerald-500"
+                />
+                <div>
+                  <div className="text-sm font-medium text-gray-900">Draft</div>
+                  <div className="text-xs text-gray-500">Post is not visible</div>
+                </div>
+              </label>
+            </div>
           </div>
         </div>
 

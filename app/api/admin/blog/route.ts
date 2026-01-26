@@ -18,7 +18,7 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { title, slug, excerpt, content, imageUrl, published } = body;
+    const { title, slug, excerpt, content, imageUrl, published, scheduledAt } = body;
 
     if (!title || !slug || !content) {
       return NextResponse.json({ ok: false, error: "Title, slug, and content are required" }, { status: 400 });
@@ -30,6 +30,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: "Slug already exists" }, { status: 400 });
     }
 
+    // Determine publishedAt based on scheduling
+    let publishedAt = null;
+    if (published && !scheduledAt) {
+      // Publishing immediately
+      publishedAt = new Date();
+    }
+
     const post = await prisma.blogPost.create({
       data: {
         title,
@@ -38,7 +45,8 @@ export async function POST(req: NextRequest) {
         content,
         imageUrl: imageUrl || null,
         published: published || false,
-        publishedAt: published ? new Date() : null,
+        publishedAt,
+        scheduledAt: scheduledAt ? new Date(scheduledAt) : null,
       },
     });
 

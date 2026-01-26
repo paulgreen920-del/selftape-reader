@@ -235,6 +235,7 @@ model BlogPost {
   imageUrl    String?
   published   Boolean  @default(false)
   publishedAt DateTime?
+  scheduledAt DateTime?
 
   @@index([slug])
   @@index([published])

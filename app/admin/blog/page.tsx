@@ -11,6 +11,7 @@ type BlogPost = {
   imageUrl: string | null;
   published: boolean;
   publishedAt: string | null;
+  scheduledAt: string | null;
   createdAt: string;
 };
 
@@ -129,11 +130,18 @@ export default function AdminBlogPage() {
                       className={`px-2 py-1 text-xs font-medium rounded-full ${
                         post.published
                           ? 'bg-emerald-100 text-emerald-800'
+                          : post.scheduledAt
+                          ? 'bg-blue-100 text-blue-800'
                           : 'bg-yellow-100 text-yellow-800'
                       }`}
                     >
-                      {post.published ? 'Published' : 'Draft'}
+                      {post.published ? 'Published' : post.scheduledAt ? 'Scheduled' : 'Draft'}
                     </span>
+                    {post.scheduledAt && !post.published && (
+                      <div className="text-xs text-gray-500 mt-1">
+                        {new Date(post.scheduledAt).toLocaleString()}
+                      </div>
+                    )}
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-600">
                     {new Date(post.createdAt).toLocaleDateString()}

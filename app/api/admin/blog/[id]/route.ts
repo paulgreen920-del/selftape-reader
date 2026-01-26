@@ -28,7 +28,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
   try {
     const { id } = await params;
     const body = await req.json();
-    const { title, slug, excerpt, content, imageUrl, published } = body;
+    const { title, slug, excerpt, content, imageUrl, published, scheduledAt } = body;
 
     // Check if post exists
     const existing = await prisma.blogPost.findUnique({ where: { id } });
@@ -46,11 +46,11 @@ export async function PUT(req: NextRequest, { params }: Params) {
 
     // Handle publishedAt logic
     let publishedAt = existing.publishedAt;
-    if (published && !existing.published) {
-      // Being published for the first time
+    if (published && !existing.published && !scheduledAt) {
+      // Being published immediately for the first time
       publishedAt = new Date();
     } else if (!published) {
-      // Being unpublished
+      // Being unpublished or set to draft
       publishedAt = null;
     }
 
@@ -64,6 +64,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
         imageUrl: imageUrl !== undefined ? imageUrl : existing.imageUrl,
         published: published ?? existing.published,
         publishedAt,
+        scheduledAt: scheduledAt !== undefined ? (scheduledAt ? new Date(scheduledAt) : null) : existing.scheduledAt,
       },
     });
 
