@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { sendSetupReminder } from '@/lib/setup-reminder-emails';
 
+// Add this helper at the top
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
 // Timing thresholds
 const REMINDER_1_AFTER_SIGNUP_HOURS = 2;      // 2 hours after signup
 const REMINDER_2_AFTER_LAST_EMAIL_HOURS = 48; // 2 days after reminder #1
@@ -112,6 +115,9 @@ export async function GET(req: NextRequest) {
           },
         });
         sent++;
+        
+        // Wait 600ms between emails (under 2/sec limit)
+        await sleep(600);
       } else {
         errors.push(`${reader.email}: ${result.error}`);
       }
