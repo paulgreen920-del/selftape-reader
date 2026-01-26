@@ -3,9 +3,9 @@ import { prisma } from '@/lib/prisma';
 import { sendSetupReminder } from '@/lib/setup-reminder-emails';
 
 // Timing thresholds
-const REMINDER_1_AFTER_HOURS = 2;      // 2 hours after signup
-const REMINDER_2_AFTER_HOURS = 48;     // 2 days after signup
-const REMINDER_3_AFTER_HOURS = 120;    // 5 days after signup
+const REMINDER_1_AFTER_SIGNUP_HOURS = 2;      // 2 hours after signup
+const REMINDER_2_AFTER_LAST_EMAIL_HOURS = 48; // 2 days after reminder #1
+const REMINDER_3_AFTER_LAST_EMAIL_HOURS = 72; // 3 days after reminder #2
 
 export async function GET(req: NextRequest) {
   // Verify cron secret (optional but recommended)
@@ -64,18 +64,30 @@ export async function GET(req: NextRequest) {
         continue; // They're done, no need to email
       }
 
-      // Calculate hours since signup
+      // Calculate timing
       const hoursSinceSignup = (now.getTime() - reader.createdAt.getTime()) / (1000 * 60 * 60);
+      const hoursSinceLastEmail = reader.setupReminderLastSentAt 
+        ? (now.getTime() - reader.setupReminderLastSentAt.getTime()) / (1000 * 60 * 60)
+        : null;
       
       // Determine which reminder to send (if any)
       let reminderToSend: 1 | 2 | 3 | null = null;
       
-      if (reader.setupReminderCount === 0 && hoursSinceSignup >= REMINDER_1_AFTER_HOURS) {
-        reminderToSend = 1;
-      } else if (reader.setupReminderCount === 1 && hoursSinceSignup >= REMINDER_2_AFTER_HOURS) {
-        reminderToSend = 2;
-      } else if (reader.setupReminderCount === 2 && hoursSinceSignup >= REMINDER_3_AFTER_HOURS) {
-        reminderToSend = 3;
+      if (reader.setupReminderCount === 0) {
+        // First reminder: based on signup time
+        if (hoursSinceSignup >= REMINDER_1_AFTER_SIGNUP_HOURS) {
+          reminderToSend = 1;
+        }
+      } else if (reader.setupReminderCount === 1 && hoursSinceLastEmail !== null) {
+        // Second reminder: 48 hours after first reminder
+        if (hoursSinceLastEmail >= REMINDER_2_AFTER_LAST_EMAIL_HOURS) {
+          reminderToSend = 2;
+        }
+      } else if (reader.setupReminderCount === 2 && hoursSinceLastEmail !== null) {
+        // Third reminder: 72 hours after second reminder
+        if (hoursSinceLastEmail >= REMINDER_3_AFTER_LAST_EMAIL_HOURS) {
+          reminderToSend = 3;
+        }
       }
 
       if (!reminderToSend) {
