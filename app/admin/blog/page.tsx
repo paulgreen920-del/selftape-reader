@@ -25,7 +25,9 @@ export default function AdminBlogPage() {
 
   async function loadPosts() {
     try {
-      const res = await fetch('/api/admin/blog');
+      const res = await fetch('/api/admin/blog', {
+        headers: { 'x-api-key': process.env.NEXT_PUBLIC_BLOG_API_KEY || '' },
+      });
       const data = await res.json();
       if (data.ok) {
         setPosts(data.posts);
@@ -41,7 +43,10 @@ export default function AdminBlogPage() {
     try {
       const res = await fetch(`/api/admin/blog/${post.id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-api-key': process.env.NEXT_PUBLIC_BLOG_API_KEY || '',
+        },
         body: JSON.stringify({ published: !post.published }),
       });
       const data = await res.json();
@@ -59,6 +64,7 @@ export default function AdminBlogPage() {
     try {
       const res = await fetch(`/api/admin/blog/${post.id}`, {
         method: 'DELETE',
+        headers: { 'x-api-key': process.env.NEXT_PUBLIC_BLOG_API_KEY || '' },
       });
       const data = await res.json();
       if (data.ok) {

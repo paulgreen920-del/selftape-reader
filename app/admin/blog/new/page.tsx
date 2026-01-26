@@ -77,7 +77,10 @@ export default function NewBlogPostPage() {
 
       const res = await fetch('/api/admin/blog', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-api-key': process.env.NEXT_PUBLIC_BLOG_API_KEY || '',
+        },
         body: JSON.stringify(payload),
       });
       const data = await res.json();

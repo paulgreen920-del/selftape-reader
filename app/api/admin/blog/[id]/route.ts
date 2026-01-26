@@ -5,6 +5,12 @@ type Params = { params: Promise<{ id: string }> };
 
 // GET - Get a single blog post
 export async function GET(req: NextRequest, { params }: Params) {
+  // Check for API key
+  const apiKey = req.headers.get('x-api-key');
+  if (apiKey !== process.env.BLOG_API_KEY) {
+    return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
     const { id } = await params;
     
@@ -25,6 +31,12 @@ export async function GET(req: NextRequest, { params }: Params) {
 
 // PUT - Update a blog post
 export async function PUT(req: NextRequest, { params }: Params) {
+  // Check for API key
+  const apiKey = req.headers.get('x-api-key');
+  if (apiKey !== process.env.BLOG_API_KEY) {
+    return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
     const { id } = await params;
     const body = await req.json();
@@ -77,6 +89,12 @@ export async function PUT(req: NextRequest, { params }: Params) {
 
 // DELETE - Delete a blog post
 export async function DELETE(req: NextRequest, { params }: Params) {
+  // Check for API key
+  const apiKey = req.headers.get('x-api-key');
+  if (apiKey !== process.env.BLOG_API_KEY) {
+    return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
     const { id } = await params;
 

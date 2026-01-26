@@ -26,7 +26,9 @@ export default function EditBlogPostPage() {
   useEffect(() => {
     async function loadPost() {
       try {
-        const res = await fetch(`/api/admin/blog/${id}`);
+        const res = await fetch(`/api/admin/blog/${id}`, {
+          headers: { 'x-api-key': process.env.NEXT_PUBLIC_BLOG_API_KEY || '' },
+        });
         const data = await res.json();
         if (data.ok) {
           const scheduledAtValue = data.post.scheduledAt 
@@ -95,7 +97,10 @@ export default function EditBlogPostPage() {
 
       const res = await fetch(`/api/admin/blog/${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-api-key': process.env.NEXT_PUBLIC_BLOG_API_KEY || '',
+        },
         body: JSON.stringify(payload),
       });
       const data = await res.json();

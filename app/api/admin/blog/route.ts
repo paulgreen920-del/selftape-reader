@@ -2,7 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 // GET - List all blog posts (admin view - includes unpublished)
-export async function GET() {
+export async function GET(req: NextRequest) {
+  // Check for API key
+  const apiKey = req.headers.get('x-api-key');
+  if (apiKey !== process.env.BLOG_API_KEY) {
+    return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
+  }
   try {
     const posts = await prisma.blogPost.findMany({
       orderBy: { createdAt: "desc" },
@@ -16,6 +21,12 @@ export async function GET() {
 
 // POST - Create a new blog post
 export async function POST(req: NextRequest) {
+  // Check for API key
+  const apiKey = req.headers.get('x-api-key');
+  if (apiKey !== process.env.BLOG_API_KEY) {
+    return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
     const body = await req.json();
     const { title, slug, excerpt, content, imageUrl, published, scheduledAt } = body;
