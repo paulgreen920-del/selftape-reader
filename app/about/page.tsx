@@ -1,5 +1,15 @@
 import Link from 'next/link';
 
+export const metadata = {
+  title: "About Self Tape Reader | Actors Helping Actors",
+  description: "Self Tape Reader connects actors who need readers for auditions with actors who want to help. No subscriptions, no hassle — just book and tape.",
+  openGraph: {
+    title: "About Self Tape Reader",
+    description: "Actors helping actors nail their self-tape auditions.",
+    url: "https://www.selftapereader.com/about",
+  },
+};
+
 export default function AboutPage() {
   return (
     <div className="max-w-4xl mx-auto px-6 py-12">
