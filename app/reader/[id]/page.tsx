@@ -2,11 +2,41 @@
 import CalendarBooking from './CalendarBooking';
 import { notFound } from "next/navigation";
 import { prisma } from "../../../lib/prisma";
+import { Metadata } from "next";
 
 // In dev, force dynamic so this page isn't statically preresolved
 export const dynamic = "force-dynamic";
 
 type Params = { id: string };
+type MetadataParams = { params: Promise<{ id: string }> };
+
+export async function generateMetadata({ params }: MetadataParams): Promise<Metadata> {
+  const { id } = await params;
+  
+  const reader = await prisma.user.findUnique({
+    where: { id },
+    select: {
+      name: true,
+      displayName: true,
+    },
+  });
+
+  if (!reader) {
+    return { title: "Reader Not Found | Self Tape Reader" };
+  }
+
+  const displayName = reader.displayName || reader.name || "Reader";
+
+  return {
+    title: `Book ${displayName} | Self Tape Reader`,
+    description: `Book a self-tape reading session with ${displayName}. Choose your time slot and session length. Instant video call booking.`,
+    openGraph: {
+      title: `Book ${displayName} | Self Tape Reader`,
+      description: `Book a self-tape session with ${displayName}. Available now.`,
+      url: `https://www.selftapereader.com/reader/${id}`,
+    },
+  };
+}
 
 // Accept params as either a value or a Promise (Next 16 behavior)
 export default async function ReaderDetailPage(
