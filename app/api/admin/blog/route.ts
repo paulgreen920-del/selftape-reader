@@ -36,15 +36,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
     }
 
-    const rawText = await req.text();
-    // Fix unescaped control characters in JSON
-    const sanitized = rawText.replace(/[\n\r\t]/g, (match) => {
-      if (match === '\n') return '\\n';
-      if (match === '\r') return '\\r';
-      if (match === '\t') return '\\t';
-      return match;
-    });
-    const body = JSON.parse(sanitized);
+    const body = await req.json();
     console.log("Received body:", JSON.stringify(body, null, 2));
 
     const { title, slug, excerpt, content, imageUrl, published, scheduledAt } = body;
