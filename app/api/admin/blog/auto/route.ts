@@ -42,21 +42,30 @@ export async function POST(req: NextRequest) {
 
     // Upload image if provided
     let imageUrl = null;
+    console.log("dalleImageUrl received:", dalleImageUrl ? "yes" : "no");
+
     if (dalleImageUrl) {
       try {
+        console.log("Fetching image from:", dalleImageUrl.substring(0, 100) + "...");
         const imageResponse = await fetch(dalleImageUrl);
+        console.log("Image fetch status:", imageResponse.status);
+        
         if (imageResponse.ok) {
           const imageBuffer = await imageResponse.arrayBuffer();
+          console.log("Image buffer size:", imageBuffer.byteLength);
+          
           const contentType = imageResponse.headers.get("content-type") || "image/png";
           const blob = await put(`blog-images/${slug}.png`, imageBuffer, {
             access: "public",
             contentType,
           });
           imageUrl = blob.url;
+          console.log("Blob uploaded:", imageUrl);
+        } else {
+          console.log("Image fetch failed:", imageResponse.statusText);
         }
-      } catch (imgError) {
-        console.error("Failed to upload image:", imgError);
-        // Continue without image
+      } catch (imgError: any) {
+        console.error("Failed to upload image:", imgError?.message || imgError);
       }
     }
 
