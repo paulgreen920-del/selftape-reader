@@ -48,32 +48,40 @@ export default async function TipsPage() {
               key={post.id}
               className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition"
             >
-              <Link href={`/tips/${post.slug}`} className="block">
-                {post.imageUrl && (
-                  <div className="aspect-[3/1] overflow-hidden">
-                    <img
-                      src={post.imageUrl}
-                      alt={post.title}
-                      className="w-full h-full object-cover"
-                    />
+              <Link href={`/tips/${post.slug}`} className="block p-6">
+                {/* Mobile: stacked, title first. Desktop: side by side */}
+                <div className="flex flex-col md:flex-row md:gap-6">
+                  {/* Text content - always first in DOM for mobile */}
+                  <div className="flex-1 order-1">
+                    <h2 className="text-xl font-semibold text-gray-900 hover:text-emerald-600 transition leading-snug">
+                      {post.title}
+                    </h2>
+                    {post.excerpt && (
+                      <p className="mt-2 text-gray-600 text-sm leading-relaxed">
+                        {post.excerpt}
+                      </p>
+                    )}
+                    <p className="mt-3 text-xs text-gray-400">
+                      {post.publishedAt
+                        ? new Date(post.publishedAt).toLocaleDateString("en-US", {
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                          })
+                        : ""}
+                    </p>
                   </div>
-                )}
-                <div className="p-6">
-                  <h2 className="text-xl font-semibold text-gray-900 hover:text-emerald-600 transition">
-                    {post.title}
-                  </h2>
-                  {post.excerpt && (
-                    <p className="mt-2 text-gray-600">{post.excerpt}</p>
+                  
+                  {/* Image - after text on mobile, visually left on desktop */}
+                  {post.imageUrl && (
+                    <div className="mt-4 md:mt-0 md:order-first md:flex-shrink-0">
+                      <img
+                        src={post.imageUrl}
+                        alt={post.title}
+                        className="w-full md:w-48 md:h-32 object-cover rounded-lg"
+                      />
+                    </div>
                   )}
-                  <p className="mt-4 text-sm text-gray-400">
-                    {post.publishedAt
-                      ? new Date(post.publishedAt).toLocaleDateString("en-US", {
-                          year: "numeric",
-                          month: "long",
-                          day: "numeric",
-                        })
-                      : ""}
-                  </p>
                 </div>
               </Link>
             </article>
