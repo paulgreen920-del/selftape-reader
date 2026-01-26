@@ -6,10 +6,23 @@ import Script from "next/script";
 import Providers from "@/components/Providers";
 
 export const metadata = {
-  title: "Self Tape Reader",
-  description: "Actors helping actors with self-tapes",
+  title: "Self Tape Reader | Book a Reader for Your Audition Instantly",
+  description: "Need a reader for your self-tape audition? Book a real actor to read lines with you over video chat. No subscription required — just pay per session. Available 24/7.",
+  keywords: ["self tape reader", "audition reader", "self tape help", "reader for audition", "actor reader", "self tape partner"],
   verification: {
     google: "3ipAMZ-vNQyH5ZqfOdrqsYVC_r8OGtWuNCel9ACRBIw",
+  },
+  openGraph: {
+    title: "Self Tape Reader | Book a Reader for Your Audition",
+    description: "Need a reader for your self-tape? Book a real actor instantly. No subscription — just pay per session.",
+    url: "https://www.selftapereader.com",
+    siteName: "Self Tape Reader",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Self Tape Reader | Book a Reader for Your Audition",
+    description: "Need a reader for your self-tape? Book a real actor instantly. No subscription required.",
   },
 };
 
