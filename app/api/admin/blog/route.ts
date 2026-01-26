@@ -37,10 +37,17 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
+    console.log("Received body:", JSON.stringify(body, null, 2));
+
     const { title, slug, excerpt, content, imageUrl, published, scheduledAt } = body;
 
     if (!title || !slug || !content) {
-      return NextResponse.json({ ok: false, error: "Title, slug, and content are required" }, { status: 400 });
+      console.log("Missing fields - title:", !!title, "slug:", !!slug, "content:", !!content);
+      return NextResponse.json({ 
+        ok: false, 
+        error: "Title, slug, and content are required",
+        received: { hasTitle: !!title, hasSlug: !!slug, hasContent: !!content }
+      }, { status: 400 });
     }
 
     // Check if slug already exists
