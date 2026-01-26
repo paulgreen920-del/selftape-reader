@@ -20,40 +20,35 @@ export async function GET() {
       email: user.email,
       checks: {
         emailVerified: user.emailVerified === true,
+        isReaderOrAdmin: user.role === "READER" || user.isAdmin === true,
         hasDisplayName: user.displayName != null,
         hasHeadshotUrl: user.headshotUrl != null,
         hasRatePer15Min: user.ratePer15Min != null,
         hasRatePer30Min: user.ratePer30Min != null,
         hasRatePer60Min: user.ratePer60Min != null,
-        hasSubscriptionId: user.subscriptionId != null,
-        subscriptionStatusActive: user.subscriptionStatus === "active",
         hasStripeAccountId: user.stripeAccountId != null,
-        hasStripeCustomerId: user.stripeCustomerId != null,
         isActive: user.isActive === true,
         hasAvailabilitySlots: user.AvailabilitySlot && user.AvailabilitySlot.length > 0,
         hasCalendarConnection: user.CalendarConnection != null,
       },
       rawValues: {
         emailVerified: user.emailVerified,
-        subscriptionStatus: user.subscriptionStatus,
-        subscriptionId: user.subscriptionId,
+        role: user.role,
+        isAdmin: user.isAdmin,
         stripeAccountId: user.stripeAccountId,
-        stripeCustomerId: user.stripeCustomerId,
         isActive: user.isActive,
         availabilitySlotCount: user.AvailabilitySlot?.length || 0,
         calendarProvider: user.CalendarConnection?.provider || null,
       },
       passesAllChecks: (
         user.emailVerified === true &&
+        (user.role === "READER" || user.isAdmin === true) &&
         user.displayName != null &&
         user.headshotUrl != null &&
         user.ratePer15Min != null &&
         user.ratePer30Min != null &&
         user.ratePer60Min != null &&
-        user.subscriptionId != null &&
-        user.subscriptionStatus === "active" &&
         user.stripeAccountId != null &&
-        user.stripeCustomerId != null &&
         user.isActive === true &&
         user.AvailabilitySlot && user.AvailabilitySlot.length > 0 &&
         user.CalendarConnection != null

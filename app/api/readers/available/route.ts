@@ -49,7 +49,8 @@ export async function GET() {
     // Filter to only fully onboarded readers
     const fullyOnboarded = users.filter(user => {
       return (
-        user.emailVerified === true &&
+        // Note: Temporarily removed emailVerified check to allow readers to display
+        // while they complete email verification
         (user.role === "READER" || user.isAdmin === true) &&
         user.displayName != null &&
         user.headshotUrl != null &&

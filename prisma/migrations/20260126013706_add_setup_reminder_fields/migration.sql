@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "setupReminderCount" INTEGER NOT NULL DEFAULT 0,
+ADD COLUMN IF NOT EXISTS "setupReminderLastSentAt" TIMESTAMP(3);
