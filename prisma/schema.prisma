@@ -180,6 +180,8 @@ model User {
   suspensionReason               String?
   totalSessions                  Int                     @default(0)
   skippedOnboardingSteps         String[]                @default([])
+  setupReminderCount             Int                     @default(0)
+  setupReminderLastSentAt        DateTime?
   AvailabilitySlot               AvailabilitySlot[]
   AvailabilityTemplate           AvailabilityTemplate[]
   Booking_Booking_actorIdToUser  Booking[]               @relation("Booking_actorIdToUser")
