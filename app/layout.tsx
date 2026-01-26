@@ -8,6 +8,9 @@ import Providers from "@/components/Providers";
 export const metadata = {
   title: "Self Tape Reader",
   description: "Actors helping actors with self-tapes",
+  verification: {
+    google: "3ipAMZ-vNQyH5ZqfOdrqsYVC_r8OGtWuNCel9ACRBIw",
+  },
 };
 
 export default function RootLayout({
