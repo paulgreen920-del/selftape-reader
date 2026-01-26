@@ -47,7 +47,7 @@ export async function GET() {
     });
 
     // Filter to only fully onboarded readers
-    const fullyOnboarded = users.filter((user) => {
+    const fullyOnboarded = users.filter(user => {
       return (
         user.emailVerified === true &&
         (user.role === "READER" || user.isAdmin === true) &&
