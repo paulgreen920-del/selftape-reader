@@ -30,10 +30,14 @@ export async function POST(req: NextRequest) {
       }, { status: 400 });
     }
 
-    // Check if slug already exists
-    const existing = await prisma.blogPost.findUnique({ where: { slug } });
-    if (existing) {
-      return NextResponse.json({ ok: false, error: "Slug already exists" }, { status: 400 });
+    // If slug exists, append a number
+    let finalSlug = slug;
+    let existing = await prisma.blogPost.findUnique({ where: { slug: finalSlug } });
+    let counter = 2;
+    while (existing) {
+      finalSlug = `${slug}-${counter}`;
+      existing = await prisma.blogPost.findUnique({ where: { slug: finalSlug } });
+      counter++;
     }
 
     // Upload image if provided
@@ -60,7 +64,7 @@ export async function POST(req: NextRequest) {
     const post = await prisma.blogPost.create({
       data: {
         title,
-        slug,
+        slug: finalSlug,
         excerpt: excerpt || null,
         content,
         imageUrl,
