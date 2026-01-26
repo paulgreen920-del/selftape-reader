@@ -11,6 +11,15 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
+
+    // Unescape newlines from Zapier
+    if (body.content) {
+      body.content = body.content.replace(/\\n/g, '\n').replace(/\\r/g, '\r');
+    }
+    if (body.excerpt) {
+      body.excerpt = body.excerpt.replace(/\\n/g, '\n').replace(/\\r/g, '\r');
+    }
+
     const { title, slug, excerpt, content, dalleImageUrl } = body;
 
     if (!title || !slug || !content) {
