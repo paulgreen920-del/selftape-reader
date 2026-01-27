@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+// Simple in-memory cache for raw database results
+let cachedUsers: any[] | null = null;
+let cacheTimestamp: number = 0;
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
 // Fisher-Yates shuffle for true randomization
 function shuffle<T>(array: T[]): T[] {
   const shuffled = [...array];
@@ -14,43 +19,54 @@ function shuffle<T>(array: T[]): T[] {
 /**
  * GET /api/readers/available
  * Returns all fully onboarded available readers, sorted by cohorts
+ * Database results cached for 5 minutes, but shuffle is fresh each request
  */
 export async function GET() {
   try {
-    // Get today's date boundaries
     const now = new Date();
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const todayEnd = new Date(todayStart);
     todayEnd.setDate(todayEnd.getDate() + 1);
 
-    // Find all users with role READER or ADMIN, and include all necessary relations
-    const users = await prisma.user.findMany({
-      where: { role: { in: ["READER", "ADMIN"] } },
-      include: {
-        CalendarConnection: true,
-        AvailabilitySlot: {
-          where: {
-            startTime: { gte: now },
-            isBooked: false,
-          },
-          orderBy: { startTime: "asc" },
-          take: 20,
-        },
-        // Get today's bookings to determine cohort
-        Booking_Booking_readerIdToUser: {
-          where: {
-            startTime: { gte: todayStart, lt: todayEnd },
-            status: { in: ["PENDING", "CONFIRMED"] },
-          },
-        },
-      },
-    });
+    let users: any[];
+    const cacheAge = Date.now() - cacheTimestamp;
 
-    // Filter to only fully onboarded readers
+    // Use cached data if valid, otherwise fetch fresh
+    if (cachedUsers && cacheAge < CACHE_TTL_MS) {
+      console.log('[Readers] Using cached data');
+      users = cachedUsers;
+    } else {
+      console.log('[Readers] Cache miss - fetching from database');
+      
+      users = await prisma.user.findMany({
+        where: { role: { in: ["READER", "ADMIN"] } },
+        include: {
+          CalendarConnection: true,
+          AvailabilitySlot: {
+            where: {
+              startTime: { gte: now },
+              isBooked: false,
+            },
+            orderBy: { startTime: "asc" },
+            take: 20,
+          },
+          Booking_Booking_readerIdToUser: {
+            where: {
+              startTime: { gte: todayStart, lt: todayEnd },
+              status: { in: ["PENDING", "CONFIRMED"] },
+            },
+          },
+        },
+      });
+
+      // Update cache
+      cachedUsers = users;
+      cacheTimestamp = Date.now();
+    }
+
+    // Filter to only fully onboarded readers (runs every request, uses cached data)
     const fullyOnboarded = users.filter(user => {
       return (
-        // Note: Temporarily removed emailVerified check to allow readers to display
-        // while they complete email verification
         (user.role === "READER" || user.isAdmin === true) &&
         user.displayName != null &&
         user.headshotUrl != null &&
@@ -64,7 +80,7 @@ export async function GET() {
       );
     });
 
-    // Add metadata for sorting
+    // Add metadata for sorting (runs every request)
     const readersWithMeta = fullyOnboarded.map((r) => {
       const bookingsToday = r.Booking_Booking_readerIdToUser?.length || 0;
       const soonestSlot = r.AvailabilitySlot[0]?.startTime || null;
@@ -100,7 +116,6 @@ export async function GET() {
         grouped[r.bookingsToday].push(r);
       });
 
-      // Sort by booking count (ascending) and shuffle within each group
       const sortedKeys = Object.keys(grouped)
         .map(Number)
         .sort((a, b) => a - b);
@@ -113,7 +128,7 @@ export async function GET() {
       return result;
     }
 
-    // Final sorted order
+    // Final sorted order (shuffled fresh each request)
     const sortedReaders = [
       ...groupAndShuffle(availableToday),
       ...groupAndShuffle(availableFuture),
@@ -140,4 +155,15 @@ export async function GET() {
     console.error("[GET /api/readers/available] error:", err);
     return NextResponse.json({ ok: false, error: errorMessage }, { status: 500 });
   }
+}
+
+/**
+ * POST /api/readers/available
+ * Invalidate cache (call when a reader updates their profile or completes setup)
+ */
+export async function POST() {
+  cachedUsers = null;
+  cacheTimestamp = 0;
+  console.log('[Readers] Cache invalidated');
+  return NextResponse.json({ ok: true, message: "Cache invalidated" });
 }
