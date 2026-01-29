@@ -111,6 +111,13 @@ export default function Navigation() {
             >
               Pricing
             </Link>
+            <Link
+              href="/tips"
+              className="block px-3 py-2 rounded-md text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 font-medium"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Acting Tips
+            </Link>
 
             {/* Divider */}
             <div className="border-t my-2"></div>

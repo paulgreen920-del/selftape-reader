@@ -61,6 +61,7 @@ export default function RootLayout({
                 <Link href="/readers" className="hover:text-emerald-700">Find Readers</Link>
                 <Link href="/about" className="hover:text-emerald-700">About</Link>
                 <Link href="/pricing" className="hover:text-emerald-700">Pricing</Link>
+                <Link href="/tips" className="hover:text-emerald-700">Acting Tips</Link>
               </div>
               <Navigation />
             </nav>
