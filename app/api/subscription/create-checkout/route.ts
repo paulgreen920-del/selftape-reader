@@ -67,6 +67,11 @@ export async function POST(req: Request) {
       allow_promotion_codes: true,
       success_url: `${process.env.NEXT_PUBLIC_URL}/onboarding/complete?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.NEXT_PUBLIC_URL}/onboarding/subscribe?canceled=true`,
+      custom_text: {
+        submit: {
+          message: "Payment processed by Self-tape Reader",
+        },
+      },
       metadata: {
         readerId: userId,
         email: user.email,

@@ -73,6 +73,11 @@ export async function POST(req: Request) {
       success_url: `${process.env.NEXT_PUBLIC_URL}/checkout/success?bookingId=${booking.id}`,
       cancel_url: `${process.env.NEXT_PUBLIC_URL}/sessions`,
       customer_email: booking.User_Booking_actorIdToUser.email,
+      custom_text: {
+        submit: {
+          message: "Payment processed by Self-tape Reader",
+        },
+      },
       metadata: {
         bookingId: booking.id,
         readerId: booking.User_Booking_readerIdToUser.id,

@@ -225,6 +225,11 @@ export async function POST(req: Request) {
       success_url: `${process.env.NEXT_PUBLIC_URL}/checkout/success?bookingId=${booking.id}`,
       cancel_url: `${process.env.NEXT_PUBLIC_URL}/sessions`,
       customer_email: actor.email,
+      custom_text: {
+        submit: {
+          message: "Payment processed by Self-tape Reader",
+        },
+      },
       payment_intent_data: {
         application_fee_amount: platformFeeCents,
         transfer_data: {

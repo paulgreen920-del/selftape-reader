@@ -91,6 +91,11 @@ export async function POST(req: Request) {
       ],
       success_url: `${process.env.NEXT_PUBLIC_URL}/settings/subscription?reactivated=true`,
       cancel_url: `${process.env.NEXT_PUBLIC_URL}/settings/subscription`,
+      custom_text: {
+        submit: {
+          message: "Payment processed by Self-tape Reader",
+        },
+      },
       metadata: {
         userId: user.id,
         type: "reader_resubscription",
