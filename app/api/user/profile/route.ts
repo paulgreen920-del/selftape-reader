@@ -7,15 +7,15 @@ import { authOptions } from '@/lib/auth';
  * GET /api/user/profile
  * Fetch current user's profile information
  */
-export async function GET(req: Request) {
+export async function GET() {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
+      where: { id: session.user.id },
       select: {
         id: true,
         email: true,
@@ -46,17 +46,8 @@ export async function GET(req: Request) {
 export async function PUT(req: Request) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const currentUser = await prisma.user.findUnique({
-      where: { email: session.user.email },
-      select: { id: true, email: true },
-    });
-
-    if (!currentUser) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
     const body = await req.json();
@@ -64,7 +55,7 @@ export async function PUT(req: Request) {
 
     // Update user profile (email changes handled separately via /api/auth/change-email)
     const updatedUser = await prisma.user.update({
-      where: { id: currentUser.id },
+      where: { id: session.user.id },
       data: {
         displayName: displayName || null,
         phone: phone || null,
