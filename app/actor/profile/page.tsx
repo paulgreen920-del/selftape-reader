@@ -27,7 +27,6 @@ export default function ActorProfilePage() {
 
   // Form fields
   const [displayName, setDisplayName] = useState('');
-  const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [city, setCity] = useState('');
   const [timezone, setTimezone] = useState('America/New_York');
@@ -48,7 +47,6 @@ export default function ActorProfilePage() {
         const user = data.user;
 
         setDisplayName(user.displayName || '');
-        setEmail(user.email || '');
         setPhone(user.phone || '');
         setCity(user.city || '');
         setTimezone(user.timezone || 'America/New_York');
@@ -68,23 +66,10 @@ export default function ActorProfilePage() {
     setError('');
     setSuccessMessage('');
 
-    if (!email.trim()) {
-      setError('Email is required');
-      return;
-    }
-
-    // Basic email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      setError('Please enter a valid email address');
-      return;
-    }
-
     setSaving(true);
     try {
       const payload = {
         displayName: displayName.trim() || null,
-        email: email.trim(),
         phone: phone.trim() || null,
         city: city.trim() || null,
         timezone: timezone,
@@ -103,11 +88,6 @@ export default function ActorProfilePage() {
       }
 
       setSuccessMessage('Profile updated successfully!');
-      
-      // If email changed, show additional message
-      if (data.user.email !== email) {
-        setSuccessMessage('Profile updated! Please note that changing your email may require you to sign in again.');
-      }
 
       // Clear success message after 5 seconds
       setTimeout(() => setSuccessMessage(''), 5000);
@@ -164,23 +144,6 @@ export default function ActorProfilePage() {
           />
           <p className="text-sm text-gray-500 mt-1">
             This is the name readers will see when you book sessions. Leave blank to use your account name.
-          </p>
-        </div>
-
-        {/* Email */}
-        <div className="bg-white border rounded-lg p-6">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Email Address <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <p className="text-sm text-gray-500 mt-1">
-            Used for login and booking notifications
           </p>
         </div>
 
@@ -259,20 +222,30 @@ export default function ActorProfilePage() {
       </form>
 
       <div className="mt-8 pt-8 border-t">
-        <h2 className="text-xl font-semibold mb-4">Additional Settings</h2>
-        <div className="space-y-3">
-          <Link
-            href="/settings/change-password"
-            className="block text-blue-600 hover:text-blue-800"
-          >
-            Change Password →
-          </Link>
-          <Link
-            href="/settings/change-email"
-            className="block text-blue-600 hover:text-blue-800"
-          >
-            Change Email (with verification) →
-          </Link>
+        <h2 className="text-xl font-semibold mb-4">Account Security</h2>
+        <div className="space-y-4">
+          <div>
+            <Link
+              href="/settings/change-email"
+              className="block text-blue-600 hover:text-blue-800 font-medium"
+            >
+              Change Email Address →
+            </Link>
+            <p className="text-sm text-gray-500 mt-1">
+              Update your email with secure verification
+            </p>
+          </div>
+          <div>
+            <Link
+              href="/settings/change-password"
+              className="block text-blue-600 hover:text-blue-800 font-medium"
+            >
+              Change Password →
+            </Link>
+            <p className="text-sm text-gray-500 mt-1">
+              Update your account password
+            </p>
+          </div>
         </div>
       </div>
     </div>

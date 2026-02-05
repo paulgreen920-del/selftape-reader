@@ -54,8 +54,8 @@ export default function ChangeEmailPage() {
         {/* Header */}
         <header className="bg-white shadow">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-            <Link href="/reader/profile" className="text-blue-600 hover:underline text-sm">
-              ← Back to Profile
+            <Link href="/settings" className="text-blue-600 hover:underline text-sm">
+              ← Back to Settings
             </Link>
           </div>
         </header>
@@ -90,8 +90,8 @@ export default function ChangeEmailPage() {
       {/* Header */}
       <header className="bg-white shadow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <Link href="/reader/profile" className="text-blue-600 hover:underline text-sm">
-            ← Back to Profile
+          <Link href="/settings" className="text-blue-600 hover:underline text-sm">
+            ← Back to Settings
           </Link>
         </div>
       </header>
@@ -140,7 +140,7 @@ export default function ChangeEmailPage() {
                 {loading ? "Sending..." : "Change Email"}
               </button>
               <Link
-                href="/reader/profile"
+                href="/settings"
                 className="px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold rounded-lg"
               >
                 Cancel

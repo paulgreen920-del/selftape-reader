@@ -60,32 +60,13 @@ export async function PUT(req: Request) {
     }
 
     const body = await req.json();
-    const { displayName, email, phone, city, timezone } = body;
+    const { displayName, phone, city, timezone } = body;
 
-    // Validate email if provided
-    if (email && email !== currentUser.email) {
-      // Check if email is already in use by another user
-      const existingUser = await prisma.user.findUnique({
-        where: { email: email },
-      });
-
-      if (existingUser && existingUser.id !== currentUser.id) {
-        return NextResponse.json(
-          { error: 'Email already in use by another account' },
-          { status: 400 }
-        );
-      }
-
-      // For email changes, you may want to implement verification
-      // For now, we'll allow direct email changes
-    }
-
-    // Update user profile
+    // Update user profile (email changes handled separately via /api/auth/change-email)
     const updatedUser = await prisma.user.update({
       where: { id: currentUser.id },
       data: {
         displayName: displayName || null,
-        email: email || currentUser.email,
         phone: phone || null,
         city: city || null,
         timezone: timezone || 'America/New_York',
