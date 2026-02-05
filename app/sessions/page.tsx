@@ -25,6 +25,7 @@ export default function ActorSessionsPage() {
   const [filter, setFilter] = useState<'all' | 'upcoming' | 'past'>('upcoming');
   const [paymentLoading, setPaymentLoading] = useState<string | null>(null);
   const [cancelLoading, setCancelLoading] = useState<string | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('soonest');
 
@@ -120,6 +121,43 @@ export default function ActorSessionsPage() {
       alert(err.message || 'Failed to cancel session. Please try again.');
     } finally {
       setCancelLoading(null);
+    }
+  }
+
+  async function deletePendingBooking(sessionId: string) {
+    const session = sessions.find(s => s.id === sessionId);
+    if (!session) return;
+
+    const confirmed = window.confirm(
+      `Delete this pending booking with ${session.readerName}?\n\nThis will remove the booking without affecting your cancellation record.`
+    );
+
+    if (!confirmed) return;
+
+    setDeleteLoading(sessionId);
+    try {
+      const res = await fetch(`/api/bookings/${sessionId}/delete`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || 'Failed to delete booking');
+      }
+
+      // Remove the session from the list
+      setSessions(prev => prev.filter(s => s.id !== sessionId));
+
+      alert('Booking deleted successfully.');
+    } catch (err: any) {
+      console.error('Delete error:', err);
+      alert(err.message || 'Failed to delete booking. Please try again.');
+    } finally {
+      setDeleteLoading(null);
     }
   }
 
@@ -312,13 +350,22 @@ export default function ActorSessionsPage() {
                 {/* Action Buttons */}
                 <div className="space-y-2">
                   {session.status === 'PENDING' && (
-                    <button
-                      onClick={() => completePayment(session.id)}
-                      disabled={paymentLoading === session.id}
-                      className="w-full px-4 py-3 bg-emerald-600 text-white text-center text-sm font-semibold rounded-lg hover:bg-emerald-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {paymentLoading === session.id ? 'Processing...' : 'Complete Payment'}
-                    </button>
+                    <>
+                      <button
+                        onClick={() => completePayment(session.id)}
+                        disabled={paymentLoading === session.id}
+                        className="w-full px-4 py-3 bg-emerald-600 text-white text-center text-sm font-semibold rounded-lg hover:bg-emerald-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {paymentLoading === session.id ? 'Processing...' : 'Complete Payment'}
+                      </button>
+                      <button
+                        onClick={() => deletePendingBooking(session.id)}
+                        disabled={deleteLoading === session.id}
+                        className="w-full px-4 py-3 bg-gray-100 text-gray-700 text-center text-sm font-medium rounded-lg hover:bg-gray-200 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {deleteLoading === session.id ? 'Deleting...' : 'Delete Booking'}
+                      </button>
+                    </>
                   )}
                   
                   {session.meetingUrl && (session.status === 'PAID' || session.status === 'CONFIRMED') && !isPast && (

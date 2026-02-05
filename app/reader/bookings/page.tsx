@@ -24,6 +24,7 @@ export default function ReaderBookingsPage() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'upcoming' | 'past'>('upcoming');
+  const [deleteLoading, setDeleteLoading] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('soonest');
 
@@ -64,6 +65,43 @@ export default function ReaderBookingsPage() {
 
     loadData();
   }, [router]);
+
+  async function deletePendingBooking(bookingId: string) {
+    const booking = bookings.find(b => b.id === bookingId);
+    if (!booking) return;
+
+    const confirmed = window.confirm(
+      `Delete this pending booking with ${booking.actorName}?\n\nThis will remove the booking without affecting your cancellation record.`
+    );
+
+    if (!confirmed) return;
+
+    setDeleteLoading(bookingId);
+    try {
+      const res = await fetch(`/api/bookings/${bookingId}/delete`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || 'Failed to delete booking');
+      }
+
+      // Remove the booking from the list
+      setBookings(prev => prev.filter(b => b.id !== bookingId));
+
+      alert('Booking deleted successfully.');
+    } catch (err: any) {
+      console.error('Delete error:', err);
+      alert(err.message || 'Failed to delete booking. Please try again.');
+    } finally {
+      setDeleteLoading(null);
+    }
+  }
 
   const now = new Date();
   
@@ -341,9 +379,16 @@ export default function ReaderBookingsPage() {
 
                   {booking.status === 'PENDING' && (
                     <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
-                      <p className="text-sm text-yellow-700">
+                      <p className="text-sm text-yellow-700 mb-3">
                         ⏳ <strong>Awaiting Payment:</strong> The actor hasn't completed payment yet. You'll be notified once confirmed.
                       </p>
+                      <button
+                        onClick={() => deletePendingBooking(booking.id)}
+                        disabled={deleteLoading === booking.id}
+                        className="w-full px-4 py-2 bg-gray-100 text-gray-700 text-center text-sm font-medium rounded-lg hover:bg-gray-200 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {deleteLoading === booking.id ? 'Deleting...' : 'Delete Booking'}
+                      </button>
                     </div>
                   )}
 
