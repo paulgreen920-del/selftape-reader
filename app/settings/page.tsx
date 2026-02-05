@@ -96,17 +96,27 @@ export default function SettingsPage() {
             </div>
           </>
         ) : (
-          /* Actor - show become a reader CTA */
-          <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-lg p-6">
-            <h2 className="text-xl font-semibold mb-2">Become a Reader</h2>
-            <p className="text-sm text-gray-600 mb-4">
-              Want to help fellow actors with their self-tapes? Join as a reader and earn money 
-              while helping others prepare for auditions.
-            </p>
-            <Link href="/onboarding/reader" className="inline-block bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700">
-              Start Reader Onboarding
-            </Link>
-          </div>
+          /* Actor-specific settings */
+          <>
+            <div className="bg-white border rounded-lg p-6">
+              <h2 className="text-xl font-semibold mb-4">Actor Profile</h2>
+              <p className="text-sm text-gray-600 mb-4">Update your contact information and preferences</p>
+              <Link href="/actor/profile" className="inline-block bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                Edit Profile
+              </Link>
+            </div>
+
+            <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-lg p-6">
+              <h2 className="text-xl font-semibold mb-2">Become a Reader</h2>
+              <p className="text-sm text-gray-600 mb-4">
+                Want to help fellow actors with their self-tapes? Join as a reader and earn money 
+                while helping others prepare for auditions.
+              </p>
+              <Link href="/onboarding/reader" className="inline-block bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700">
+                Start Reader Onboarding
+              </Link>
+            </div>
+          </>
         )}
 
         {/* Notifications - Coming Soon */}
