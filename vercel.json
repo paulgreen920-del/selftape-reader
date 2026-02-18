@@ -15,6 +15,10 @@
     {
       "path": "/api/cron/check-stripe-status",
       "schedule": "0 */6 * * *"
+    },
+    {
+      "path": "/api/cron/actor-nurture",
+      "schedule": "30 * * * *"
     }
   ]
 }
