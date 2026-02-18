@@ -7,7 +7,7 @@ interface ActorEmailData {
 export function getActorNurtureEmail(data: ActorEmailData) {
   const { name, reminderNumber } = data;
   const firstName = name?.split(' ')[0] || 'there';
-  const readersUrl = `${process.env.NEXT_PUBLIC_URL}/readers`;
+  const readersUrl = "https://selftapereader.com/readers";
 
   if (reminderNumber === 1) {
     return {
@@ -27,10 +27,11 @@ export function getActorNurtureEmail(data: ActorEmailData) {
             <ol style="font-size: 16px; color: #333;">
               <li>Browse our readers (real actors, not AI)</li>
               <li>Pick a time that works for you</li>
-              <li>Get on a video call and record your self-tape</li>
+              <li>Complete the payment</li>
+              <li>Get on a video call with your reader and record your self-tape</li>
             </ol>
             
-            <p style="font-size: 16px; color: #333;">Sessions start at just $15 for 15 minutes.</p>
+            <p style="font-size: 16px; color: #333;">Each reader sets their own rates, so look around to find the perfect reader within your budget.</p>
             
             <div style="text-align: center; margin: 30px 0;">
               <a href="${readersUrl}" style="background-color: #10b981; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">Browse Readers</a>
