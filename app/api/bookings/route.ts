@@ -53,6 +53,15 @@ export async function POST(req: Request) {
       );
     }
 
+    // Verify Stripe account can receive payments
+    const stripeAccount = await stripe.accounts.retrieve(reader.stripeAccountId);
+    if (!stripeAccount.charges_enabled) {
+      return NextResponse.json(
+        { ok: false, error: "This reader is temporarily unavailable. Please try another reader." },
+        { status: 400 }
+      );
+    }
+
     // Get actor
     const actor = await prisma.user.findUnique({
       where: { id: actorId },
