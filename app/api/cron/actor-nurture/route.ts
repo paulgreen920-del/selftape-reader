@@ -30,7 +30,7 @@ export async function GET(req: Request) {
     const actors = await prisma.user.findMany({
       where: {
         role: "ACTOR",
-        emailVerified: { not: null },
+        emailVerified: true,
         setupReminderCount: { lt: 3 },
       },
       include: {
