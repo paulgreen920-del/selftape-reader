@@ -10,6 +10,9 @@ export const metadata: Metadata = {
     description: "Practical tips and advice for actors on self-taping auditions.",
     url: "https://www.selftapereader.com/tips",
   },
+  alternates: {
+    canonical: "https://selftapereader.com/tips",
+  },
 };
 
 export const dynamic = "force-dynamic";

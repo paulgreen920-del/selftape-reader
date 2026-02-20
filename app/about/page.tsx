@@ -8,6 +8,9 @@ export const metadata = {
     description: "Actors helping actors nail their self-tape auditions.",
     url: "https://www.selftapereader.com/about",
   },
+  alternates: {
+    canonical: "https://selftapereader.com/about",
+  },
 };
 
 export default function AboutPage() {
