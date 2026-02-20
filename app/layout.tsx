@@ -24,6 +24,9 @@ export const metadata = {
     title: "Self Tape Reader | Book a Reader for Your Audition",
     description: "Need a reader for your self-tape? Book a real actor instantly. No subscription required.",
   },
+  alternates: {
+    canonical: "https://selftapereader.com",
+  },
 };
 
 export default function RootLayout({

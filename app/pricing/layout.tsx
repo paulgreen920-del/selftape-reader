@@ -7,6 +7,9 @@ export const metadata = {
     description: "Free to join. Pay only when you book. Readers keep 80%.",
     url: "https://www.selftapereader.com/pricing",
   },
+  alternates: {
+    canonical: "https://selftapereader.com/pricing",
+  },
 };
 
 export default function PricingLayout({
