@@ -11,6 +11,9 @@ export const metadata = {
     description: "Browse available readers for your self-tape audition. Book a real actor to read lines with you.",
     url: "https://www.selftapereader.com/readers",
   },
+  alternates: {
+    canonical: "https://selftapereader.com/readers",
+  },
 };
 
 export default async function ReadersPage() {
