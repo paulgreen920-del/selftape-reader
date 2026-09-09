@@ -17,6 +17,7 @@ export async function GET(req: Request) {
       activeSubscriptions,
       totalBookings,
       pendingBookings,
+      confirmedBookings,
       completedBookings,
       canceledBookings,
       totalRevenue,
@@ -32,12 +33,22 @@ export async function GET(req: Request) {
       // Booking counts
       prisma.booking.count(),
       prisma.booking.count({ where: { status: "PENDING" } }),
+      prisma.booking.count({ where: { status: "CONFIRMED" } }),
       prisma.booking.count({ where: { status: "COMPLETED" } }),
       prisma.booking.count({ where: { status: "CANCELED" } }),
-      
-      // Revenue (sum of platform fees)
+
+      // Revenue (sum of platform fees).
+      //
+      // Counts CONFIRMED as well as COMPLETED. Checkout captures immediately
+      // (no capture_method: 'manual' anywhere), so a booking reaches CONFIRMED
+      // only after the money has actually moved. Nothing in the codebase sets
+      // COMPLETED automatically — it can only be applied by hand via the admin
+      // tools page — so filtering on COMPLETED alone reported $0 forever.
+      //
+      // CANCELED is excluded, which is also how refunds are netted out: every
+      // refund path sets status to CANCELED, so refunded fees never count.
       prisma.booking.aggregate({
-        where: { status: "COMPLETED" },
+        where: { status: { in: ["CONFIRMED", "COMPLETED"] } },
         _sum: { platformFeeCents: true },
       }),
       
@@ -82,6 +93,7 @@ export async function GET(req: Request) {
         bookings: {
           total: totalBookings,
           pending: pendingBookings,
+          confirmed: confirmedBookings,
           completed: completedBookings,
           canceled: canceledBookings,
         },

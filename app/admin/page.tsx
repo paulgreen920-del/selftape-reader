@@ -85,6 +85,8 @@ export default function AdminDashboard() {
           <div className="mt-2 text-sm text-gray-600">
             <span className="text-yellow-600">{stats.bookings.pending} Pending</span>
             {' • '}
+            <span className="text-blue-600">{stats.bookings.confirmed ?? 0} Confirmed</span>
+            {' • '}
             <span className="text-emerald-600">{stats.bookings.completed} Completed</span>
           </div>
         </div>
@@ -98,7 +100,7 @@ export default function AdminDashboard() {
             </svg>
           </div>
           <p className="text-3xl font-bold text-gray-900">${stats.revenue.totalUsd}</p>
-          <p className="mt-2 text-sm text-gray-600">From completed bookings</p>
+          <p className="mt-2 text-sm text-gray-600">From paid bookings</p>
         </div>
       </div>
 
@@ -151,7 +153,7 @@ export default function AdminDashboard() {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    ${((booking.totalPriceCents || 0) / 100).toFixed(2)}
+                    ${((booking.totalCents || 0) / 100).toFixed(2)}
                   </td>
                 </tr>
               ))}

@@ -163,7 +163,7 @@ export default function AdminBookingsPage() {
                         </span>
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-900">
-                        ${((booking.totalPriceCents || 0) / 100).toFixed(2)}
+                        ${((booking.totalCents || 0) / 100).toFixed(2)}
                       </td>
                       <td className="px-6 py-4 text-sm">
                         <button
@@ -249,7 +249,7 @@ export default function AdminBookingsPage() {
                 <p><strong>Actor:</strong> {editingBooking.User_Booking_actorIdToUser.email}</p>
                 <p><strong>Reader:</strong> {editingBooking.User_Booking_readerIdToUser.email}</p>
                 <p><strong>Time:</strong> {new Date(editingBooking.startTime).toLocaleString()}</p>
-                <p><strong>Price:</strong> ${((editingBooking.totalPriceCents || 0) / 100).toFixed(2)}</p>
+                <p><strong>Price:</strong> ${((editingBooking.totalCents || 0) / 100).toFixed(2)}</p>
               </div>
             </div>
 
